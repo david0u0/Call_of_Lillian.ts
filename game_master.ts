@@ -1,29 +1,17 @@
-import {
-    Player, CardStat, CardType, CardSeries,
-    BattleRole, CharStat,
-    IKeeper, ICard, ICharacter, IUpgrade, IArena, ISpell, IGameMaster
-} from "./interface";
-import { Card } from "./cards";
+import { Player } from "./enums";
+import { IGameMaster } from "./interface";
+import { Card, Upgrade, Character } from "./cards";
 import { HookChain, HookResult } from "./hook";
 
-class PlayerStatus {
-    public readonly mana: number;
-    public readonly emo: number;
-    public readonly deck: ICard[];
-    public readonly hand: ICard[];
-    public readonly gravyard: ICard[];
-    public readonly characters: ICard[];
-    public readonly arenas: ICard[];
-    public readonly events: ICard[];
-
-    public readonly card_play_chain: HookChain<Card> = new HookChain();
-    public readonly card_die_chain: HookChain<Card> = new HookChain();
-    
-    public readonly add_mana_chain: HookChain<number> = new HookChain();
-    public readonly spend_mana_chain: HookChain<number> = new HookChain();
-
-    public readonly add_emo_chain: HookChain<number> = new HookChain();
-    public readonly cure_mana_chain: HookChain<number> = new HookChain();
+class PlayerMaster {
+    public mana: number;
+    public emo: number;
+    public deck: Card[];
+    public hand: Card[];
+    public gravyard: Card[];
+    public characters: Card[];
+    public arenas: Card[];
+    public events: Card[];
 
     constructor(public readonly player: Player) {
         this.mana = 0;
@@ -35,16 +23,38 @@ class PlayerStatus {
         this.arenas = [];
         this.events = [];
     }
-    public appendWhenCardAlive<T>(chain: HookChain<T>, func: (arg: T) => HookResult<T>|void, card_seq: number) {
-        let hook = chain.append(func, 1);
-        this.card_die_chain.append((card) => {
-            if(card.seq != card_seq) {
-                return { did_trigger: false };
-            } else {
-                hook.active_count = 0;
-                return { did_trigger: true };
-            }
-        });
+    
+    public readonly get_mana_cost_chain
+        = new HookChain<{ cost: number, card: Card }>();
+
+    public add_mana_chain: HookChain<number> = new HookChain();
+    public spend_mana_chain: HookChain<number> = new HookChain();
+
+    public add_emo_chain: HookChain<number> = new HookChain();
+    public cure_mana_chain: HookChain<number> = new HookChain();
+
+    public card_play_chain: HookChain<Card> = new HookChain();
+    public card_die_chain: HookChain<Card> = new HookChain();
+    
+    getManaCost(card: Card) {
+        let arg = { cost: card.basic_mana_cost, card };
+        let { result_arg } = this.get_mana_cost_chain.trigger(arg);
+        return card.get_mana_cost_chain.trigger(result_arg.cost).result_arg;
+    }
+
+    spendMana(p: Player, cost: number) {
+        let { result_arg, intercept_effect } = this.spend_mana_chain.trigger(cost);
+        if(!intercept_effect) {
+            this.mana -= result_arg;
+        }
+    }
+
+    playCharacter(char: Character) {
+    }
+
+    equip(upgrade: Upgrade, char: Character) {
+        // char.upgrade_list.push(upgrade);
+        // upgrade.character_equipped = char;
     }
 }
 
@@ -54,24 +64,25 @@ class GameMaster implements IGameMaster {
         return this.cur_seq++;
     }
 
-    private p_status1: PlayerStatus = new PlayerStatus(Player.Player1);
-    private p_status2: PlayerStatus = new PlayerStatus(Player.Player2);
+    private p_master1: PlayerMaster = new PlayerMaster(Player.Player1);
+    private p_master2: PlayerMaster = new PlayerMaster(Player.Player2);
 
     getMyStatus(me: Player) {
         if(me == Player.Player1) {
-            return this.p_status1;
+            return this.p_master1;
         } else {
-            return this.p_status2;
+            return this.p_master2;
         }
     }
     getEnemyStatus(me: Player) {
         if(me == Player.Player1) {
-            return this.p_status2;
+            return this.p_master2;
         } else {
-            return this.p_status1;
+            return this.p_master1;
         }
     }
-    
+
     public readonly battle_start_chain: HookChain<number> = new HookChain<number>();
     public readonly battle_end_chain: HookChain<number> = new HookChain<number>();
+
 }
