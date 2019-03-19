@@ -1,5 +1,5 @@
 type HookResult<T> = {
-    did_trigger?: boolean,
+    was_passed?: boolean,
     break_chain?: boolean,
     intercept_effect?: boolean,
     result_arg?: T,
@@ -18,7 +18,7 @@ class HookChain<T> {
         for(let h of this.list) {
             if(h.active_count != 0) {
                 let result = h.func(arg);
-                if(result && result.did_trigger) {
+                if(result && !result.was_passed) {
                     if(h.active_count > 0) {
                         h.active_count--;
                     }
@@ -38,8 +38,8 @@ class HookChain<T> {
         return { intercept_effect: intercepted, result_arg: arg };
     }
     /**
-     * 把一個處理函式接到鏈的尾端。
-     * @param func 處理函式
+     * 把一個規則接到鏈的尾端，預設為永久規則。
+     * @param func 欲接上的規則
      * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
      */
     public append(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
@@ -48,8 +48,8 @@ class HookChain<T> {
         return h;
     }
     /**
-     * 把一個處理函式接到鏈的開頭。
-     * @param func 處理函式
+     * 把一個規則接到鏈的開頭，預設為永久規則。
+     * @param func 欲接上的規則
      * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
      */
     public dominant(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {

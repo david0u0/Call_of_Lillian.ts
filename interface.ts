@@ -1,6 +1,21 @@
+import { HookChain } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat } from "./enums";
 
-interface IGameMaster { };
+interface IPlayerMaster {
+    mana: number;
+    emo: number;
+    setMana(new_mana: number): void;
+    setEmo(new_emo: number): void;
+    set_mana_chain: HookChain<number>;
+    set_emo_chain: HookChain<number>;
+    card_play_chain: HookChain<ICard>;
+    card_die_chain: HookChain<ICard>; 
+}
+interface IGameMaster { 
+    getMyMaster(p: Player): IPlayerMaster;
+    getEnemyMaster(p: Player): IPlayerMaster;
+}
+
 interface IKeeper { };
 interface ICard {
     readonly seq: number;
@@ -44,5 +59,5 @@ interface ISpell extends ICard {
 
 }
 export {
-    IGameMaster, IKeeper, ICard, ICharacter, IUpgrade, IArena, ISpell
+    IPlayerMaster, IGameMaster, IKeeper, ICard, ICharacter, IUpgrade, IArena, ISpell
 }

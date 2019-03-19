@@ -15,21 +15,39 @@ abstract class Card implements ICard {
     public abstract readonly basic_mana_cost: number;
 
     public readonly get_mana_cost_chain = new HookChain<number>();
-    public readonly card_play_chain = new HookChain<void>();
-    public readonly card_die_chain = new HookChain<void>();
+    public readonly card_play_chain = new HookChain<null>();
+    public readonly card_die_chain = new HookChain<null>();
 
     public series: CardSeries[] = []
 
     constructor(public readonly seq: number, public readonly owner: Player,
-        private readonly g_master: IGameMaster) { }
+        protected readonly g_master: IGameMaster) { }
 
-    onDraw() {}
+    /**
+     * 在抽起來的同時觸發本效果
+     */
+    initialize() { }
 
+    /**
+     * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
+     * @param chain 欲接上的那條規則鏈
+     * @param func 欲接上的規則
+     */
     appendChainWhileAlive<T>(chain: HookChain<T>, func: (arg: T) => HookResult<T>|void) {
         let hook = chain.append(func, -1);
         this.card_die_chain.append(() => {
             hook.active_count = 0;
-            return { did_trigger: true };
+        });
+    }
+    /**
+     * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
+     * @param chain 欲接上的那條規則鏈
+     * @param func 欲接上的規則
+     */
+    dominantChainWhileAlive<T>(chain: HookChain<T>, func: (arg: T) => HookResult<T>|void) {
+        let hook = chain.dominant(func, -1);
+        this.card_die_chain.append(() => {
+            hook.active_count = 0;
         });
     }
 }
@@ -50,6 +68,7 @@ abstract class Character extends Card implements ICharacter {
     public status = CharStat.Waiting;
 
     public readonly get_strength_chain = new HookChain<number>();
+    public readonly enter_arena_chain = new HookChain<IArena>();
 }
 
 export { Card, Upgrade, Character };
