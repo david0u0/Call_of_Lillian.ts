@@ -3,6 +3,7 @@ import {
     BattleRole, CharStat,
     ICard, ICharacter, IUpgrade, IArena, ISpell, IGameMaster
 } from "./interface";
+import { HookChain, HookResult } from "./hook";
 
 class CallbackCycleError extends Error {
     constructor(msg: string) {
@@ -15,6 +16,10 @@ abstract class Card implements ICard {
     public abstract readonly name: string;
     public abstract readonly description: string;
     public abstract readonly basic_mana_cost: number;
+
+    public readonly card_play_chain: HookChain<void> = new HookChain<void>();
+    public readonly card_die_chain: HookChain<void> = new HookChain<void>();
+
     public series: CardSeries[] = []
     public mana_cost_modifier = 0;
 
@@ -36,6 +41,14 @@ abstract class Card implements ICard {
             func();
             this.lock_call = false;
         }
+    }
+
+    appendChainWhileAlive<T>(chain: HookChain<T>, func: (arg: T) => HookResult<T>|void) {
+        let hook = chain.append(func, -1);
+        this.card_die_chain.append(() => {
+            hook.active_count = 0;
+            return { did_trigger: true };
+        }, 1);
     }
 }
 
@@ -62,8 +75,8 @@ abstract class Character extends Card implements ICharacter {
     public readonly basic_battle_role: BattleRole = BattleRole.Fighter;
 
     public readonly upgrade_list: IUpgrade[] = [];
-    public readonly arena_entered: IArena|null = null;
-    public readonly status = CharStat.Waiting;
+    public arena_entered: IArena|null = null;
+    public status = CharStat.Waiting;
 
     getStrength(g_master: IGameMaster): number {
         let final_strength = this.basic_strength;
@@ -89,6 +102,6 @@ abstract class Character extends Card implements ICharacter {
             upgrade.onEquip(g_master, this);
         });
     }
-
-
 }
+
+export { Card };

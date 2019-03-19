@@ -3,51 +3,8 @@ import {
     BattleRole, CharStat,
     IKeeper, ICard, ICharacter, IUpgrade, IArena, ISpell, IGameMaster
 } from "./interface";
-
-type HookResult<T> = {
-    did_trigger?: boolean,
-    break_chain?: boolean,
-    result_arg?: T
-};
-
-type Hook<T> = {
-    active_count: number, // 0代表無活性，-1代表永久
-    func: (arg: T) => HookResult<T>|void
-};
-
-/** NOTE: 所有這些 hook 都是在動作開始前執行，所以是有可能修改動作本身的。 */
-class HookChain<T> {
-    private list: Hook<T>[] = [];
-    public trigger(arg: T): T {
-        for(let h of this.list) {
-            if(h.active_count != 0) {
-                let result = h.func(arg);
-                if(result && result.did_trigger) {
-                    if(h.active_count > 0) {
-                        h.active_count--;
-                    }
-                    if(result.break_chain) {
-                        break;
-                    }
-                    if(typeof result.result_arg != "undefined") {
-                        arg = result.result_arg;
-                    }
-                }
-            }
-        }
-        return arg;
-    }
-    public append(func: (arg: T) => HookResult<T>|void, active_count=-1): Hook<T> {
-        let h = { active_count, func };
-        this.list.push(h);
-        return h;
-    }
-    public dominant(func: (arg: T) => HookResult<T>|void, active_count=-1): Hook<T> {
-        let h = { active_count, func };
-        this.list = [h, ...this.list];
-        return h;
-    }
-}
+import { Card } from "./cards";
+import { HookChain, HookResult } from "./hook";
 
 class PlayerStatus {
     public readonly mana: number;
@@ -59,9 +16,12 @@ class PlayerStatus {
     public readonly arenas: ICard[];
     public readonly events: ICard[];
 
-    public readonly card_die_chain: HookChain<number> = new HookChain();
+    public readonly card_play_chain: HookChain<Card> = new HookChain();
+    public readonly card_die_chain: HookChain<Card> = new HookChain();
+    
     public readonly add_mana_chain: HookChain<number> = new HookChain();
     public readonly spend_mana_chain: HookChain<number> = new HookChain();
+
     public readonly add_emo_chain: HookChain<number> = new HookChain();
     public readonly cure_mana_chain: HookChain<number> = new HookChain();
 
@@ -77,8 +37,8 @@ class PlayerStatus {
     }
     public appendWhenCardAlive<T>(chain: HookChain<T>, func: (arg: T) => HookResult<T>|void, card_seq: number) {
         let hook = chain.append(func, 1);
-        this.card_die_chain.append((seq) => {
-            if(seq != card_seq) {
+        this.card_die_chain.append((card) => {
+            if(card.seq != card_seq) {
                 return { did_trigger: false };
             } else {
                 hook.active_count = 0;
