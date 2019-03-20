@@ -13,10 +13,28 @@ interface ICard {
 
     readonly get_mana_cost_chain: HookChain<number>;
     readonly card_play_chain: HookChain<null>;
+    /** 只要從場上離開，不論退場還是消滅都會觸發這條 */
+    readonly card_leave_chain: HookChain<null>;
+    /** 只有退場會觸發這條效果 */
     readonly card_die_chain: HookChain<null>;
 
-    appendChainWhileAlive<T>(chain: HookChain<T>,
+    /** 在抽起來的同時觸發本效果 */
+    initialize(): void;
+
+    /**
+     * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
+     * @param chain 欲接上的那條規則鏈
+     * @param func 欲接上的規則
+     */
+    appendChainWhileAlive<T>(chain: HookChain<T>[]|HookChain<T>,
         func: (arg: T) => HookResult<T>|void): void ;
+    /**
+     * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
+     * @param chain 欲接上的那條規則鏈
+     * @param func 欲接上的規則
+     */
+    dominantChainWhileAlive<T>(chain: HookChain<T>[]|HookChain<T>,
+        func: (arg: T) => HookResult<T>|void): void;
 }
 interface ICharacter extends ICard { };
 interface IUpgrade extends ICard { };

@@ -32,6 +32,7 @@ class PlayerMaster {
     public set_emo_chain: HookChain<number> = new HookChain();
 
     public card_play_chain: HookChain<ICard> = new HookChain();
+    public card_leave_chain: HookChain<ICard> = new HookChain();
     public card_die_chain: HookChain<ICard> = new HookChain();
     
     setEmo(new_emo: number) {
@@ -84,14 +85,16 @@ class PlayerMaster {
 }
 
 class GameMaster {
-    private cur_seq = 1;
+    private _cur_seq = 1;
     getSeqNumber(): number {
-        return this.cur_seq++;
+        return this._cur_seq++;
+    }
+    genCard(card_constructor: (seq: number, gm: GameMaster) => ICard): ICard {
+        return card_constructor(this.getSeqNumber(), this);
     }
 
     private p_master1: PlayerMaster = new PlayerMaster(Player.Player1);
     private p_master2: PlayerMaster = new PlayerMaster(Player.Player2);
-
     getMyMaster(me: Player) {
         if(me == Player.Player1) {
             return this.p_master1;

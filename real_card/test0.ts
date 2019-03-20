@@ -8,7 +8,7 @@ let description = `
 
 // TODO: 裝備0費還無法達成
 
-class Test0 extends Character {
+export class Test0 extends Character {
     name = name;
     description = description;
     basic_mana_cost = 0;
@@ -20,14 +20,18 @@ class Test0 extends Character {
             let enemy_master = this.g_master.getEnemyMaster(this.owner);
             enemy_master.setMana(0);
 
-            this.appendChainWhileAlive(my_master.card_die_chain, (card) => {
-                if(card.card_type == CardType.Character) {
-                    enemy_master.setEmo(enemy_master.emo + 3);
+            this.appendChainWhileAlive(
+                [my_master.card_die_chain, enemy_master.card_die_chain],
+                card => {
+                    if (card.card_type == CardType.Character) {
+                        enemy_master.setEmo(enemy_master.emo + 3);
+                    }
                 }
-            });
-            this.appendChainWhileAlive(enemy_master.card_die_chain, (card) => {
-                if(card.card_type == CardType.Character) {
-                    enemy_master.setEmo(enemy_master.emo + 3);
+            );
+
+            this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {
+                if(card.card_type == CardType.Spell) {
+                    return { intercept_effect: true };
                 }
             });
         });
