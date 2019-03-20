@@ -90,7 +90,7 @@ class PlayerMaster {
         return result.result_arg.strength;
     }
     
-    getBettleRole(char: ICharacter) {
+    getBattleRole(char: ICharacter) {
         let role = char.get_battle_role_chain.trigger(char.basic_battle_role).result_arg;
         let result = this.get_battal_role_chain.trigger({ role, char });
         return result.result_arg.role;

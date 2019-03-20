@@ -77,7 +77,7 @@ abstract class Upgrade extends Card implements IUpgrade {
 abstract class Character extends Card implements ICharacter {
     public readonly card_type = CardType.Character;
     public readonly abstract basic_strength: number;
-    public readonly basic_battle_role = BattleRole.Fighter;
+    public readonly basic_battle_role: BattleRole = BattleRole.Fighter;
 
     public readonly upgrade_list: IUpgrade[] = [];
     public arena_entered: IArena | null = null;

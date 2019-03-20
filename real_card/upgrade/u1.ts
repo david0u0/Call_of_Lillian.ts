@@ -9,7 +9,7 @@ let description = `
 export class U1 extends Upgrade {
     name = name;
     description = description;
-    basic_mana_cost = 0;
+    basic_mana_cost = 1 ;
     basic_strength = 2;
 
     applyEffect(char: Character) {

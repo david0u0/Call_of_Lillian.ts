@@ -1,10 +1,11 @@
-import { CardType, CardSeries } from "../../enums";
+import { CardType, CardSeries, BattleRole } from "../../enums";
 import { Character } from "../../cards";
 
 let name = "零卍佛滅卍實驗體少女";
 let description = `
-**系統最深處的少女**：_零卍佛滅卍實驗體少女_入場時，對手的魔力值歸零。裝備升級卡於本角色無需耗費魔力，每當雙方有角色退場，對手承受3點情緒傷害。
+**系統最深處的少女**：*零卍佛滅卍實驗體少女*入場時，對手的魔力值歸零。裝備升級卡於本角色無需耗費魔力，每當雙方有角色退場，對手承受3點情緒傷害。
 （角色行動）使對手的一個角色退場。
+本角色的基礎特徵為**狙擊**
 `;
 
 export class C_Test0 extends Character {
@@ -13,6 +14,7 @@ export class C_Test0 extends Character {
     series = [ CardSeries.Testing ];
     basic_mana_cost = 0;
     basic_strength = 10;
+    public readonly basic_battle_role = BattleRole.Sniper;
 
     initialize() {
         this.card_play_chain.append(() => {
