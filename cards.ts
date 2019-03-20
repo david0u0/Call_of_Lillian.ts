@@ -1,5 +1,6 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, IArena, ISpell, IGameMaster } from "./interface";
+import { ICard, ICharacter, IUpgrade, IArena, ISpell } from "./interface";
+import { GameMaster } from "./game_master";
 import { HookChain, HookResult } from "./hook";
 
 class CallbackCycleError extends Error {
@@ -21,7 +22,7 @@ abstract class Card implements ICard {
     public series: CardSeries[] = []
 
     constructor(public readonly seq: number, public readonly owner: Player,
-        protected readonly g_master: IGameMaster) { }
+        protected readonly g_master: GameMaster) { }
 
     /**
      * 在抽起來的同時觸發本效果

@@ -1,17 +1,16 @@
 import { Player } from "./enums";
-import { IGameMaster, IPlayerMaster, ICard } from "./interface";
-import { Card, Upgrade, Character } from "./cards";
+import { ICard, ICharacter, IUpgrade } from "./interface";
 import { HookChain, HookResult } from "./hook";
 
-class PlayerMaster implements IPlayerMaster {
+class PlayerMaster {
     private _mana: number;
     private _emo: number;
-    private _deck: Card[];
-    private _hand: Card[];
-    private _gravyard: Card[];
-    private _characters: Card[];
-    private _arenas: Card[];
-    private _events: Card[];
+    private _deck: ICard[];
+    private _hand: ICard[];
+    private _gravyard: ICard[];
+    private _characters: ICard[];
+    private _arenas: ICard[];
+    private _events: ICard[];
     public get mana() { return this._mana };
     public get emo() { return this._emo };
 
@@ -27,7 +26,7 @@ class PlayerMaster implements IPlayerMaster {
     }
     
     public readonly get_mana_cost_chain
-        = new HookChain<{ cost: number, card: Card }>();
+        = new HookChain<{ cost: number, card: ICard }>();
 
     public set_mana_chain: HookChain<number> = new HookChain();
     public set_emo_chain: HookChain<number> = new HookChain();
@@ -42,7 +41,7 @@ class PlayerMaster implements IPlayerMaster {
         }
     }
 
-    getManaCost(card: Card) {
+    getManaCost(card: ICard) {
         let arg = { cost: card.basic_mana_cost, card };
         let { result_arg } = this.get_mana_cost_chain.trigger(arg);
         return card.get_mana_cost_chain.trigger(result_arg.cost).result_arg;
@@ -55,7 +54,7 @@ class PlayerMaster implements IPlayerMaster {
         }
     }
 
-    private _playCard(card: Card) {
+    private _playCard(card: ICard) {
         let cost = this.getManaCost(card);
         if(cost > this.mana) {
             throw Error("??");
@@ -69,12 +68,12 @@ class PlayerMaster implements IPlayerMaster {
         }
     }
 
-    playCharacter(char: Character) {
+    playCharacter(char: ICharacter) {
         this._playCard(char);
         this._characters.push(char);
     }
 
-    equip(upgrade: Upgrade, char: Character) {
+    equip(upgrade: IUpgrade, char: ICharacter) {
         this._playCard(upgrade);
         upgrade.appendChainWhileAlive(char.get_strength_chain, strength => {
             return { result_arg: strength + upgrade.basic_strength };
@@ -84,7 +83,7 @@ class PlayerMaster implements IPlayerMaster {
     }
 }
 
-class GameMaster implements IGameMaster {
+class GameMaster {
     private cur_seq = 1;
     getSeqNumber(): number {
         return this.cur_seq++;
@@ -110,4 +109,8 @@ class GameMaster implements IGameMaster {
 
     public readonly battle_start_chain: HookChain<number> = new HookChain<number>();
     public readonly battle_end_chain: HookChain<number> = new HookChain<number>();
+}
+
+export {
+    GameMaster
 }
