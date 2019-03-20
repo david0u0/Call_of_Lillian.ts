@@ -1,7 +1,7 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, IArena, ISpell } from "./interface";
 import { GameMaster } from "./game_master";
-import { HookChain, HookResult } from "./hook";
+import { EventChain, HookResult } from "./hook";
 
 class CallbackCycleError extends Error {
     constructor(msg: string) {
@@ -15,10 +15,10 @@ abstract class Card implements ICard {
     public abstract readonly description: string;
     public abstract readonly basic_mana_cost: number;
 
-    public readonly get_mana_cost_chain = new HookChain<number>();
-    public readonly card_play_chain = new HookChain<null>();
-    public readonly card_leave_chain = new HookChain<null>();
-    public readonly card_die_chain = new HookChain<null>();
+    public readonly get_mana_cost_chain = new EventChain<number>();
+    public readonly card_play_chain = new EventChain<null>();
+    public readonly card_leave_chain = new EventChain<null>();
+    public readonly card_retire_chain = new EventChain<null>();
 
     public series: CardSeries[] = []
 
@@ -27,7 +27,7 @@ abstract class Card implements ICard {
     constructor(public readonly seq: number, public readonly owner: Player,
         protected readonly g_master: GameMaster) { }
 
-    appendChainWhileAlive<T>(chain: HookChain<T>[]|HookChain<T>,
+    appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void
     ) {
         if(chain instanceof Array) {
@@ -46,7 +46,7 @@ abstract class Card implements ICard {
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
      */
-    dominantChainWhileAlive<T>(chain: HookChain<T>[]|HookChain<T>,
+    dominantChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void
     ) {
         if(chain instanceof Array) {
@@ -77,8 +77,8 @@ abstract class Character extends Card implements ICharacter {
     public arena_entered: IArena | null = null;
     public status = CharStat.Waiting;
 
-    public readonly get_strength_chain = new HookChain<number>();
-    public readonly enter_arena_chain = new HookChain<IArena>();
+    public readonly get_strength_chain = new EventChain<number>();
+    public readonly enter_arena_chain = new EventChain<IArena>();
 }
 
 export { Card, Upgrade, Character };

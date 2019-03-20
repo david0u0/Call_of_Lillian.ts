@@ -1,3 +1,7 @@
+/**
+ * 注意此處的 intercept_effect 不是像魔不夠這種限制，而是特殊效果，例如「某個角色不會退場」之類。
+ * 魔不夠這類的限制應該在進入事件鏈之前就被擋下來了。
+ */
 type HookResult<T> = {
     was_passed?: boolean,
     break_chain?: boolean,
@@ -13,6 +17,7 @@ type Hook<T> = {
 /** NOTE: 所有這些 hook 都是在動作開始前執行，所以是有可能修改動作本身的。 */
 class HookChain<T> {
     private list: Hook<T>[] = [];
+
     public trigger(arg: T): { result_arg: T, intercept_effect?: boolean } {
         let intercepted = false;
         for(let h of this.list) {
@@ -37,21 +42,11 @@ class HookChain<T> {
         }
         return { intercept_effect: intercepted, result_arg: arg };
     }
-    /**
-     * 把一個規則接到鏈的尾端，預設為永久規則。
-     * @param func 欲接上的規則
-     * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
-     */
     public append(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
         let h = { active_count, func };
         this.list.push(h);
         return h;
     }
-    /**
-     * 把一個規則接到鏈的開頭，預設為永久規則。
-     * @param func 欲接上的規則
-     * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
-     */
     public dominant(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
         let h = { active_count, func };
         this.list = [h, ...this.list];
@@ -59,4 +54,54 @@ class HookChain<T> {
     }
 }
 
-export { HookChain, HookResult };
+class EventChain<T> {
+    private real_chain = new HookChain<T>();
+    private check_chain = new HookChain<T>();
+
+    /**
+     * 把一個規則接到鏈的尾端，預設為永久規則。
+     * @param func 欲接上的規則
+     * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
+     */
+    public append(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
+        return this.real_chain.append(func, active_count);
+    }
+    /**
+     * 把一個規則接到鏈的開頭，預設為永久規則。
+     * @param func 欲接上的規則
+     * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
+     */
+    public dominant(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
+        return this.real_chain.dominant(func, active_count);
+    }
+    /**
+     * 把一個規則接到驗證鏈的尾端，預設為永久規則。
+     * @param func 欲接上的規則
+     * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
+     */
+    public appendCheck(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
+        return this.check_chain.append(func, active_count);
+    }
+    /**
+     * 把一個規則接到驗證鏈的開頭，預設為永久規則。
+     * @param func 欲接上的規則
+     * @param active_count 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
+     */
+    public dominantCheck(func: (arg: T) => HookResult<T>|void, active_count=1): Hook<T> {
+        return this.check_chain.dominant(func, active_count);
+    }
+
+    public checkCanTrigger(arg: T): boolean {
+        let { intercept_effect } = this.check_chain.trigger(arg);
+        if(intercept_effect) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+    public trigger(arg: T) {
+        return this.real_chain.trigger(arg);
+    }
+}
+
+export { EventChain, HookResult };

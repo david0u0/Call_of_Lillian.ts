@@ -12,7 +12,7 @@ export class Test0 extends Character {
     name = name;
     description = description;
     basic_mana_cost = 0;
-    basic_strength = 0;
+    basic_strength = 10;
 
     initialize() {
         this.card_play_chain.append(() => {
@@ -21,7 +21,7 @@ export class Test0 extends Character {
             enemy_master.setMana(0);
 
             this.appendChainWhileAlive(
-                [my_master.card_die_chain, enemy_master.card_die_chain],
+                [my_master.card_retire_chain, enemy_master.card_retire_chain],
                 card => {
                     if (card.card_type == CardType.Character) {
                         enemy_master.setEmo(enemy_master.emo + 3);

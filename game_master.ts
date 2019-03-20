@@ -1,6 +1,6 @@
 import { Player } from "./enums";
 import { ICard, ICharacter, IUpgrade } from "./interface";
-import { HookChain, HookResult } from "./hook";
+import { EventChain, HookResult } from "./hook";
 
 class PlayerMaster {
     private _mana: number;
@@ -25,16 +25,17 @@ class PlayerMaster {
         this._events = [];
     }
     
-    public readonly get_mana_cost_chain
-        = new HookChain<{ cost: number, card: ICard }>();
+    public card_play_chain: EventChain<ICard> = new EventChain();
+    public card_retire_chain: EventChain<ICard> = new EventChain();
 
-    public set_mana_chain: HookChain<number> = new HookChain();
-    public set_emo_chain: HookChain<number> = new HookChain();
+    public set_mana_chain: EventChain<number> = new EventChain();
+    public set_emo_chain: EventChain<number> = new EventChain();
 
-    public card_play_chain: HookChain<ICard> = new HookChain();
-    public card_leave_chain: HookChain<ICard> = new HookChain();
-    public card_die_chain: HookChain<ICard> = new HookChain();
-    
+    public get_mana_cost_chain
+        = new EventChain<{ cost: number, card: ICard }>();
+    public get_equip_mana_cost_chain
+        = new EventChain<{ cost: number, char: ICharacter, upgrade: IUpgrade }>();
+
     setEmo(new_emo: number) {
         let { result_arg, intercept_effect } = this.set_emo_chain.trigger(new_emo);
         if(!intercept_effect) {
@@ -56,17 +57,11 @@ class PlayerMaster {
     }
 
     private _playCard(card: ICard) {
-        let cost = this.getManaCost(card);
-        if(cost > this.mana) {
-            throw Error("??");
-        }
         let { intercept_effect } = this.card_play_chain.trigger(card);
         if(!intercept_effect) {
             ({ intercept_effect } = card.card_play_chain.trigger(null));
         }
-        if(!intercept_effect) {
-            this.setMana(this.mana - cost);
-        }
+        return intercept_effect;
     }
 
     playCharacter(char: ICharacter) {
@@ -110,8 +105,8 @@ class GameMaster {
         }
     }
 
-    public readonly battle_start_chain: HookChain<number> = new HookChain<number>();
-    public readonly battle_end_chain: HookChain<number> = new HookChain<number>();
+    public readonly battle_start_chain: EventChain<number> = new EventChain<number>();
+    public readonly battle_end_chain: EventChain<number> = new EventChain<number>();
 }
 
 export {

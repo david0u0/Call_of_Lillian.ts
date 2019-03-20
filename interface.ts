@@ -1,4 +1,4 @@
-import { HookChain, HookResult } from "./hook";
+import { EventChain, HookResult } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat } from "./enums";
 
 interface IKeeper { };
@@ -11,12 +11,12 @@ interface ICard {
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
 
-    readonly get_mana_cost_chain: HookChain<number>;
-    readonly card_play_chain: HookChain<null>;
+    readonly get_mana_cost_chain: EventChain<number>;
+    readonly card_play_chain: EventChain<null>;
     /** 只要從場上離開，不論退場還是消滅都會觸發這條 */
-    readonly card_leave_chain: HookChain<null>;
+    readonly card_leave_chain: EventChain<null>;
     /** 只有退場會觸發這條效果 */
-    readonly card_die_chain: HookChain<null>;
+    readonly card_retire_chain: EventChain<null>;
 
     /** 在抽起來的同時觸發本效果 */
     initialize(): void;
@@ -26,14 +26,14 @@ interface ICard {
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
      */
-    appendChainWhileAlive<T>(chain: HookChain<T>[]|HookChain<T>,
+    appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void): void ;
     /**
      * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
      */
-    dominantChainWhileAlive<T>(chain: HookChain<T>[]|HookChain<T>,
+    dominantChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void): void;
 }
 interface ICharacter extends ICard { };
@@ -55,8 +55,8 @@ interface ICharacter extends ICard {
     arena_entered: IArena|null;
     status: CharStat;
 
-    readonly get_strength_chain: HookChain<number>;
-    readonly enter_arena_chain: HookChain<IArena>;
+    readonly get_strength_chain: EventChain<number>;
+    readonly enter_arena_chain: EventChain<IArena>;
 }
 
 interface IArena extends ICard {
