@@ -32,33 +32,28 @@ abstract class Card implements ICard {
     public initialize() { }
 
     appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
-        func: (arg: T) => HookResult<T>|void
+        func: (arg: T) => HookResult<T>|void, check?: boolean
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.appendChainWhileAlive(c, func);
+                this.appendChainWhileAlive(c, func, check);
             }
         } else {
-            let hook = chain.append(func);
+            let hook = check ? chain.append(func) : chain.appendCheck(func);
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });
         }
     }
-    /**
-     * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
-     * @param chain 欲接上的那條規則鏈
-     * @param func 欲接上的規則
-     */
     dominantChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
-        func: (arg: T) => HookResult<T>|void
+        func: (arg: T) => HookResult<T>|void, check?: boolean
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.appendChainWhileAlive(c, func);
+                this.dominantChainWhileAlive(c, func, check);
             }
         } else {
-            let hook = chain.dominant(func);
+            let hook = check ? chain.dominant(func) : chain.dominant(func);
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });

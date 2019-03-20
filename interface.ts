@@ -29,16 +29,18 @@ interface ICard {
      * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
+     * @param check 若此項為真，則代表接上的是驗證規則
      */
     appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
-        func: (arg: T) => HookResult<T>|void): void ;
+        func: (arg: T) => HookResult<T>|void, check?: boolean): void ;
     /**
      * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
+     * @param check 若此項為真，則代表接上的是驗證規則
      */
     dominantChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
-        func: (arg: T) => HookResult<T>|void): void;
+        func: (arg: T) => HookResult<T>|void, check?: boolean): void;
 }
 interface ICharacter extends ICard { };
 interface IUpgrade extends ICard { };

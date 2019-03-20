@@ -22,6 +22,7 @@ export class C_Test0 extends Character {
             let enemy_master = this.g_master.getEnemyMaster(this);
             enemy_master.setMana(0);
 
+            // NOTE: 任一角色退場造成情緒傷害
             this.appendChainWhileAlive(
                 [my_master.card_retire_chain, enemy_master.card_retire_chain],
                 card => {
@@ -30,6 +31,8 @@ export class C_Test0 extends Character {
                     }
                 }
             );
+
+            // NOTE: 裝備免費
             this.dominantChainWhileAlive(my_master.get_equip_mana_cost_chain, (arg) => {
                 if(this.isEqual(arg.char)) { // 裝備的對象確實是這個角色
                     arg = { ...arg, cost: 0 };
@@ -37,11 +40,12 @@ export class C_Test0 extends Character {
                 return { result_arg: arg };
             });
 
+            // NOTE: 禁止施咒
             this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {
                 if(card.card_type == CardType.Spell) {
                     return { intercept_effect: true };
                 }
-            });
+            }, true);
         });
     }
     // TODO: 增加角色行動
