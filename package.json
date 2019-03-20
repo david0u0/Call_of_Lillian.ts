@@ -4,13 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-      "watch": "tsc --watch",
-      "tsc": "tsc",
-      "start": "tsc; node dist/index.js"
+    "watch": "tsc --watch",
+    "tsc": "tsc",
+    "start": "tsc; node dist/index.js",
+    "test": "mocha dist/test"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/assert": "^1.4.2",
+    "@types/mocha": "^5.2.6",
+    "mocha": "^6.0.2",
     "typescript": "^3.3.3333"
   }
 }

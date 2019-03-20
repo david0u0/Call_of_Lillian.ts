@@ -1,10 +1,9 @@
-import { Character } from "../../cards";
-import { BattleRole } from "../../enums";
+import { Character } from "../../../cards";
+import { BattleRole } from "../../../enums";
 
 let name = "終末之民";
 let description = `
-**輻射吐息**：*終末之民*永遠是**戰士**。每當本角色發動攻擊，對手損失1魔力。
-`;
+**輻射吐息**：即使*終末之民*的戰力為0仍可攻擊與格擋。每當本角色發動攻擊，對手損失1魔力。`;
 
 export class C2 extends Character {
     name = name;

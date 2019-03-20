@@ -1,3 +1,6 @@
+// TODO: 想辦法避免兩條鏈循環呼叫！
+// 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
+
 /**
  * 注意此處的 intercept_effect 不是像魔不夠這種限制，而是特殊效果，例如「某個角色不會退場」之類。
  * 魔不夠這類的限制應該在進入事件鏈之前就被擋下來了。
@@ -52,11 +55,9 @@ class HookChain<T> {
         return h;
     }
 }
-
 class EventChain<T> {
     private real_chain = new HookChain<T>();
     private check_chain = new HookChain<T>();
-
     /**
      * 把一個規則接到鏈的尾端，預設為永久規則。
      * @param func 欲接上的規則
@@ -90,6 +91,7 @@ class EventChain<T> {
         return this.check_chain.dominant(func, active_countdown);
     }
 
+    /** 只執行驗證鏈 */
     public checkCanTrigger(arg: T): boolean {
         let { intercept_effect } = this.check_chain.trigger(arg);
         if(intercept_effect) {
@@ -98,8 +100,13 @@ class EventChain<T> {
             return true;
         }
     }
-    public trigger(arg: T) {
-        return this.real_chain.trigger(arg);
+    /** 執行真正的事件鏈之前會先執行驗證鏈 */
+    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean } {
+        if(this.checkCanTrigger(arg)) {
+            return this.real_chain.trigger(arg);
+        } else {
+            return { result_arg: arg, intercept_effect: true };
+        }
     }
 }
 

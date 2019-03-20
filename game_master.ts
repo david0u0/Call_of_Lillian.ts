@@ -2,6 +2,13 @@ import { Player, CardStat, BattleRole } from "./enums";
 import { ICard, ICharacter, IUpgrade, ISpell } from "./interface";
 import { EventChain, HookResult } from "./hook";
 
+/** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
+class BadOperationError {
+    constructor(msg: string) {
+        Error.apply(this, [msg]);
+    }
+}
+
 class PlayerMaster {
     private _mana: number;
     private _emo: number;
@@ -53,6 +60,7 @@ class PlayerMaster {
         let card = this._deck.pop();
         if(card) {
             card.initialize();
+            card.card_status = CardStat.Hand;
         }
         return card;
     }
@@ -86,7 +94,7 @@ class PlayerMaster {
 
     getStrength(char: ICharacter) {
         let strength = char.get_strength_chain.trigger(char.basic_strength).result_arg;
-        let result = this.get_strength_chain.trigger({ strength,  char });
+        let result = this.get_strength_chain.trigger({ strength, char });
         return result.result_arg.strength;
     }
     
@@ -101,6 +109,9 @@ class PlayerMaster {
      * @returns 一個布林值，true 代表順利執行，false 代表整個效果應中斷。
      */
     private _playCard(card: ICard): boolean {
+        if(card.card_status != CardStat.Hand) {
+            throw new BadOperationError("試圖打出不在手上的牌");
+        }
         let { intercept_effect } = this.card_play_chain.trigger(card);
         if(!intercept_effect) {
             ({ intercept_effect } = card.card_play_chain.trigger(null));
@@ -118,21 +129,21 @@ class PlayerMaster {
         if(!can_play) {
             return;
         }
-
-        this._playCard(char);
         this._characters.push(char);
     }
 
     playUpgrade(upgrade: IUpgrade, char: ICharacter) {
+        // NOTE: 理論上在場所中的角色也不能裝，但可能有例外，這裡就不寫死了
+        if(char.card_status != CardStat.Onboard) {
+            throw new BadOperationError("試圖給不在場上的角色安裝升級卡");
+        }
         let can_play = this._playCard(upgrade);
         if(!can_play) {
             return;
         }
-
         upgrade.dominantChainWhileAlive(char.get_strength_chain, strength => {
             return { result_arg: strength + upgrade.basic_strength };
         });
-
         char.upgrade_list.push(upgrade);
         upgrade.character_equipped = char;
         upgrade.applyEffect(char);
@@ -144,9 +155,25 @@ class GameMaster {
     getSeqNumber(): number {
         return this._cur_seq++;
     }
-    genCard(owner: Player, card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard): ICard {
+    genCardToDeck(owner: Player,
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
+    ): ICard {
         let c = card_constructor(this.getSeqNumber(), owner, this);
         this.getMyMaster(owner).addToDeck(c);
+        return c;
+    }
+    genCardToHand(owner: Player,
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
+    ): ICard {
+        let c = card_constructor(this.getSeqNumber(), owner, this);
+        // TODO:
+        return c;
+    }
+    genCharToBoard(owner: Player,
+        char_constructor: (seq: number, owner: Player, gm: GameMaster) => ICharacter
+    ): ICharacter {
+        let c = char_constructor(this.getSeqNumber(), owner, this);
+        // TODO:
         return c;
     }
 
@@ -178,5 +205,5 @@ class GameMaster {
 }
 
 export {
-    GameMaster
+    GameMaster, BadOperationError
 }

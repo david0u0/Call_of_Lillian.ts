@@ -39,7 +39,7 @@ abstract class Card implements ICard {
                 this.appendChainWhileAlive(c, func, check);
             }
         } else {
-            let hook = check ? chain.append(func) : chain.appendCheck(func);
+            let hook = check ? chain.appendCheck(func) : chain.append(func);
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });
@@ -53,7 +53,7 @@ abstract class Card implements ICard {
                 this.dominantChainWhileAlive(c, func, check);
             }
         } else {
-            let hook = check ? chain.dominant(func) : chain.dominant(func);
+            let hook = check ? chain.dominantCheck(func) : chain.dominant(func);
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });
