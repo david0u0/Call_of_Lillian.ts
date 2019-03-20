@@ -1,5 +1,5 @@
 import { EventChain, HookResult } from "./hook";
-import { Player, CardType, CardSeries, BattleRole, CharStat } from "./enums";
+import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat } from "./enums";
 
 interface IKeeper { };
 interface ICard {
@@ -11,6 +11,9 @@ interface ICard {
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
 
+    /**  */
+    card_status: CardStat;
+
     readonly get_mana_cost_chain: EventChain<number>;
     readonly card_play_chain: EventChain<null>;
     /** 只要從場上離開，不論退場還是消滅都會觸發這條 */
@@ -18,6 +21,7 @@ interface ICard {
     /** 只有退場會觸發這條效果 */
     readonly card_retire_chain: EventChain<null>;
 
+    isEqual(card: ICard): boolean;
     /** 在抽起來的同時觸發本效果 */
     initialize(): void;
 
@@ -46,17 +50,19 @@ interface ISpell extends ICard { };
 interface IUpgrade extends ICard {
     readonly basic_strength: number;
     character_equipped: ICharacter|null;
-    
+    applyEffect(char: ICharacter): void;
 }
 interface ICharacter extends ICard {
     readonly basic_strength: number;
     readonly basic_battle_role: BattleRole;
     upgrade_list: IUpgrade[];
     arena_entered: IArena|null;
-    status: CharStat;
+    char_status: CharStat;
 
     readonly get_strength_chain: EventChain<number>;
     readonly enter_arena_chain: EventChain<IArena>;
+    readonly attack_chain: EventChain<ICharacter>;
+    readonly get_battle_role_chain: EventChain<BattleRole>;
 }
 
 interface IArena extends ICard {
