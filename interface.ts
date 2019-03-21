@@ -25,6 +25,9 @@ interface ICard {
     /** 在抽起來的同時觸發本效果 */
     initialize(): void;
 
+    /** 在打卡前進行相關的設置，通常是UI */
+    setupBeforePlay(): void;
+
     /**
      * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
      * @param chain 欲接上的那條規則鏈
@@ -52,7 +55,6 @@ interface ISpell extends ICard { };
 interface IUpgrade extends ICard {
     readonly basic_strength: number;
     character_equipped: ICharacter|null;
-    applyEffect(char: ICharacter): void;
 }
 interface ICharacter extends ICard {
     readonly basic_strength: number;
@@ -60,6 +62,7 @@ interface ICharacter extends ICard {
     upgrade_list: IUpgrade[];
     arena_entered: IArena|null;
     char_status: CharStat;
+    is_tired: boolean;
 
     readonly get_strength_chain: EventChain<number>;
     readonly enter_arena_chain: EventChain<IArena>;

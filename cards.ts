@@ -1,13 +1,7 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, IArena, ISpell } from "./interface";
-import { GameMaster } from "./game_master";
+import { GameMaster, BadOperationError } from "./game_master";
 import { EventChain, HookResult } from "./hook";
-
-class CallbackCycleError extends Error {
-    constructor(msg: string) {
-        super(msg);
-    }
-}
 
 abstract class Card implements ICard {
     public abstract readonly card_type: CardType;
@@ -30,6 +24,7 @@ abstract class Card implements ICard {
         return this.seq == card.seq;
     }
     public initialize() { }
+    public setupBeforePlay() { }
 
     appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void, check?: boolean
@@ -66,7 +61,28 @@ abstract class Upgrade extends Card implements IUpgrade {
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
 
-    applyEffect(char: ICharacter) { }
+    constructor(seq: number, owner: Player, g_master: GameMaster) {
+        super(seq, owner, g_master);
+        this.card_play_chain.append(() => {
+            if(this.character_equipped) {
+                if(this.character_equipped.card_status != CardStat.Onboard) {
+                    throw new BadOperationError("指定的角色不在場上");
+                }
+                if(this.character_equipped.char_status != CharStat.StandBy) {
+                    throw new BadOperationError("指定的角色不在待命區");
+                } else {
+                    this.character_equipped.upgrade_list.push(this);
+                    this.appendChainWhileAlive(
+                        this.character_equipped.get_strength_chain, str => {
+                            return { result_arg: str + this.basic_strength };
+                        }
+                    );
+                }
+            } else {
+                throw new BadOperationError("未指定角色就打出升級");
+            }
+        });
+    }
 }
 
 abstract class Character extends Card implements ICharacter {
@@ -76,7 +92,8 @@ abstract class Character extends Card implements ICharacter {
 
     public readonly upgrade_list: IUpgrade[] = [];
     public arena_entered: IArena | null = null;
-    public char_status = CharStat.Waiting;
+    public char_status = CharStat.StandBy;
+    public is_tired = false;
 
     public readonly get_strength_chain = new EventChain<number>();
     public readonly get_battle_role_chain = new EventChain<BattleRole>();
@@ -90,6 +107,9 @@ abstract class Character extends Card implements ICharacter {
                 role = BattleRole.Civilian;
             }
             return { result_arg: role };
+        });
+        this.card_play_chain.append(() => {
+            this.g_master.getMyMaster(this).addCharacter(this);
         });
     }
 }

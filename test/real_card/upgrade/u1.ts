@@ -11,9 +11,14 @@ export class U1 extends Upgrade {
     basic_mana_cost = 1 ;
     basic_strength = 2;
 
-    applyEffect(char: Character) {
-        this.dominantChainWhileAlive(char.get_battle_role_chain, role => {
-            return { result_arg: BattleRole.Sniper, break_chain: true };
+    initialize() {
+        this.card_play_chain.append(() => {
+            let char = this.character_equipped;
+            if (char) {
+                this.dominantChainWhileAlive(char.get_battle_role_chain, role => {
+                    return { result_arg: BattleRole.Sniper, break_chain: true };
+                });
+            }
         });
     }
 }

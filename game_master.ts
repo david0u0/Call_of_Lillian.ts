@@ -4,8 +4,8 @@ import { EventChain, HookResult } from "./hook";
 
 /** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
 class BadOperationError {
-    constructor(msg: string) {
-        Error.apply(this, [msg]);
+    constructor(public message: string) {
+        Error.apply(this, [message]);
     }
 }
 
@@ -39,15 +39,15 @@ class PlayerMaster {
     public set_mana_chain: EventChain<number> = new EventChain();
     public set_emo_chain: EventChain<number> = new EventChain();
 
-    public get_strength_chain = new EventChain<{ strength: number, char: ICharacter }>();
+    public char_enter_chain = new EventChain<ICharacter>();
 
+    public get_strength_chain = new EventChain<{ strength: number, char: ICharacter }>();
     public get_mana_cost_chain
         = new EventChain<{ cost: number, card: ICard }>();
     public get_equip_mana_cost_chain
         = new EventChain<{ cost: number, char: ICharacter, upgrade: IUpgrade }>();
     public get_spell_mana_cost_chain
         = new EventChain<{ cost: number, spell: ISpell, caster: ICharacter }>();
-
     public get_battal_role_chain
         = new EventChain<{ role: BattleRole, char: ICharacter }>();
 
@@ -108,7 +108,7 @@ class PlayerMaster {
      * @param card 
      * @returns 一個布林值，true 代表順利執行，false 代表整個效果應中斷。
      */
-    private _playCard(card: ICard): boolean {
+    playCard(card: ICard): boolean {
         if(card.card_status != CardStat.Hand) {
             throw new BadOperationError("試圖打出不在手上的牌");
         }
@@ -117,37 +117,17 @@ class PlayerMaster {
             ({ intercept_effect } = card.card_play_chain.trigger(null));
         }
         if(intercept_effect) {
-            return false;
+            return false; // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
         } else {
             card.card_status = CardStat.Onboard;
             return true;
         }
     }
 
-    playCharacter(char: ICharacter) {
-        let can_play = this._playCard(char);
-        if(!can_play) {
-            return;
-        }
+    addCharacter(char: ICharacter) {
         this._characters.push(char);
     }
 
-    playUpgrade(upgrade: IUpgrade, char: ICharacter) {
-        // NOTE: 理論上在場所中的角色也不能裝，但可能有例外，這裡就不寫死了
-        if(char.card_status != CardStat.Onboard) {
-            throw new BadOperationError("試圖給不在場上的角色安裝升級卡");
-        }
-        let can_play = this._playCard(upgrade);
-        if(!can_play) {
-            return;
-        }
-        upgrade.dominantChainWhileAlive(char.get_strength_chain, strength => {
-            return { result_arg: strength + upgrade.basic_strength };
-        });
-        char.upgrade_list.push(upgrade);
-        upgrade.character_equipped = char;
-        upgrade.applyEffect(char);
-    }
 }
 
 class GameMaster {
