@@ -21,12 +21,14 @@ interface ICard {
     /** 只有退場會觸發這條效果 */
     readonly card_retire_chain: EventChain<null>;
 
-    isEqual(card: ICard): boolean;
+    isEqual(card: ICard|null): boolean;
     /** 在抽起來的同時觸發本效果 */
     initialize(): void;
 
     /** 在打卡前進行相關的設置，通常是UI */
     setupBeforePlay(): void;
+    /** 若打卡過程取消，將在過程中被設定的變數恢復原狀 */
+    recoverCancelPlay(): void;
 
     /**
      * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
@@ -68,6 +70,8 @@ interface ICharacter extends ICard {
     readonly enter_arena_chain: EventChain<IArena>;
     readonly attack_chain: EventChain<ICharacter>;
     readonly get_battle_role_chain: EventChain<BattleRole>;
+
+    addUpgrade(upgrade: IUpgrade): void;
 }
 
 interface IArena extends ICard {

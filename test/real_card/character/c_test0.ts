@@ -1,5 +1,5 @@
 import { CardType, CardSeries, BattleRole } from "../../../enums";
-import { Character } from "../../../cards";
+import { Character, Upgrade } from "../../../cards";
 
 let name = "零卍佛滅卍實驗體少女";
 let description = `
@@ -41,12 +41,14 @@ export class C_Test0 extends Character {
             );
 
             // NOTE: 裝備免費
-            this.dominantChainWhileAlive(my_master.get_equip_mana_cost_chain, (arg) => {
-                if (this.isEqual(arg.char)) { // 裝備的對象確實是這個角色
-                    arg = { ...arg, cost: 0 };
+            this.appendChainWhileAlive(my_master.get_mana_cost_chain, ({card}) => {
+                if(card instanceof Upgrade) {
+                    if(this.isEqual(card.character_equipped)) {
+                        return { result_arg: { card, cost: 0 }};
+                    }
                 }
-                return { result_arg: arg };
             });
+
 
             // NOTE: 禁止施咒
             this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {

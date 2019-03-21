@@ -20,11 +20,16 @@ abstract class Card implements ICard {
     constructor(public readonly seq: number, public readonly owner: Player,
         protected readonly g_master: GameMaster) { }
 
-    public isEqual(card: ICard) {
-        return this.seq == card.seq;
+    public isEqual(card: ICard|null) {
+        if(card) {
+            return this.seq == card.seq;
+        } else {
+            return false;
+        }
     }
     public initialize() { }
     public setupBeforePlay() { }
+    public recoverCancelPlay() { }
 
     appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void, check?: boolean
@@ -71,7 +76,7 @@ abstract class Upgrade extends Card implements IUpgrade {
                 if(this.character_equipped.char_status != CharStat.StandBy) {
                     throw new BadOperationError("指定的角色不在待命區");
                 } else {
-                    this.character_equipped.upgrade_list.push(this);
+                    this.character_equipped.addUpgrade(this);
                     this.appendChainWhileAlive(
                         this.character_equipped.get_strength_chain, str => {
                             return { result_arg: str + this.basic_strength };
@@ -83,6 +88,9 @@ abstract class Upgrade extends Card implements IUpgrade {
             }
         });
     }
+    recoverCancelPlay() {
+        this.character_equipped = null;
+    }
 }
 
 abstract class Character extends Card implements ICharacter {
@@ -90,13 +98,15 @@ abstract class Character extends Card implements ICharacter {
     public readonly abstract basic_strength: number;
     public readonly basic_battle_role: BattleRole = BattleRole.Fighter;
 
-    public readonly upgrade_list: IUpgrade[] = [];
+    private readonly _upgrade_list: IUpgrade[] = [];
+    public get upgrade_list() { return [...this._upgrade_list] };
     public arena_entered: IArena | null = null;
     public char_status = CharStat.StandBy;
     public is_tired = false;
 
     public readonly get_strength_chain = new EventChain<number>();
     public readonly get_battle_role_chain = new EventChain<BattleRole>();
+    public readonly add_upgrade_chain = new EventChain<IUpgrade>();
     public readonly enter_arena_chain = new EventChain<IArena>();
     public readonly attack_chain = new EventChain<ICharacter>();
 
@@ -111,6 +121,11 @@ abstract class Character extends Card implements ICharacter {
         this.card_play_chain.append(() => {
             this.g_master.getMyMaster(this).addCharacter(this);
         });
+    }
+
+    addUpgrade(u: IUpgrade) {
+        this.add_upgrade_chain.trigger(u);
+        this._upgrade_list.push(u);
     }
 }
 

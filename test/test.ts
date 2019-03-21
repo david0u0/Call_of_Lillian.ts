@@ -12,6 +12,7 @@ let p = Player.Player1;
 let gm = new GameMaster();
 let pm = gm.getMyMaster(p);
 let enemy_master = gm.getEnemyMaster(p);
+
 gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
 let simple_char = pm.draw() as Character;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
@@ -20,6 +21,8 @@ gm.genCardToDeck(p, (seq, owner, _gm) => new C2(seq, owner, _gm));
 let waste_land_char = pm.draw() as Character;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U1(seq, owner, _gm));
 let ferry_bomb_upgrade = pm.draw() as Upgrade;
+gm.genCardToDeck(p, (seq, owner, _gm) => new U1(seq, owner, _gm));
+let ferry_bomb_upgrade2 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
 let simple_upgrade1 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
@@ -72,7 +75,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             assert.equal(BattleRole.Civilian, pm.getBattleRole(simple_char));
         });
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
-            assert.equal(pm.getUpgradeManaCost(simple_upgrade1, simple_char), 1);
+            assert.equal(pm.getManaCost(simple_upgrade1), 1);
         });
         it("一張角色重複打兩次應該噴錯誤", () => {
             checkBadOperationError(() => pm.playCard(simple_char));
@@ -119,7 +122,8 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
             assert.equal(BattleRole.Fighter, pm.getBattleRole(waste_land_char));
         });
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
-            assert.equal(pm.getUpgradeManaCost(ferry_bomb_upgrade, waste_land_char), 1);
+            ferry_bomb_upgrade.character_equipped = waste_land_char;
+            assert.equal(pm.getManaCost(ferry_bomb_upgrade), 1);
         });
     });
     describe("加入升級卡", () => {
@@ -170,8 +174,12 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             it("我方另一個角色戰力應加5，變為6", () => {
                 assert.equal(6, pm.getStrength(simple_char2));
             });
-            it("所有安裝在這個角色身上的裝備費用為零", () => {
-                assert.equal(0, pm.getUpgradeManaCost(ferry_bomb_upgrade, ultimate_0_test_char));
+            it("某件升級的費用本來應為1", () => {
+                assert.equal(1, pm.getManaCost(ferry_bomb_upgrade));
+            });
+            it("所有安裝在這個角色身上的升級費用應為零", () => {
+                ferry_bomb_upgrade.character_equipped = ultimate_0_test_char;
+                assert.equal(0, pm.getManaCost(ferry_bomb_upgrade));
             });
             it("每有一個角色退場，敵方情緒值+1");
             describe("當角色退場，我方角色的戰力應回復正常", () => {

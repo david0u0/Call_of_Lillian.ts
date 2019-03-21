@@ -39,15 +39,9 @@ class PlayerMaster {
     public set_mana_chain: EventChain<number> = new EventChain();
     public set_emo_chain: EventChain<number> = new EventChain();
 
-    public char_enter_chain = new EventChain<ICharacter>();
-
     public get_strength_chain = new EventChain<{ strength: number, char: ICharacter }>();
     public get_mana_cost_chain
         = new EventChain<{ cost: number, card: ICard }>();
-    public get_equip_mana_cost_chain
-        = new EventChain<{ cost: number, char: ICharacter, upgrade: IUpgrade }>();
-    public get_spell_mana_cost_chain
-        = new EventChain<{ cost: number, spell: ISpell, caster: ICharacter }>();
     public get_battal_role_chain
         = new EventChain<{ role: BattleRole, char: ICharacter }>();
 
@@ -84,12 +78,6 @@ class PlayerMaster {
         if(!intercept_effect) {
             this._mana = result_arg;
         }
-    }
-
-    getUpgradeManaCost(upgrade: IUpgrade, char: ICharacter) {
-        let cost = this.getManaCost(upgrade);
-        let result = this.get_equip_mana_cost_chain.trigger({ cost, char, upgrade });
-        return result.result_arg.cost;
     }
 
     getStrength(char: ICharacter) {
