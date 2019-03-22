@@ -12,13 +12,11 @@ export class U1 extends Upgrade {
     basic_strength = 2;
 
     initialize() {
-        this.card_play_chain.append(() => {
-            let char = this.character_equipped;
-            if (char) {
-                this.dominantChainWhileAlive(char.get_battle_role_chain, role => {
-                    return { result_arg: BattleRole.Sniper, break_chain: true };
-                });
-            }
-        });
+        let char = this.character_equipped;
+        if(char) {
+            this.dominantChainWhileAlive(char.get_battle_role_chain, role => {
+                return { result_arg: BattleRole.Sniper, break_chain: true };
+            });
+        }
     }
 }

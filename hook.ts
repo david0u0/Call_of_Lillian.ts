@@ -21,7 +21,8 @@ type Hook<T> = {
 class HookChain<T> {
     private list: Hook<T>[] = [];
     public trigger(arg: T): { result_arg: T, intercept_effect?: boolean, break_chain?: boolean } {
-        let intercepted = false;
+        let intercept_effect = false;
+        let break_chain = false;
         for(let h of this.list) {
             if(h.active_countdown != 0) {
                 let result = h.func(arg);
@@ -34,15 +35,16 @@ class HookChain<T> {
                     }
 
                     if(result.intercept_effect) {
-                        intercepted = true;
+                        intercept_effect = true;
                         break;
                     } else if(result.break_chain) {
+                        break_chain = true;
                         break;
                     }
                 }
             }
         }
-        return { intercept_effect: intercepted, result_arg: arg };
+        return { intercept_effect, break_chain, result_arg: arg };
     }
     public append(func: (arg: T) => HookResult<T>|void, active_countdown=1): Hook<T> {
         let h = { active_countdown, func };

@@ -98,16 +98,6 @@ abstract class Character extends Card implements ICharacter {
     public readonly enter_arena_chain = new EventChain<IArena>();
     public readonly attack_chain = new EventChain<ICharacter>();
 
-    constructor(seq: number, owner: Player, g_master: GameMaster) {
-        super(seq, owner, g_master);
-        this.get_battle_role_chain.append(role => {
-            if(g_master.getMyMaster(this).getStrength(this) == 0) {
-                role = BattleRole.Civilian;
-            }
-            return { result_arg: role };
-        });
-    }
-
     addUpgrade(u: IUpgrade) {
         this.add_upgrade_chain.trigger(u);
         this._upgrade_list.push(u);

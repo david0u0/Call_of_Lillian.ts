@@ -72,6 +72,14 @@ class PlayerMaster {
                 this.addCharacter(char);
             }
         });
+        // 計算戰鬥職位的通則
+        this.get_battal_role_chain.append(arg => {
+            let role = arg.role;
+            if(this.getStrength(arg.char) == 0) {
+                role = BattleRole.Civilian;
+            }
+            return { result_arg: { role, char: arg.char }};
+        });
     }
     
     public card_play_chain: EventChain<ICard> = new EventChain();
@@ -142,9 +150,13 @@ class PlayerMaster {
     }
     
     getBattleRole(char: ICharacter) {
-        let role = char.get_battle_role_chain.trigger(char.basic_battle_role).result_arg;
-        let result = this.get_battal_role_chain.trigger({ role, char });
-        return result.result_arg.role;
+        let result = char.get_battle_role_chain.trigger(char.basic_battle_role);
+        if(result.break_chain) {
+            return result.result_arg;
+        } else {
+            let arg = { role: result.result_arg, char };
+            return this.get_battal_role_chain.trigger(arg).result_arg.role;
+        }
     }
 
     /**
