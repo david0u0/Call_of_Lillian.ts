@@ -13,9 +13,9 @@ export class C2 extends Character {
 
     initialize() {
         this.get_battle_role_chain.dominant(role => {
-            return { break_chain: true, result_arg: BattleRole.Fighter };
+            return { break_chain: true };
         });
-        this.attack_chain.dominant(enemy => {
+        this.attack_chain.append(enemy => {
             let enemy_master = this.g_master.getEnemyMaster(this);
             enemy_master.setMana(enemy_master.mana - 1);
         });

@@ -1,3 +1,6 @@
+// NOTE: 所有的鏈在觸發時，先觸發卡片事件（特例），再觸發世界事件（通則）。
+// 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
+
 import { Player, CardStat, BattleRole, CardType, CharStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent } from "./interface";
 import { EventChain, HookResult } from "./hook";
@@ -117,13 +120,13 @@ class PlayerMaster {
         }
     }
 
-    getManaCost(card: ICard) {
-        let arg = { cost: card.basic_mana_cost, card };
-        let result = this.get_mana_cost_chain.trigger(arg);
+    getManaCost(card: ICard): number {
+        let result = card.get_mana_cost_chain.trigger(card.basic_mana_cost);
         if(result.break_chain) {
             return result.result_arg;
         } else {
-            return card.get_mana_cost_chain.trigger(result.result_arg.cost).result_arg;
+            let arg = { cost: result.result_arg, card };
+            return this.get_mana_cost_chain.trigger(arg).result_arg.cost;
         }
     }
 
@@ -167,6 +170,8 @@ class PlayerMaster {
         if(card.card_status != CardStat.Hand) {
             throw new BadOperationError("試圖打出不在手上的牌");
         }
+        // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為這邊觸發的效果很可能有副作用。
+        // 用 intercept_effect 來解決是行不通的，傷害已經造成了！
         let { intercept_effect } = this.card_play_chain.trigger(card);
         if(!intercept_effect) {
             ({ intercept_effect } = card.card_play_chain.trigger(null));

@@ -2,8 +2,7 @@ import { Upgrade, Character } from "../../../cards";
 import { BattleRole } from "../../../enums";
 
 let name = "精靈炸彈";
-let description = `
-裝備者獲得*狙擊*特性。`;
+let description = `裝備者獲得*狙擊*特性。`;
 
 export class U1 extends Upgrade {
     name = name;
@@ -12,10 +11,11 @@ export class U1 extends Upgrade {
     basic_strength = 2;
 
     initialize() {
+        let my_master = this.g_master.getMyMaster(this);
         let char = this.character_equipped;
         if(char) {
             this.dominantChainWhileAlive(char.get_battle_role_chain, role => {
-                return { result_arg: BattleRole.Sniper, break_chain: true };
+                return { result_arg: BattleRole.Sniper };
             });
         }
     }
