@@ -25,4 +25,4 @@ export class C2 extends Character {
     }
 }
 
-"指尖的溫柔"
+"指尖的道別"

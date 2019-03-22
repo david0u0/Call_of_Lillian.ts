@@ -20,7 +20,7 @@ type Hook<T> = {
 /** NOTE: 所有這些 hook 都是在動作開始前執行，所以是有可能修改動作本身的。 */
 class HookChain<T> {
     private list: Hook<T>[] = [];
-    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean } {
+    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean, break_chain?: boolean } {
         let intercepted = false;
         for(let h of this.list) {
             if(h.active_countdown != 0) {
@@ -101,7 +101,7 @@ class EventChain<T> {
         }
     }
     /** 執行真正的事件鏈之前會先執行驗證鏈 */
-    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean } {
+    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean, break_chain?: boolean } {
         if(this.checkCanTrigger(arg)) {
             return this.real_chain.trigger(arg);
         } else {

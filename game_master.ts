@@ -1,37 +1,77 @@
-import { Player, CardStat, BattleRole } from "./enums";
+import { Player, CardStat, BattleRole, CardType, CharStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent } from "./interface";
 import { EventChain, HookResult } from "./hook";
 
+const ENV = "backend";
+
 /** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
 class BadOperationError {
-    constructor(public message: string) {
+    message = "";
+    constructor(message: string, card?: ICard) {
+        if(card) {
+            message = `${card.name}: ${message}`;
+        }
+        this.message = message;
         Error.apply(this, [message]);
     }
 }
 
+// 如果是後端就噴錯誤，如果是前端就只是擋下UI
+function throwIfIsBackend(msg: string, card?: ICard) {
+    if(ENV == "backend") {
+        throw new BadOperationError(msg, card);
+    }
+}
+
 class PlayerMaster {
-    private _mana: number;
-    private _emo: number;
-    private _deck: ICard[];
-    private _hand: ICard[];
-    private _gravyard: ICard[];
-    private _characters: ICharacter[];
-    private _arenas: IArena[];
-    private _events: IEvent[];
+    private _mana = 0;
+    private _emo = 0;
+    private _deck = new Array<ICard>();
+    private _hand = new Array<ICard>();
+    private _gravyard = new Array<ICard>();
+    private _characters = new Array<ICharacter>();
+    private _arenas = new Array<IArena>();
+    private _events_ongoing = new Array<IEvent>();
+    private _events_succeeded = new Array<IEvent>();
+    private _events_failed = new Array<IEvent>();
     public get mana() { return this._mana };
     public get emo() { return this._emo };
     public get deck() { return [...this._deck] };
     public get characters() { return [...this._characters] };
 
     constructor(public readonly player: Player) {
-        this._mana = 0;
-        this._emo = 0;
-        this._deck = [];
-        this._hand = [];
-        this._gravyard = [];
-        this._characters = [];
-        this._arenas = [];
-        this._events = [];
+        this.card_play_chain.appendCheck(card => {
+            if(card.card_type == CardType.Upgrade) {
+                // 打出升級卡的規則
+                let upgrade = card as IUpgrade;
+                if (upgrade.character_equipped) {
+                    if (upgrade.character_equipped.card_status != CardStat.Onboard) {
+                        throwIfIsBackend("指定的角色不在場上")
+                        return { intercept_effect: true };
+                    }
+                    if (upgrade.character_equipped.char_status != CharStat.StandBy) {
+                        throwIfIsBackend("指定的角色不在待命區")
+                        return { intercept_effect: true };
+                    }
+                } else {
+                    throwIfIsBackend("未指定角色就打出升級")
+                    return { intercept_effect: true };
+                }
+            }
+        });
+        this.card_play_chain.append(card => {
+            if(card.card_type == CardType.Upgrade) {
+                // 打出升級卡的規則
+                let upgrade = card as IUpgrade;
+                if(upgrade.character_equipped) {
+                    upgrade.character_equipped.addUpgrade(upgrade);
+                }
+            } else if(card.card_type == CardType.Character) {
+                // 打出角色的規則
+                let char = card as ICharacter;
+                this.addCharacter(char);
+            }
+        });
     }
     
     public card_play_chain: EventChain<ICard> = new EventChain();
@@ -71,8 +111,12 @@ class PlayerMaster {
 
     getManaCost(card: ICard) {
         let arg = { cost: card.basic_mana_cost, card };
-        let { result_arg } = this.get_mana_cost_chain.trigger(arg);
-        return card.get_mana_cost_chain.trigger(result_arg.cost).result_arg;
+        let result = this.get_mana_cost_chain.trigger(arg);
+        if(result.break_chain) {
+            return result.result_arg;
+        } else {
+            return card.get_mana_cost_chain.trigger(result.result_arg.cost).result_arg;
+        }
     }
 
     setMana(new_mana: number) {
@@ -84,9 +128,17 @@ class PlayerMaster {
     }
 
     getStrength(char: ICharacter) {
-        let strength = char.get_strength_chain.trigger(char.basic_strength).result_arg;
-        let result = this.get_strength_chain.trigger({ strength, char });
-        return result.result_arg.strength;
+        let strength = char.basic_strength;
+        for(let u of char.upgrade_list) {
+            strength += u.basic_strength;
+        }
+        let result = char.get_strength_chain.trigger(strength);
+        if(result.break_chain) {
+            return result.result_arg;
+        } else {
+            return this.get_strength_chain.trigger({ strength, char })
+                .result_arg.strength;
+        }
     }
     
     getBattleRole(char: ICharacter) {
@@ -118,7 +170,6 @@ class PlayerMaster {
     addCharacter(char: ICharacter) {
         this._characters.push(char);
     }
-
 }
 
 class GameMaster {
@@ -175,5 +226,5 @@ class GameMaster {
 }
 
 export {
-    GameMaster, BadOperationError
+    GameMaster, BadOperationError, throwIfIsBackend
 }

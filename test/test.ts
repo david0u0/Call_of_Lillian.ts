@@ -1,6 +1,6 @@
 import * as assert from "assert";
 
-import { Player, CardStat, BattleRole } from "../enums";
+import { Player, CardStat, BattleRole, CharStat } from "../enums";
 import { Character, Upgrade } from "../cards"
 import { GameMaster, BadOperationError } from "../game_master";
 import { C2 } from "./real_card/character/c2";
@@ -64,7 +64,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             });
         });
     });
-    describe("測試最基礎的角色卡", () => {
+    describe("打出最基礎的角色卡", () => {
         before(() => {
             pm.playCard(simple_char);
         });
@@ -80,8 +80,15 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
         it("一張角色重複打兩次應該噴錯誤", () => {
             checkBadOperationError(() => pm.playCard(simple_char));
         });
+        it("升級卡欲安裝的角色不在待命區應該噴錯誤", () => {
+            simple_char.char_status = CharStat.InArena;
+            checkBadOperationError(() => {
+                pm.playCard(simple_upgrade1);
+            });
+        });
         describe("裝備兩張最基礎的升級卡", () => {
             before(() => {
+                simple_char.char_status = CharStat.StandBy;
                 simple_upgrade1.character_equipped = simple_char;
                 simple_upgrade2.character_equipped = simple_char;
                 pm.playCard(simple_upgrade1);

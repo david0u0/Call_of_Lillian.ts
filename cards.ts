@@ -67,32 +67,10 @@ abstract class Card implements ICard {
 }
 
 abstract class Upgrade extends Card implements IUpgrade {
-    public readonly card_type = CardType.Upgrade;
+    public card_type = CardType.Upgrade;
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
 
-    constructor(seq: number, owner: Player, g_master: GameMaster) {
-        super(seq, owner, g_master);
-        this.card_play_chain.append(() => {
-            if(this.character_equipped) {
-                if(this.character_equipped.card_status != CardStat.Onboard) {
-                    throw new BadOperationError("指定的角色不在場上");
-                }
-                if(this.character_equipped.char_status != CharStat.StandBy) {
-                    throw new BadOperationError("指定的角色不在待命區");
-                } else {
-                    this.character_equipped.addUpgrade(this);
-                    this.appendChainWhileAlive(
-                        this.character_equipped.get_strength_chain, str => {
-                            return { result_arg: str + this.basic_strength };
-                        }
-                    );
-                }
-            } else {
-                throw new BadOperationError("未指定角色就打出升級");
-            }
-        });
-    }
     recoverCancelPlay() {
         this.character_equipped = null;
     }
@@ -127,9 +105,6 @@ abstract class Character extends Card implements ICharacter {
                 role = BattleRole.Civilian;
             }
             return { result_arg: role };
-        });
-        this.card_play_chain.append(() => {
-            this.g_master.getMyMaster(this).addCharacter(this);
         });
     }
 
