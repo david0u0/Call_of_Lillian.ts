@@ -93,7 +93,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
                 pm.playCard(simple_upgrade1);
             });
         });
-        it("有特殊能力的角色可以在場中裝備升級", () => {
+        it("有特殊能力的角色可以在場中裝備升級卡", () => {
             cyber_char.char_status = CharStat.InArena;
             simple_upgrade4.character_equipped = cyber_char;
             assert.doesNotThrow(() => {

@@ -23,6 +23,8 @@ class BadOperationError {
 function throwIfIsBackend(msg: string, card?: ICard) {
     if(ENV == "backend") {
         throw new BadOperationError(msg, card);
+    } else {
+        console.log(msg)
     }
 }
 
@@ -51,10 +53,10 @@ class PlayerMaster {
                     if (upgrade.character_equipped.card_status != CardStat.Onboard) {
                         throwIfIsBackend("指定的角色不在場上")
                         return { intercept_effect: true };
-                    }
-                    if (upgrade.character_equipped.char_status != CharStat.StandBy) {
+                    } else if (upgrade.character_equipped.char_status != CharStat.StandBy) {
                         throwIfIsBackend("指定的角色不在待命區")
                         return { intercept_effect: true };
+                    } else {
                     }
                 } else {
                     throwIfIsBackend("未指定角色就打出升級")
@@ -76,7 +78,7 @@ class PlayerMaster {
             }
         });
         // 計算戰鬥職位的通則
-        this.get_battal_role_chain.append(arg => {
+        this.get_battle_role_chain.append(arg => {
             let role = arg.role;
             if(this.getStrength(arg.char) == 0) {
                 role = BattleRole.Civilian;
@@ -97,7 +99,7 @@ class PlayerMaster {
         = new EventChain<{ strength: number, me: ICharacter, enemy: ICharacter }>();
     public get_mana_cost_chain
         = new EventChain<{ cost: number, card: ICard }>();
-    public get_battal_role_chain
+    public get_battle_role_chain
         = new EventChain<{ role: BattleRole, char: ICharacter }>();
 
     addToDeck(card: ICard) {
@@ -121,13 +123,11 @@ class PlayerMaster {
     }
 
     getManaCost(card: ICard): number {
-        let result = card.get_mana_cost_chain.trigger(card.basic_mana_cost);
-        if(result.break_chain) {
-            return result.result_arg;
-        } else {
-            let arg = { cost: result.result_arg, card };
-            return this.get_mana_cost_chain.trigger(arg).result_arg.cost;
-        }
+        return card.get_mana_cost_chain.chain(this.get_mana_cost_chain,
+            cost => {
+                return { cost, card };
+            },
+            result => result.cost).trigger(card.basic_mana_cost).result_arg;
     }
 
     setMana(new_mana: number) {
@@ -143,44 +143,39 @@ class PlayerMaster {
         for(let u of char.upgrade_list) {
             strength += u.basic_strength;
         }
-        let result = char.get_strength_chain.trigger(strength);
-        if(result.break_chain) {
-            return result.result_arg;
-        } else {
-            return this.get_strength_chain.trigger({ strength, char })
-                .result_arg.strength;
-        }
+        return char.get_strength_chain.chain(this.get_strength_chain, strength => {
+            return { strength, char };
+        }, result => {
+            return result.strength;
+        }).trigger(strength).result_arg;
     }
     
     getBattleRole(char: ICharacter) {
-        let result = char.get_battle_role_chain.trigger(char.basic_battle_role);
-        if(result.break_chain) {
-            return result.result_arg;
-        } else {
-            let arg = { role: result.result_arg, char };
-            return this.get_battal_role_chain.trigger(arg).result_arg.role;
-        }
+        return char.get_battle_role_chain.chain(this.get_battle_role_chain, role => {
+            return { role, char };
+        }, result => {
+            return result.role;
+        }).trigger(char.basic_battle_role).result_arg;
     }
 
     /**
      * @param card 
      * @returns 一個布林值，true 代表順利執行，false 代表整個效果應中斷。
      */
-    playCard(card: ICard): boolean {
+    playCard(card: ICard) {
         if(card.card_status != CardStat.Hand) {
             throw new BadOperationError("試圖打出不在手上的牌");
         }
-        // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為這邊觸發的效果很可能有副作用。
+        // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為觸發的效果很可能有副作用。
         // 用 intercept_effect 來解決是行不通的，傷害已經造成了！
-        let { intercept_effect } = this.card_play_chain.trigger(card);
-        if(!intercept_effect) {
-            ({ intercept_effect } = card.card_play_chain.trigger(null));
-        }
-        if(intercept_effect) {
-            return false; // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
+        let result = card.card_play_chain.chain(this.card_play_chain,
+            tmp => card , c => null).trigger(null);
+        if(result.intercept_effect) {
+            // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
+            card.recoverCancelPlay();
+            // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
         } else {
             card.card_status = CardStat.Onboard;
-            return true;
         }
     }
 

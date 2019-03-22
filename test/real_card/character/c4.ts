@@ -1,5 +1,6 @@
 import { Character, Upgrade } from "../../../cards";
 import { CardType, CardStat } from "../../../enums";
+import { throwIfIsBackend } from "../../../game_master";
 
 let name = "數據之海的水手";
 let description = `
@@ -19,11 +20,15 @@ export class C4 extends Character {
                 let u = card as Upgrade;
                 if (this.isEqual(u.character_equipped)) {
                     // NOTE: 在場與否的檢查會被 break_chain 打斷，所以這邊得要手動檢查
-                    if (this.card_status == CardStat.Onboard) {
+                    if(this.card_status == CardStat.Onboard) {
                         return { break_chain: true };
+                    } else {
+                        throwIfIsBackend("試圖安裝升級於不在場的角色", this);
+                        return { intercept_effect: true };
                     }
                 }
             }
+            return { was_passed: true };
         });
     }
 }

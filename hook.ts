@@ -20,7 +20,7 @@ type Hook<T> = {
 /** NOTE: 所有這些 hook 都是在動作開始前執行，所以是有可能修改動作本身的。 */
 class HookChain<T> {
     private list: Hook<T>[] = [];
-    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean, break_chain?: boolean } {
+    public trigger(arg: T): { result_arg: T, intercept_effect: boolean, break_chain: boolean } {
         let intercept_effect = false;
         let break_chain = false;
         for(let h of this.list) {
@@ -79,36 +79,68 @@ class EventChain<T> {
     /**
      * 把一個規則接到驗證鏈的尾端，預設為永久規則。
      * @param func 欲接上的規則
-     * @param active_countdown 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
+     * @param active_countdown 預設為-1，代表永久執行-1。
      */
-    public appendCheck(func: (arg: T) => HookResult<T>|void, active_countdown=1): Hook<T> {
+    public appendCheck(func: (arg: T) => HookResult<T>|void, active_countdown=-1): Hook<T> {
         return this.check_chain.append(func, active_countdown);
     }
     /**
      * 把一個規則接到驗證鏈的開頭，預設為永久規則。
      * @param func 欲接上的規則
-     * @param active_countdown 預設為1，代表僅執行一次。若要永久執行，應設定為-1。
+     * @param active_countdown 預設為-1，代表永久執行。
      */
-    public dominantCheck(func: (arg: T) => HookResult<T>|void, active_countdown=1): Hook<T> {
+    public dominantCheck(func: (arg: T) => HookResult<T>|void, active_countdown=-1): Hook<T> {
         return this.check_chain.dominant(func, active_countdown);
     }
 
     /** 只執行驗證鏈 */
     public checkCanTrigger(arg: T): boolean {
-        let { intercept_effect } = this.check_chain.trigger(arg);
-        if(intercept_effect) {
+        let result = this.check_chain.trigger(arg);
+        if(result.intercept_effect) {
             return false;
         } else {
             return true;
         }
     }
     /** 執行真正的事件鏈之前會先執行驗證鏈 */
-    public trigger(arg: T): { result_arg: T, intercept_effect?: boolean, break_chain?: boolean } {
+    public trigger(arg: T): { result_arg: T, intercept_effect: boolean, break_chain: boolean } {
         if(this.checkCanTrigger(arg)) {
             return this.real_chain.trigger(arg);
         } else {
-            return { result_arg: arg, intercept_effect: true };
+            return { result_arg: arg, intercept_effect: true, break_chain: true };
         }
+    }
+    public chain<U>(next_chain: EventChain<U>,
+        trans_func1: (result: T) => U, trans_func2: (result: U) => T
+    ): EventChain<T> {
+        let combined_chain = new EventChain<T>();
+        combined_chain.append(arg => {
+            return this.real_chain.trigger(arg);
+        });
+        combined_chain.append(arg => {
+            let new_arg = trans_func1(arg);
+            let result = next_chain.real_chain.trigger(new_arg);
+            let result_arg = trans_func2(result.result_arg);
+            return {
+                result_arg,
+                break_chain: result.break_chain,
+                intercept_effect: result.intercept_effect
+            };
+        });
+        combined_chain.appendCheck(arg => {
+            return this.check_chain.trigger(arg);
+        });
+        combined_chain.appendCheck(arg => {
+            let new_arg = trans_func1(arg);
+            let result = next_chain.check_chain.trigger(new_arg);
+            let result_arg = trans_func2(result.result_arg);
+            return {
+                result_arg,
+                break_chain: result.break_chain,
+                intercept_effect: result.intercept_effect
+            };
+        });
+        return combined_chain;
     }
 }
 

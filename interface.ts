@@ -79,6 +79,8 @@ interface ICharacter extends ICard {
 }
 
 interface IArena extends ICard {
+    //readonly char_list: ICharacter;
+    //readonly exploit_chain: 
 }
 interface IEvent extends ICard {
     readonly goal_progress_count: number;
