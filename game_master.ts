@@ -1,5 +1,5 @@
 import { Player, CardStat, BattleRole } from "./enums";
-import { ICard, ICharacter, IUpgrade, ISpell } from "./interface";
+import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent } from "./interface";
 import { EventChain, HookResult } from "./hook";
 
 /** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
@@ -15,12 +15,13 @@ class PlayerMaster {
     private _deck: ICard[];
     private _hand: ICard[];
     private _gravyard: ICard[];
-    private _characters: ICard[];
-    private _arenas: ICard[];
-    private _events: ICard[];
+    private _characters: ICharacter[];
+    private _arenas: IArena[];
+    private _events: IEvent[];
     public get mana() { return this._mana };
     public get emo() { return this._emo };
-    public get deck() { return this._deck };
+    public get deck() { return [...this._deck] };
+    public get characters() { return [...this._characters] };
 
     constructor(public readonly player: Player) {
         this._mana = 0;
@@ -39,7 +40,10 @@ class PlayerMaster {
     public set_mana_chain: EventChain<number> = new EventChain();
     public set_emo_chain: EventChain<number> = new EventChain();
 
-    public get_strength_chain = new EventChain<{ strength: number, char: ICharacter }>();
+    public get_strength_chain
+        = new EventChain<{ strength: number, char: ICharacter }>();
+    public get_infight_strength_chain
+        = new EventChain<{ strength: number, me: ICharacter, enemy: ICharacter }>();
     public get_mana_cost_chain
         = new EventChain<{ cost: number, card: ICard }>();
     public get_battal_role_chain
@@ -53,7 +57,6 @@ class PlayerMaster {
         // TODO: 加上事件鏈?
         let card = this._deck.pop();
         if(card) {
-            card.initialize();
             card.card_status = CardStat.Hand;
         }
         return card;
@@ -167,7 +170,6 @@ class GameMaster {
             return this.p_master2;
         }
     }
-
     public readonly battle_start_chain: EventChain<number> = new EventChain<number>();
     public readonly battle_end_chain: EventChain<number> = new EventChain<number>();
 }

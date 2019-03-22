@@ -7,7 +7,7 @@
     "watch": "tsc --watch",
     "tsc": "tsc",
     "start": "tsc; node dist/index.js",
-    "test": "mode=TEST mocha dist/test"
+    "test": "mocha dist/test"
   },
   "author": "",
   "license": "ISC",

@@ -20,43 +20,46 @@ export class C_Test0 extends Character {
     initialize() {
         let my_master = this.g_master.getMyMaster(this);
         let enemy_master = this.g_master.getEnemyMaster(this);
-        this.card_play_chain.append(() => {
-            // NOTE: 對手魔力減10
-            enemy_master.setMana(enemy_master.mana - 10);
+        // NOTE: 對手魔力減10
+        enemy_master.setMana(enemy_master.mana - 10);
 
-            // NOTE: 我方戰力加5
-            this.appendChainWhileAlive(my_master.get_strength_chain, arg => {
-                let result_arg = { ...arg, strength: arg.strength + 5 };
-                return { result_arg };
-            });
+        // NOTE: 我方戰力加5
+        this.appendChainWhileAlive(my_master.get_strength_chain, arg => {
+            let result_arg = { ...arg, strength: arg.strength + 5 };
+            return { result_arg };
+        });
 
-            // NOTE: 任一角色退場造成情緒傷害
-            this.appendChainWhileAlive(
-                [my_master.card_retire_chain, enemy_master.card_retire_chain],
-                card => {
-                    if (card.card_type == CardType.Character) {
-                        enemy_master.setEmo(enemy_master.emo + 3);
-                    }
+        // NOTE: 任一角色退場造成情緒傷害
+        this.appendChainWhileAlive(
+            [my_master.card_retire_chain, enemy_master.card_retire_chain],
+            card => {
+                if (card.card_type == CardType.Character) {
+                    enemy_master.setEmo(enemy_master.emo + 3);
                 }
-            );
+            }
+        );
 
-            // NOTE: 裝備免費
-            this.appendChainWhileAlive(my_master.get_mana_cost_chain, ({card}) => {
-                if(card instanceof Upgrade) {
-                    if(this.isEqual(card.character_equipped)) {
-                        return { result_arg: { card, cost: 0 }};
-                    }
+        // NOTE: 裝備免費
+        this.appendChainWhileAlive(my_master.get_mana_cost_chain, ({ card }) => {
+            if (card instanceof Upgrade) {
+                if (this.isEqual(card.character_equipped)) {
+                    return { result_arg: { card, cost: 0 } };
                 }
-            });
+            }
+        });
 
 
-            // NOTE: 禁止施咒
-            this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {
-                if (card.card_type == CardType.Spell) {
-                    return { intercept_effect: true };
-                }
-            }, true);
-        }, 1);
+        // NOTE: 禁止施咒
+        this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {
+            if (card.card_type == CardType.Spell) {
+                return { intercept_effect: true };
+            }
+        }, true);
     }
-    // TODO: 增加角色行動
+    // NOTE: 角色行動
+    public readonly has_char_action = true;
+    charAction() {
+        let enemy_master = this.g_master.getEnemyMaster(this);
+        enemy_master.setEmo(enemy_master.emo + 3);
+    }
 }

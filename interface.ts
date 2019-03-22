@@ -11,7 +11,6 @@ interface ICard {
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
 
-    /**  */
     card_status: CardStat;
 
     readonly get_mana_cost_chain: EventChain<number>;
@@ -22,10 +21,10 @@ interface ICard {
     readonly card_retire_chain: EventChain<null>;
 
     isEqual(card: ICard|null): boolean;
-    /** 在抽起來的同時觸發本效果 */
-    initialize(): void;
+    /** 會被插入到「打卡鏈」中，等待打卡時執行 */
+    initialize(arg: null): HookResult<null>|void;
 
-    /** 在打卡前進行相關的設置，通常是UI */
+    /** 在打卡前呼叫UI以進行相關的設置，如指定施放咒語的對象等（限前端） */
     setupBeforePlay(): void;
     /** 若打卡過程取消，將在過程中被設定的變數恢復原狀 */
     recoverCancelPlay(): void;
@@ -61,15 +60,20 @@ interface IUpgrade extends ICard {
 interface ICharacter extends ICard {
     readonly basic_strength: number;
     readonly basic_battle_role: BattleRole;
-    upgrade_list: IUpgrade[];
+    readonly upgrade_list: IUpgrade[];
     arena_entered: IArena|null;
     char_status: CharStat;
     is_tired: boolean;
+
+    readonly has_char_action: boolean;
+    charAction(): void;
 
     readonly get_strength_chain: EventChain<number>;
     readonly enter_arena_chain: EventChain<IArena>;
     readonly attack_chain: EventChain<ICharacter>;
     readonly get_battle_role_chain: EventChain<BattleRole>;
+    readonly get_infight_strength_chain
+        : EventChain<{ strength: number, enemy: ICharacter }>;
 
     addUpgrade(upgrade: IUpgrade): void;
 }
@@ -86,6 +90,7 @@ interface IEvent extends ICard {
 interface ISpell extends ICard {
 
 }
+
 export {
-    IKeeper, ICard, ICharacter, IUpgrade, IArena, ISpell
+    IKeeper, ICard, ICharacter, IUpgrade, IArena, IEvent, ISpell
 }

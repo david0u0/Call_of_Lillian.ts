@@ -3,7 +3,7 @@ import { BattleRole, CharStat } from "../../../enums";
 
 let name = "狙擊鏡後的天使";
 let description = `
-**準星之所向**：當*狙擊鏡後的天使*攻擊時，額外擁有3點戰力。
+**準星之所向**：*狙擊鏡後的天使*與不同場所的角色戰鬥時，額外擁有3點戰力。
 **狙擊**`;
 
 export class C2 extends Character {
@@ -14,12 +14,13 @@ export class C2 extends Character {
     basic_battle_role = BattleRole.Sniper;
 
     initialize() {
-        this.get_strength_chain.append(strength => {
-            if(this.char_status == CharStat.Attacking) {
-                return { result_arg: strength + 3 };
-            } else {
-                return { was_passed: true };
+        this.get_infight_strength_chain.append(arg => {
+            if(this.arena_entered) {
+                if(this.arena_entered.isEqual(arg.enemy.arena_entered)) {
+                    return { result_arg: { ...arg, strength: arg.strength+3 }};
+                }
             }
+            return { was_passed: true };
         });
     }
 }

@@ -17,8 +17,14 @@ abstract class Card implements ICard {
     public readonly card_leave_chain = new EventChain<null>();
     public readonly card_retire_chain = new EventChain<null>();
 
+    public initialize(arg: null): HookResult<null>|void { }
     constructor(public readonly seq: number, public readonly owner: Player,
-        protected readonly g_master: GameMaster) { }
+        protected readonly g_master: GameMaster
+    ) {
+        this.card_play_chain.append(() => {
+            return this.initialize(null);
+        });
+    }
 
     public isEqual(card: ICard|null) {
         if(card) {
@@ -27,7 +33,6 @@ abstract class Card implements ICard {
             return false;
         }
     }
-    public initialize() { }
     public setupBeforePlay() { }
     public recoverCancelPlay() { }
 
@@ -104,7 +109,12 @@ abstract class Character extends Card implements ICharacter {
     public char_status = CharStat.StandBy;
     public is_tired = false;
 
+    public has_char_action = false;
+    public charAction() { }
+
     public readonly get_strength_chain = new EventChain<number>();
+    public readonly get_infight_strength_chain
+        = new EventChain<{ strength: number, enemy: ICharacter }>();
     public readonly get_battle_role_chain = new EventChain<BattleRole>();
     public readonly add_upgrade_chain = new EventChain<IUpgrade>();
     public readonly enter_arena_chain = new EventChain<IArena>();
