@@ -6,6 +6,7 @@ import { GameMaster, BadOperationError } from "../game_master";
 import { C2 } from "./real_card/character/c2";
 import { C_Test0 } from "./real_card/character/c_test0";
 import { C1 } from "./real_card/character/c1";
+import { C4 } from "./real_card/character/c4";
 import { U1 } from "./real_card/upgrade/u1";
 import { U_Test0 } from "./real_card/upgrade/u_test0";
 let p = Player.Player1;
@@ -17,6 +18,8 @@ gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
 let simple_char = pm.draw() as Character;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
 let simple_char2 = pm.draw() as Character;
+gm.genCardToDeck(p, (seq, owner, _gm) => new C4(seq, owner, _gm));
+let cyber_char = pm.draw() as Character;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C2(seq, owner, _gm));
 let waste_land_char = pm.draw() as Character;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U1(seq, owner, _gm));
@@ -29,6 +32,8 @@ gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
 let simple_upgrade2 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
 let simple_upgrade3 = pm.draw() as Upgrade;
+gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+let simple_upgrade4 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C_Test0(seq, owner, _gm));
 let ultimate_0_test_char = pm.draw() as Character;
 
@@ -67,6 +72,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
     describe("打出最基礎的角色卡", () => {
         before(() => {
             pm.playCard(simple_char);
+            pm.playCard(cyber_char);
         });
         it("角色的戰力應該是0", () => {
             assert.equal(0, pm.getStrength(simple_char));
@@ -82,8 +88,16 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
         });
         it("升級卡欲安裝的角色不在待命區應該噴錯誤", () => {
             simple_char.char_status = CharStat.InArena;
+            simple_upgrade1.character_equipped = simple_char;
             checkBadOperationError(() => {
                 pm.playCard(simple_upgrade1);
+            });
+        });
+        it("有特殊能力的角色可以在場中裝備升級", () => {
+            cyber_char.char_status = CharStat.InArena;
+            simple_upgrade4.character_equipped = cyber_char;
+            assert.doesNotThrow(() => {
+                pm.playCard(simple_upgrade4);
             });
         });
         describe("裝備兩張最基礎的升級卡", () => {
