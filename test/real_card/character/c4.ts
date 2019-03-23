@@ -12,7 +12,7 @@ export class C4 extends Character {
     basic_mana_cost = 4;
     basic_strength = 0;
 
-    initialize() {
+    initializeCustom() {
         // NOTE: 本來在場所中的角色如果要安裝升級卡，會被 p_master.play_card_chain 攔下來
         // 所以要在 p_master.play_card_chain 的開頭插入新的規則，在被攔下來之前打斷 play_card_chain!
         this.g_master.getMyMaster(this).card_play_chain.dominantCheck(card => {

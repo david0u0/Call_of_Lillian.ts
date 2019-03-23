@@ -11,7 +11,7 @@ export class C2 extends Character {
     basic_mana_cost = 0;
     readonly basic_strength = 0;
 
-    initialize() {
+    initializeCustom() {
         this.get_battle_role_chain.dominant(role => {
             return { break_chain: true };
         });

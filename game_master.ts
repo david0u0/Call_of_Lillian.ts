@@ -4,29 +4,8 @@
 import { Player, CardStat, BattleRole, CardType, CharStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent } from "./interface";
 import { EventChain, HookResult } from "./hook";
-
-const ENV = "backend";
-
-/** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
-class BadOperationError {
-    message = "";
-    constructor(message: string, card?: ICard) {
-        if(card) {
-            message = `${card.name}: ${message}`;
-        }
-        this.message = message;
-        Error.apply(this, [message]);
-    }
-}
-
-// 如果是後端就噴錯誤，如果是前端就只是擋下UI
-function throwIfIsBackend(msg: string, card?: ICard) {
-    if(ENV == "backend") {
-        throw new BadOperationError(msg, card);
-    } else {
-        console.log(msg)
-    }
-}
+import { throwIfIsBackend, BadOperationError } from "./errors";
+import Selecter from "./selecter";
 
 class PlayerMaster {
     private _mana = 0;
@@ -51,15 +30,15 @@ class PlayerMaster {
                 let upgrade = card as IUpgrade;
                 if (upgrade.character_equipped) {
                     if (upgrade.character_equipped.card_status != CardStat.Onboard) {
-                        throwIfIsBackend("指定的角色不在場上")
+                        throwIfIsBackend("指定的角色不在場上", upgrade)
                         return { intercept_effect: true };
                     } else if (upgrade.character_equipped.char_status != CharStat.StandBy) {
-                        throwIfIsBackend("指定的角色不在待命區")
+                        throwIfIsBackend("指定的角色不在待命區", upgrade)
                         return { intercept_effect: true };
                     } else {
                     }
                 } else {
-                    throwIfIsBackend("未指定角色就打出升級")
+                    throwIfIsBackend("未指定角色就打出升級", upgrade)
                     return { intercept_effect: true };
                 }
             }
@@ -106,8 +85,9 @@ class PlayerMaster {
         // TODO: 加上事件鏈?
         this._deck.push(card);
     }
-    draw() {
+    draw(seq?: number) {
         // TODO: 加上事件鏈?
+        // TODO: 用 seq 實現檢索的可能
         let card = this._deck.pop();
         if(card) {
             card.card_status = CardStat.Hand;
@@ -158,6 +138,10 @@ class PlayerMaster {
         }).trigger(char.basic_battle_role).result_arg;
     }
 
+    checkCanPlay(card: ICard): boolean {
+        return card.card_play_chain.chain(this.card_play_chain,
+            tmp => card , c => null).checkCanTrigger(null);
+    }
     /**
      * @param card 
      * @returns 一個布林值，true 代表順利執行，false 代表整個效果應中斷。
@@ -166,6 +150,7 @@ class PlayerMaster {
         if(card.card_status != CardStat.Hand) {
             throw new BadOperationError("試圖打出不在手上的牌");
         }
+        card.initialize();
         // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為觸發的效果很可能有副作用。
         // 用 intercept_effect 來解決是行不通的，傷害已經造成了！
         let result = card.card_play_chain.chain(this.card_play_chain,
@@ -186,27 +171,29 @@ class PlayerMaster {
 
 class GameMaster {
     private _cur_seq = 1;
+    public readonly card_table: { [index: number]: ICard } = {};
+    public readonly selecter = new Selecter(this.card_table);
     getSeqNumber(): number {
         return this._cur_seq++;
+    }
+    genCard(owner: Player,
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
+    ): ICard {
+        let c = card_constructor(this.getSeqNumber(), owner, this);
+        this.card_table[c.seq] = c;
+        return c;
     }
     genCardToDeck(owner: Player,
         card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
     ): ICard {
-        let c = card_constructor(this.getSeqNumber(), owner, this);
+        let c = this.genCard(owner, card_constructor);
         this.getMyMaster(owner).addToDeck(c);
         return c;
     }
     genCardToHand(owner: Player,
         card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
     ): ICard {
-        let c = card_constructor(this.getSeqNumber(), owner, this);
-        // TODO:
-        return c;
-    }
-    genCharToBoard(owner: Player,
-        char_constructor: (seq: number, owner: Player, gm: GameMaster) => ICharacter
-    ): ICharacter {
-        let c = char_constructor(this.getSeqNumber(), owner, this);
+        let c = this.genCard(owner, card_constructor);
         // TODO:
         return c;
     }

@@ -22,7 +22,7 @@ interface ICard {
 
     isEqual(card: ICard|null): boolean;
     /** 會被插入到「打卡鏈」中，等待打卡時執行 */
-    initialize(arg: null): HookResult<null>|void;
+    initialize(): void;
 
     /** 在打卡前呼叫UI以進行相關的設置，如指定施放咒語的對象等（限前端） */
     setupBeforePlay(): void;
@@ -55,7 +55,7 @@ interface ISpell extends ICard { };
 
 interface IUpgrade extends ICard {
     readonly basic_strength: number;
-    character_equipped: ICharacter|null;
+    readonly character_equipped: ICharacter|null;
 }
 interface ICharacter extends ICard {
     readonly basic_strength: number;

@@ -2,17 +2,22 @@ import * as assert from "assert";
 
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
 import { Character, Upgrade } from "../cards"
-import { GameMaster, BadOperationError } from "../game_master";
+import { GameMaster } from "../game_master";
+import { BadOperationError } from "../errors";
+
 import { C2 } from "./real_card/character/c2";
 import { C_Test0 } from "./real_card/character/c_test0";
 import { C1 } from "./real_card/character/c1";
 import { C4 } from "./real_card/character/c4";
 import { U1 } from "./real_card/upgrade/u1";
 import { U_Test0 } from "./real_card/upgrade/u_test0";
+
 let p = Player.Player1;
 let gm = new GameMaster();
+let selecter = gm.selecter;
 let pm = gm.getMyMaster(p);
 let enemy_master = gm.getEnemyMaster(p);
+
 
 gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
 let simple_char = pm.draw() as Character;
@@ -63,7 +68,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             });
         });
         it("升級卡欲安裝的角色還沒出場應該噴錯誤", () => {
-            simple_upgrade1.character_equipped = simple_char;
+            selecter.setSelectedSeqs(simple_char.seq);
             checkBadOperationError(() => {
                 pm.playCard(simple_upgrade1);
             });
@@ -88,14 +93,14 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
         });
         it("升級卡欲安裝的角色不在待命區應該噴錯誤", () => {
             simple_char.char_status = CharStat.InArena;
-            simple_upgrade1.character_equipped = simple_char;
+            selecter.setSelectedSeqs(simple_char.seq);
             checkBadOperationError(() => {
                 pm.playCard(simple_upgrade1);
             });
         });
         it("有特殊能力的角色可以在場中裝備升級卡", () => {
             cyber_char.char_status = CharStat.InArena;
-            simple_upgrade4.character_equipped = cyber_char;
+            selecter.setSelectedSeqs(cyber_char.seq);
             assert.doesNotThrow(() => {
                 pm.playCard(simple_upgrade4);
             });
@@ -103,9 +108,9 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
         describe("裝備兩張最基礎的升級卡", () => {
             before(() => {
                 simple_char.char_status = CharStat.StandBy;
-                simple_upgrade1.character_equipped = simple_char;
-                simple_upgrade2.character_equipped = simple_char;
+                selecter.setSelectedSeqs(simple_char.seq);
                 pm.playCard(simple_upgrade1);
+                selecter.setSelectedSeqs(simple_char.seq);
                 pm.playCard(simple_upgrade2);
             });
             it("角色的升級欄應該有兩個東西在裡面", () => {
@@ -143,13 +148,13 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
             assert.equal(BattleRole.Fighter, pm.getBattleRole(waste_land_char));
         });
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
-            ferry_bomb_upgrade.character_equipped = waste_land_char;
+            selecter.setSelectedSeqs(waste_land_char.seq);
             assert.equal(pm.getManaCost(ferry_bomb_upgrade), 1);
         });
     });
     describe("加入升級卡", () => {
         before(() => {
-            ferry_bomb_upgrade.character_equipped = waste_land_char;
+            selecter.setSelectedSeqs(waste_land_char.seq);
             pm.playCard(ferry_bomb_upgrade);
         });
         it("裝備後，角色的戰力應該是2", () => {
@@ -176,7 +181,7 @@ describe("測試一張強得亂七八糟的角色卡", () => {
     describe("測試進階的能力", () => {
         before(() => {
             pm.playCard(simple_char2);
-            simple_upgrade3.character_equipped = simple_char2;
+            selecter.setSelectedSeqs(simple_char2.seq);
             pm.playCard(simple_upgrade3);
         });
         it("敵方的魔力本來應為1000", () => {
@@ -196,11 +201,12 @@ describe("測試一張強得亂七八糟的角色卡", () => {
                 assert.equal(6, pm.getStrength(simple_char2));
             });
             it("某件升級的費用本來應為1", () => {
-                assert.equal(1, pm.getManaCost(ferry_bomb_upgrade));
+                assert.equal(1, pm.getManaCost(ferry_bomb_upgrade2));
             });
             it("所有安裝在這個角色身上的升級費用應為零", () => {
-                ferry_bomb_upgrade.character_equipped = ultimate_0_test_char;
-                assert.equal(0, pm.getManaCost(ferry_bomb_upgrade));
+                selecter.setSelectedSeqs(ultimate_0_test_char.seq);
+                ferry_bomb_upgrade2.initialize();
+                assert.equal(0, pm.getManaCost(ferry_bomb_upgrade2));
             });
             it("每有一個角色退場，敵方情緒值+1");
             describe("當角色退場，我方角色的戰力應回復正常", () => {

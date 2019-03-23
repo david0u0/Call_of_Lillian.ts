@@ -1,7 +1,8 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, IArena, ISpell } from "./interface";
-import { GameMaster, BadOperationError } from "./game_master";
+import { GameMaster } from "./game_master";
 import { EventChain, HookResult } from "./hook";
+import Selecter from "./selecter";
 
 abstract class Card implements ICard {
     public abstract readonly card_type: CardType;
@@ -17,14 +18,15 @@ abstract class Card implements ICard {
     public readonly card_leave_chain = new EventChain<null>();
     public readonly card_retire_chain = new EventChain<null>();
 
-    public initialize(arg: null): HookResult<null>|void { }
-    constructor(public readonly seq: number, public readonly owner: Player,
-        protected readonly g_master: GameMaster
-    ) {
-        this.card_play_chain.append(() => {
-            return this.initialize(null);
-        });
+    /** 不要去覆寫這個函式！！ */
+    public initialize() {
+        this.initializeCustom();
     }
+
+    protected initializeCustom() { }
+
+    constructor(public readonly seq: number, public readonly owner: Player,
+        protected readonly g_master: GameMaster) { }
 
     public isEqual(card: ICard|null) {
         if(card) {
@@ -69,10 +71,22 @@ abstract class Card implements ICard {
 abstract class Upgrade extends Card implements IUpgrade {
     public card_type = CardType.Upgrade;
     public abstract readonly basic_strength: number;
-    public character_equipped: ICharacter | null = null;
+    protected _character_equipped: ICharacter | null = null;
+    public get character_equipped() { return this._character_equipped; }
 
     recoverCancelPlay() {
-        this.character_equipped = null;
+        this._character_equipped = null;
+    }
+
+    initialize() {
+        let char = this.g_master.selecter.selectChars(1, 1, char => {
+            this._character_equipped = char;
+            let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
+            this._character_equipped = null;
+            return can_play;
+        });
+        this._character_equipped = char[0];
+        super.initialize();
     }
 }
 

@@ -15,7 +15,7 @@ export class C2 extends Character {
     readonly basic_strength = 2;
 
     event_to_pay: IEvent|null = null;
-    initialize() {
+    initializeCustom() {
         if(this.event_to_pay) {
             // TODO: 放逐掉 event_to_pay
         } else {

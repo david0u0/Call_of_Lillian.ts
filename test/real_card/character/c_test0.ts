@@ -17,7 +17,7 @@ export class C_Test0 extends Character {
     basic_strength = 10;
     public readonly basic_battle_role = BattleRole.Sniper;
 
-    initialize() {
+    initializeCustom() {
         let my_master = this.g_master.getMyMaster(this);
         let enemy_master = this.g_master.getEnemyMaster(this);
         // NOTE: 對手魔力減10
