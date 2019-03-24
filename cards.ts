@@ -72,10 +72,6 @@ abstract class Upgrade extends Card implements IUpgrade {
     protected _character_equipped: ICharacter | null = null;
     public get character_equipped() { return this._character_equipped; }
 
-    recoverFields() {
-        this._character_equipped = null;
-    }
-
     initialize() {
         let char = this.g_master.selecter.selectChars(1, 1, char => {
             this._character_equipped = char;
@@ -84,6 +80,10 @@ abstract class Upgrade extends Card implements IUpgrade {
             return can_play;
         });
         this._character_equipped = char[0];
+    }
+
+    recoverFields() {
+        this._character_equipped = null;
     }
 }
 
@@ -108,6 +108,11 @@ abstract class Character extends Card implements ICharacter {
     public readonly enter_arena_chain = new EventChain<IArena>();
     public readonly attack_chain = new EventChain<ICharacter>();
 
+    public readonly exploit_chain = new EventChain<IArena>();
+    public readonly enter_chain = new EventChain<IArena>();
+    public readonly get_exploit_cost_chain = new EventChain<{ cost: number, arena: IArena }>();
+    public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena }>();
+
     constructor(public readonly seq: number, public readonly owner: Player,
         protected readonly g_master: GameMaster
     ) { 
@@ -120,31 +125,47 @@ abstract class Character extends Card implements ICharacter {
         });
     }
 
-    /** 不可覆寫！ */
     addUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
+    }
+
+    private mem_arena_entered = this.arena_entered;
+    rememberFields() {
+        this.mem_arena_entered = this.arena_entered;
+    }
+    recoverFields() {
+        this.arena_entered = this.mem_arena_entered;
     }
 }
 
 abstract class Arena extends Card implements IArena {
     public readonly card_type = CardType.Arena;
-    public readonly positioin = -1;
+    private _positioin = -1;
+    public get positioin() { return this._positioin; };
     public readonly abstract basic_exploit_cost: number;
+
     private _char_list = new Array<ICharacter>();
     public get char_list() { return [...this._char_list] };
     public readonly max_capacity = 2;
-    public readonly exploit_chain = new EventChain<{ cost: number, char: ICharacter }>();
-    public readonly enter_chain = new EventChain<{ cost: number, char: ICharacter }>();
 
-    /** 不可覆寫！ */
+    public readonly exploit_chain = new EventChain<ICharacter>();
+    public readonly enter_chain = new EventChain<ICharacter>();
+    public readonly get_exploit_cost_chain = new EventChain<{ cost: number, char: ICharacter }>();
+    public readonly get_enter_cost_chain = new EventChain<{ cost: number, char: ICharacter }>();
+
     enter(char: ICharacter) {
-        if(this.char_list.length >= this.max_capacity) {
+        if(this.char_list.length + 1 > this.max_capacity) {
             throw new BadOperationError("超過場所的人數上限！");
         }
         this._char_list.push(char);
     }
-    /** 回傳值如果是數字，代表的是魔力收入 */
-    abstract onExploit(): number|void;
+    abstract onExploit(char: ICharacter): number|void;
+
+    initialize() {
+        /*let char = this.g_master.selecter.selectChars(1, 1, pos => {
+        });
+        this._character_equipped = char[0];*/
+    }
 }
 
 export { Card, Upgrade, Character, Arena };

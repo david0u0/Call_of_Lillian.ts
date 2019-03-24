@@ -1,4 +1,4 @@
-import { ICard, ICharacter, IUpgrade, ISpell, IEvent } from "./interface";
+import { ICard, ICharacter, IUpgrade, ISpell, IEvent, IArena } from "./interface";
 import { Player, CardType } from "./enums";
 import { BadOperationError } from "./game_master";
 
@@ -20,11 +20,6 @@ class Selecter {
         } else {
             this.selected_args.push([seqs]);
         }
-    }
-
-    public selectPosition(max=1, min=1): number {
-        // TODO: 檢查這邊的位置合不合法，例如：超過4或小於0
-        return this.selected_args[this.top++][0];
     }
 
     private selectCard(card_type: CardType, max: number , min: number,
@@ -67,6 +62,13 @@ class Selecter {
         return this.selectCard(CardType.Event, max, min, card => {
             return checkCanSelect(card as IEvent);
         }) as IEvent[];
+    }
+    public selectArena(max=1, min=1,
+        checkCanSelect=(event: IArena) => true
+    ): IArena[] {
+        return this.selectCard(CardType.Arena, max, min, card => {
+            return checkCanSelect(card as IArena);
+        }) as IArena[];
     }
 }
 

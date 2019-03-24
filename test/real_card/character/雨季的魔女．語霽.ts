@@ -7,7 +7,7 @@ let description = `**呼喚不幸的體質**：*雨季的魔女．語霽*不可�
 export default class C extends Character {
     basic_battle_role = BattleRole.Civilian;
     name = name;
-    description = desciption;
+    description = description;
     basic_strength = 0;
     basic_mana_cost = 3;
 
@@ -18,7 +18,7 @@ export default class C extends Character {
                 let my_arena = this.arena_entered;
                 let { char, arena } = arg;
                 // 不是自己，而且是同一個場所
-                if (!arg.char.isEqual(this) && my_arena.isEqual(arena)) {
+                if (!char.isEqual(this) && my_arena.isEqual(arena)) {
                     let pm = this.g_master.getMyMaster(char);
                     pm.setEmo(pm.emo + 1);
                 }

@@ -7,6 +7,9 @@ import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import Selecter from "./selecter";
 
+const MAX_ARENA = 5;
+const ENTER_ENEMY_COST = 1;
+
 class PlayerMaster {
     private _mana = 0;
     private _emo = 0;
@@ -14,7 +17,7 @@ class PlayerMaster {
     private _hand = new Array<ICard>();
     private _gravyard = new Array<ICard>();
     private _characters = new Array<ICharacter>();
-    private _arenas = new Array<IArena>();
+    private _arenas = new Array<IArena>(MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
     private _events_succeeded = new Array<IEvent>();
     private _events_failed = new Array<IEvent>();
@@ -57,6 +60,9 @@ class PlayerMaster {
                 // 打出角色的規則
                 let char = card as ICharacter;
                 this.addCharacter(char);
+            } else if(card.card_type == CardType.Arena) {
+                // 打出場所的規則（把之前的建築拆了）
+                // TODO:
             }
         });
         this.get_mana_cost_chain.append(arg => {
@@ -97,6 +103,10 @@ class PlayerMaster {
         // TODO: 加上事件鏈?
         this._deck.push(card);
     }
+    addToHand(card: ICard) {
+        // TODO: 加上事件鏈?
+        this._hand.push(card);
+    }
     draw(seq?: number) {
         // TODO: 加上事件鏈?
         // TODO: 用 seq 實現檢索的可能
@@ -110,7 +120,7 @@ class PlayerMaster {
     setEmo(new_emo: number) {
         let { result_arg, intercept_effect } = this.set_emo_chain.trigger(new_emo);
         if(!intercept_effect) {
-            this._emo -= result_arg;
+            this._emo = result_arg;
         }
     }
 
@@ -166,9 +176,9 @@ class PlayerMaster {
         card.initialize();
         let cost = this.getManaCost(card);
         if(this.mana < cost) {
-            throw new BadOperationError("沒通過出牌檢查還想出牌？");
-        } else if(!this.checkCanPlay(card)) {
             throw new BadOperationError("魔力不夠還想出牌？");
+        } else if(!this.checkCanPlay(card)) {
+            throw new BadOperationError("沒通過出牌檢查還想出牌？");
         }
         // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為觸發的效果很可能有副作用。
         // 用 intercept_effect 來解決是行不通的，傷害已經造成了！
@@ -235,8 +245,18 @@ class GameMaster {
         card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
     ): ICard {
         let c = this.genCard(owner, card_constructor);
-        // TODO:
+        c.card_status = CardStat.Hand;
+        this.getMyMaster(owner).addToHand(c);
         return c;
+    }
+    // 應該就一開始會用到而已 吧？
+    genArenaToBoard(owner: Player, pos: number,
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IArena
+    ): IArena {
+        let arena = this.genCard(owner, card_constructor) as IArena;
+        arena.card_status = CardStat.Onboard;
+        this.getMyMaster(owner).arenas[pos] = arena;
+        return arena;
     }
 
     private p_master1: PlayerMaster = new PlayerMaster(Player.Player1);
@@ -266,13 +286,83 @@ class GameMaster {
         // 進入別人的場所要支付代價
         this.get_enter_cost_chain.append(arg => {
             if (arg.char.owner != arg.arena.owner) {
-                return { result_arg: { ...arg, cost: arg.cost + 1 } };
+                return { result_arg: { ...arg, cost: arg.cost + ENTER_ENEMY_COST }};
+            }
+        });
+        this.enter_chain.appendCheck(arg => {
+            if(arg.char.char_status != CharStat.StandBy) {
+                // 理論上，在場所中的角色不能移動
+                throwIfIsBackend("場所中的角色不能移動");
+                return { intercept_effect: true };
+            } else if(arg.char.is_tired) {
+                // 理論上，疲勞中的角色不能移動
+                throwIfIsBackend("疲勞中的角色不能移動");
+                return { intercept_effect: true };
             }
         });
     }
 
-    enterArena(char: ICharacter, arena: IArena) {
+    getEnterCost(char: ICharacter): number {
+        let _arena = char.arena_entered;
+        if(!_arena) {
+            throwIfIsBackend("沒有指定場所就想算進入的花費");
+            return 0;
+        } else {
+            let arena = _arena;
+            // NOTE: 觸發順序：場所 -> 角色 -> 世界
+            return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arg => {
+                return { cost: arg.cost, arena };
+            }, arg => {
+                return { cost: arg.cost, char };
+            }).chain(this.get_enter_cost_chain, arg => {
+                return { cost: arg.cost, arena, char };
+            }, arg => {
+                return { cost: arg.cost, char };
+            }).trigger({ char, cost: 0 }).result_arg.cost;
+        }
+    }
+    enterArena(char: ICharacter) {
+        if(char.card_status != CardStat.Onboard) {
+            throw new BadOperationError("欲進入場所的角色不在場上");
+        }
 
+        let arena = this.selecter.selectArena(1, 1, arena => {
+            if(arena.char_list.length + 1 > arena.max_capacity) {
+                throwIfIsBackend("欲進入的場所人數已達上限");
+                return false;
+            } else if(arena.card_status != CardStat.Onboard) {
+                throw new BadOperationError("欲進入的場所不在場上");
+                return false;
+            } else {
+                return true;
+            }
+        })[0];
+
+        // NOTE: 其實下面這段是不是可以整個放進上面的選擇器裡？
+        char.rememberFields();
+        
+        char.arena_entered = arena;
+        let cost = this.getEnterCost(char);
+        let p_master = this.getMyMaster(char);
+        if(cost > p_master.mana) {
+            char.recoverFields();
+            throwIfIsBackend("魔不夠就想進入場所");
+        } else {
+            let enter_chain = arena.enter_chain.chain(char.enter_chain,
+                arg => arena, arg => char
+            ).chain(this.enter_chain, arg => {
+                return { arena, char };
+            }, arg => char);
+            if(enter_chain.checkCanTrigger(char)) {
+                p_master.setMana(p_master.mana - cost);
+                enter_chain.trigger(char);
+                char.char_status = CharStat.InArena;
+                arena.enter(char);
+            } else {
+                char.recoverFields();
+                throwIfIsBackend("未通過進入場所的檢查");
+            }
+        }
     }
 
     public readonly battle_start_chain: EventChain<number> = new EventChain<number>();

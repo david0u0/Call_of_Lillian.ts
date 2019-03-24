@@ -78,18 +78,30 @@ interface ICharacter extends ICard {
     readonly get_infight_strength_chain
         : EventChain<{ strength: number, enemy: ICharacter }>;
 
+    readonly exploit_chain: EventChain<IArena>;
+    readonly enter_chain: EventChain<IArena>;
+    readonly get_exploit_cost_chain: EventChain<{ cost: number, arena: IArena }>;
+    readonly get_enter_cost_chain: EventChain<{ cost: number, arena: IArena }>;
+
+    /** 不可覆寫！ */
     addUpgrade(upgrade: IUpgrade): void;
 }
 
 interface IArena extends ICard {
     readonly positioin: number;
     readonly char_list: ICharacter[];
-    readonly max_capacity: number;
-    readonly exploit_chain: EventChain<{ cost: number, char: ICharacter }>;
-    readonly enter_chain: EventChain<{ cost: number, char: ICharacter }>;
     readonly basic_exploit_cost: number;
+    readonly max_capacity: number;
+
+    readonly exploit_chain: EventChain<ICharacter>;
+    readonly enter_chain: EventChain<ICharacter>;
+    readonly get_exploit_cost_chain: EventChain<{ cost: number, char: ICharacter }>;
+    readonly get_enter_cost_chain: EventChain<{ cost: number, char: ICharacter }>;
+
+    /** 回傳值如果是數字，代表的是魔力收入 */
+    onExploit(char: ICharacter): void|number;
+    /** 不可覆寫！ */
     enter(char: ICharacter): void;
-    onExploit(char: ICharacter): void;
 }
 interface IEvent extends ICard {
     readonly goal_progress_count: number;
