@@ -116,6 +116,9 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             it("角色的升級欄應該有兩個東西在裡面", () => {
                 assert.equal(2, simple_char.upgrade_list.length);
             });
+            it("目前為止應該花了7點魔力，總魔力變為993", () => {
+                assert.equal(993, pm.mana);
+            });
             it("裝備後，角色的戰力應該是2", () => {
                 assert.equal(2, pm.getStrength(simple_char));
             });
@@ -187,7 +190,7 @@ describe("測試一張強得亂七八糟的角色卡", () => {
         it("敵方的魔力本來應為1000", () => {
             assert.equal(1000, enemy_master.mana);
         });
-        it("我方另一個角色的戰力本來為1", () => {
+        it("我方見習魔女的戰力本來為1", () => {
             assert.equal(1, pm.getStrength(simple_char2));
         });
         describe("角色入場", () => {
@@ -197,7 +200,7 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             it("敵方的魔力應減10，變為990", () => {
                 assert.equal(990, enemy_master.mana);
             });
-            it("我方另一個角色戰力應加5，變為6", () => {
+            it("見習魔女的戰力應加5，變為6", () => {
                 assert.equal(6, pm.getStrength(simple_char2));
             });
             it("某件升級的費用本來應為1", () => {
@@ -210,7 +213,13 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             });
             it("每有一個角色退場，敵方情緒值+1");
             describe("當角色退場，我方角色的戰力應回復正常", () => {
-
+                before(() => {
+                    // pm.retireCard(ultimate_0_test_char);
+                    pm.exileCard(ultimate_0_test_char);
+                });
+                it("見習魔女的戰力應該變回1", () => {
+                    assert.equal(1, pm.getStrength(simple_char2));
+                });
             });
         });
     });

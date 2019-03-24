@@ -25,6 +25,8 @@ interface ICard {
     initialize(): void;
     /** 入場曲或咒語效果的概念 */
     onPlay(): void;
+    /** 退場曲的概念 */
+    onRetrieve(): void;
 
     /** 記憶與恢復變數，理論上只有前端會用到（因為後端檢查沒過會直接爆錯） */
     rememberFields(): void;
@@ -81,10 +83,13 @@ interface ICharacter extends ICard {
 
 interface IArena extends ICard {
     readonly positioin: number;
-    readonly char_list: ICharacter;
+    readonly char_list: ICharacter[];
     readonly max_capacity: number;
     readonly exploit_chain: EventChain<{ cost: number, char: ICharacter }>;
     readonly enter_chain: EventChain<{ cost: number, char: ICharacter }>;
+    readonly basic_exploit_cost: number;
+    enter(char: ICharacter): void;
+    onExploit(char: ICharacter): void;
 }
 interface IEvent extends ICard {
     readonly goal_progress_count: number;

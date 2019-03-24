@@ -22,6 +22,7 @@ class PlayerMaster {
     public get emo() { return this._emo };
     public get deck() { return [...this._deck] };
     public get characters() { return [...this._characters] };
+    public get arenas() { return [...this._arenas] };
 
     constructor(public readonly player: Player) {
         this.card_play_chain.appendCheck(card => {
@@ -56,6 +57,15 @@ class PlayerMaster {
                 // 打出角色的規則
                 let char = card as ICharacter;
                 this.addCharacter(char);
+            }
+        });
+        this.get_mana_cost_chain.append(arg => {
+            if(arg.card.card_type == CardType.Arena) {
+                // 改建場所的花費下降
+                let arena = arg.card as IArena;
+                let og_arena = this._arenas[arena.positioin];
+                let cost = Math.max(arena.basic_mana_cost - og_arena.basic_mana_cost, 0);
+                return { result_arg: { ...arg, cost }};
             }
         });
         // 計算戰鬥職位的通則
@@ -174,6 +184,26 @@ class PlayerMaster {
             card.onPlay();
         }
     }
+    /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
+    private _leaveCard(card: ICard) {
+        card.card_leave_chain.trigger(null);
+    }
+    retireCard(card: ICard) {
+        if (card.card_status = CardStat.Onboard) {
+            let chain = card.card_retire_chain.chain(this.card_retire_chain,
+                tmp => card, c => null);
+            let can_die = chain.checkCanTrigger(null);
+            if (can_die) {
+                this._leaveCard(card);
+                chain.trigger(null);
+                card.card_status = CardStat.Retired;
+            }
+        }
+    }
+    exileCard(card: ICard) {
+        this._leaveCard(card);
+        card.card_status = CardStat.Exile;
+    }
 
     addCharacter(char: ICharacter) {
         this._characters.push(char);
@@ -211,21 +241,21 @@ class GameMaster {
 
     private p_master1: PlayerMaster = new PlayerMaster(Player.Player1);
     private p_master2: PlayerMaster = new PlayerMaster(Player.Player2);
-    getMyMaster(arg: ICard|Player): PlayerMaster {
-        if(typeof arg != "number") {
+    getMyMaster(arg: ICard | Player): PlayerMaster {
+        if (typeof arg != "number") {
             return this.getMyMaster(arg.owner);
         }
-        else if(arg == Player.Player1) {
+        else if (arg == Player.Player1) {
             return this.p_master1;
         } else {
             return this.p_master2;
         }
     }
-    getEnemyMaster(arg: ICard|Player): PlayerMaster {
-        if(typeof arg != "number") {
+    getEnemyMaster(arg: ICard | Player): PlayerMaster {
+        if (typeof arg != "number") {
             return this.getEnemyMaster(arg.owner);
         }
-        else if(arg == Player.Player2) {
+        else if (arg == Player.Player2) {
             return this.p_master1;
         } else {
             return this.p_master2;
@@ -234,16 +264,23 @@ class GameMaster {
 
     constructor() {
         // 進入別人的場所要支付代價
-        this.enter_chain.appendCheck(arg => {
-            if(arg.char.owner != arg.arena.owner) {
-                return { result_arg: { ...arg, cost: arg.cost+1 }};
+        this.get_enter_cost_chain.append(arg => {
+            if (arg.char.owner != arg.arena.owner) {
+                return { result_arg: { ...arg, cost: arg.cost + 1 } };
             }
         });
     }
+
+    enterArena(char: ICharacter, arena: IArena) {
+
+    }
+
     public readonly battle_start_chain: EventChain<number> = new EventChain<number>();
     public readonly battle_end_chain: EventChain<number> = new EventChain<number>();
-    public readonly enter_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
-    public readonly exploit_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
+    public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
+    public readonly enter_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
+    public readonly get_exploit_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
+    public readonly exploit_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
 }
 
 export {
