@@ -13,7 +13,7 @@ export class C2 extends Character {
     readonly basic_strength = 1;
     basic_battle_role = BattleRole.Sniper;
 
-    initializeCustom() {
+    onPlay() {
         this.get_infight_strength_chain.append(arg => {
             if(this.arena_entered) {
                 if(this.arena_entered.isEqual(arg.enemy.arena_entered)) {

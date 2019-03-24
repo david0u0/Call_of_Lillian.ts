@@ -10,11 +10,14 @@ export class U1 extends Upgrade {
     basic_mana_cost = 1 ;
     basic_strength = 2;
 
-    initializeCustom() {
-        let char = this.character_equipped;
-        if(char) {
-            this.dominantChainWhileAlive(char.get_battle_role_chain, role => {
-                return { result_arg: BattleRole.Sniper };
+    onPlay() {
+        if(this.character_equipped) {
+            let char = this.character_equipped;
+            let master_role_chain = this.g_master.getMyMaster(this).get_battle_role_chain;
+            this.appendChainWhileAlive(master_role_chain, arg => {
+                if (arg.char.isEqual(char)) {
+                    return { result_arg: { char, role: BattleRole.Sniper }};
+                }
             });
         }
     }

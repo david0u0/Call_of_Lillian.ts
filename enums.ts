@@ -5,4 +5,4 @@ export enum CardSeries { Testing, Cyber, War, Cosmic, Wasteland }
 export enum CharStat { StandBy, InArena, InBattle, Attacking, Blocking, Attacked };
 
 /** 只有 Sniper, Attacker, Defender 是會寫在卡牌上的關鍵字 */
-export enum BattleRole { Civilian, Defender, Attacker, Fighter, Sniper };
+export enum BattleRole { Civilian, Defender, Attacker, Fighter, Sniper, Sniper_Attacker };

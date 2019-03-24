@@ -35,7 +35,9 @@ class PlayerMaster {
                     } else if (upgrade.character_equipped.char_status != CharStat.StandBy) {
                         throwIfIsBackend("指定的角色不在待命區", upgrade)
                         return { intercept_effect: true };
-                    } else {
+                    } else if(upgrade.character_equipped.owner != upgrade.owner) {
+                        throwIfIsBackend("指定的角色不屬於你", upgrade)
+                        return { intercept_effect: true };
                     }
                 } else {
                     throwIfIsBackend("未指定角色就打出升級", upgrade)
@@ -139,28 +141,37 @@ class PlayerMaster {
     }
 
     checkCanPlay(card: ICard): boolean {
-        return card.card_play_chain.chain(this.card_play_chain,
-            tmp => card , c => null).checkCanTrigger(null);
+        if(card.card_status != CardStat.Hand) {
+            return false;
+        } else {
+            return card.card_play_chain.chain(this.card_play_chain,
+                tmp => card, c => null).checkCanTrigger(null);
+        }
     }
     /**
      * @param card 
      * @returns 一個布林值，true 代表順利執行，false 代表整個效果應中斷。
      */
     playCard(card: ICard) {
-        if(card.card_status != CardStat.Hand) {
-            throw new BadOperationError("試圖打出不在手上的牌");
-        }
         card.initialize();
+        let cost = this.getManaCost(card);
+        if(this.mana < cost) {
+            throw new BadOperationError("沒通過出牌檢查還想出牌？");
+        } else if(!this.checkCanPlay(card)) {
+            throw new BadOperationError("魔力不夠還想出牌？");
+        }
         // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為觸發的效果很可能有副作用。
         // 用 intercept_effect 來解決是行不通的，傷害已經造成了！
         let result = card.card_play_chain.chain(this.card_play_chain,
             tmp => card , c => null).trigger(null);
         if(result.intercept_effect) {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
-            card.recoverCancelPlay();
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
+            card.recoverFields();
         } else {
+            this.setMana(this.mana - cost);
             card.card_status = CardStat.Onboard;
+            card.onPlay();
         }
     }
 
@@ -220,8 +231,19 @@ class GameMaster {
             return this.p_master2;
         }
     }
+
+    constructor() {
+        // 進入別人的場所要支付代價
+        this.enter_chain.appendCheck(arg => {
+            if(arg.char.owner != arg.arena.owner) {
+                return { result_arg: { ...arg, cost: arg.cost+1 }};
+            }
+        });
+    }
     public readonly battle_start_chain: EventChain<number> = new EventChain<number>();
     public readonly battle_end_chain: EventChain<number> = new EventChain<number>();
+    public readonly enter_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
+    public readonly exploit_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
 }
 
 export {

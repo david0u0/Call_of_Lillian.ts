@@ -18,12 +18,8 @@ abstract class Card implements ICard {
     public readonly card_leave_chain = new EventChain<null>();
     public readonly card_retire_chain = new EventChain<null>();
 
-    /** 不要去覆寫這個函式！！ */
-    public initialize() {
-        this.initializeCustom();
-    }
-
-    protected initializeCustom() { }
+    public initialize() { }
+    public onPlay() { }
 
     constructor(public readonly seq: number, public readonly owner: Player,
         protected readonly g_master: GameMaster) { }
@@ -35,8 +31,8 @@ abstract class Card implements ICard {
             return false;
         }
     }
-    public setupBeforePlay() { }
-    public recoverCancelPlay() { }
+    public rememberFields() { }
+    public recoverFields() { }
 
     appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
         func: (arg: T) => HookResult<T>|void, check?: boolean
@@ -86,7 +82,6 @@ abstract class Upgrade extends Card implements IUpgrade {
             return can_play;
         });
         this._character_equipped = char[0];
-        super.initialize();
     }
 }
 

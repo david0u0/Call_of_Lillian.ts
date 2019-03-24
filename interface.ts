@@ -21,13 +21,14 @@ interface ICard {
     readonly card_retire_chain: EventChain<null>;
 
     isEqual(card: ICard|null): boolean;
-    /** 會被插入到「打卡鏈」中，等待打卡時執行 */
+    /** 在打牌之前執行，將該設置的變數設起來 */
     initialize(): void;
+    /** 入場曲或咒語效果的概念 */
+    onPlay(): void;
 
-    /** 在打卡前呼叫UI以進行相關的設置，如指定施放咒語的對象等（限前端） */
-    setupBeforePlay(): void;
-    /** 若打卡過程取消，將在過程中被設定的變數恢復原狀 */
-    recoverCancelPlay(): void;
+    /** 記憶與恢復變數，理論上只有前端會用到（因為後端檢查沒過會直接爆錯） */
+    rememberFields(): void;
+    recoverFields(): void;
 
     /**
      * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
@@ -79,8 +80,11 @@ interface ICharacter extends ICard {
 }
 
 interface IArena extends ICard {
-    //readonly char_list: ICharacter;
-    //readonly exploit_chain: 
+    readonly positioin: number;
+    readonly char_list: ICharacter;
+    readonly max_capacity: number;
+    readonly exploit_chain: EventChain<{ cost: number, char: ICharacter }>;
+    readonly enter_chain: EventChain<{ cost: number, char: ICharacter }>;
 }
 interface IEvent extends ICard {
     readonly goal_progress_count: number;

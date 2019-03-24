@@ -1,4 +1,4 @@
-import { ICard, ICharacter, IUpgrade, ISpell } from "./interface";
+import { ICard, ICharacter, IUpgrade, ISpell, IEvent } from "./interface";
 import { Player, CardType } from "./enums";
 import { BadOperationError } from "./game_master";
 
@@ -17,29 +17,43 @@ class Selecter {
         }
         this.top = 0;
     }
-    public selectChars(max=1, min=1,
-        checkCanSelect=(char: ICharacter) => true
-    ): ICharacter[] {
+    private select(card_type: CardType, max: number , min: number,
+        checkCanSelect=(char: ICard) => true
+    ): ICard[] {
         let seqs = this.selected_seqs.slice(this.top, this.top+max);
         let chars = seqs.map(seq => {
             let card = this.card_table[seq];
-            if(card.card_type == CardType.Character) {
-                let char = card as ICharacter;
-                if(checkCanSelect(char)) {
-                    return char;
+            if(card.card_type == card_type) {
+                if(checkCanSelect(card)) {
+                    return card;
                 } else {
-                    throw new BadOperationError("欲從待命區選角，結果選到的角色不符合要求！");
+                    throw new BadOperationError("選到的卡片不符合要求！");
                 }
             } else {
-                throw new BadOperationError("欲從待命區選角，結果選到不是角色的卡片！");
+                throw new BadOperationError(
+                    `欲選擇${CardType[card_type]}，結果選到${CardType[card.card_type]}！`);
             }
         });
         let len = chars.length;
         if(len > max || len < min) {
-            throw new BadOperationError(`欲從待命區選角，結果選到的數量不在${min}~${max}的範圍`);
+            throw new BadOperationError(`選到的數量不在${min}~${max}的範圍`);
         }
         this.top += len;
         return chars;
+    }
+    public selectChars(max=1, min=1,
+        checkCanSelect=(char: ICharacter) => true
+    ): ICharacter[] {
+        return this.select(CardType.Character, max, min, card => {
+            return checkCanSelect(card as ICharacter);
+        }) as ICharacter[];
+    }
+    public selectEvents(max=1, min=1,
+        checkCanSelect=(event: IEvent) => true
+    ): IEvent[] {
+        return this.select(CardType.Event, max, min, card => {
+            return checkCanSelect(card as IEvent);
+        }) as IEvent[];
     }
 }
 

@@ -11,9 +11,12 @@ export class C2 extends Character {
     basic_mana_cost = 0;
     readonly basic_strength = 0;
 
-    initializeCustom() {
-        this.get_battle_role_chain.dominant(role => {
-            return { break_chain: true };
+    onPlay() {
+        let master_role_chain = this.g_master.getMyMaster(this).get_battle_role_chain;
+        this.appendChainWhileAlive(master_role_chain, arg => {
+            if(arg.char.isEqual(this)) {
+                return { result_arg: { ...arg, role: BattleRole.Fighter }};
+            }
         });
         this.attack_chain.append(enemy => {
             let enemy_master = this.g_master.getEnemyMaster(this);
