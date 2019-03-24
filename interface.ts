@@ -85,6 +85,7 @@ interface ICharacter extends ICard {
 
     /** 不可覆寫！ */
     addUpgrade(upgrade: IUpgrade): void;
+    distroyUpgrade(u: IUpgrade): void;
 }
 
 interface IArena extends ICard {

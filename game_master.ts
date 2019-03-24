@@ -54,12 +54,22 @@ class PlayerMaster {
                 // 打出升級卡的規則
                 let upgrade = card as IUpgrade;
                 if(upgrade.character_equipped) {
-                    upgrade.character_equipped.addUpgrade(upgrade);
+                    let char = upgrade.character_equipped;
+                    char.addUpgrade(upgrade);
+                    upgrade.card_leave_chain.append(tmp => {
+                        char.distroyUpgrade(upgrade);
+                    });
                 }
             } else if(card.card_type == CardType.Character) {
-                // 打出角色的規則
+                // 打出角色後把她加入角色區
                 let char = card as ICharacter;
                 this.addCharacter(char);
+                // 角色離場時銷毀所有裝備
+                char.card_leave_chain.append(arg => {
+                    for (let u of char.upgrade_list) {
+                        this.retireCard(u);
+                    }
+                });
             } else if(card.card_type == CardType.Arena) {
                 // 打出場所的規則（把之前的建築拆了）
                 // TODO:
@@ -199,7 +209,7 @@ class PlayerMaster {
         card.card_leave_chain.trigger(null);
     }
     retireCard(card: ICard) {
-        if (card.card_status = CardStat.Onboard) {
+        if(card.card_status == CardStat.Onboard) {
             let chain = card.card_retire_chain.chain(this.card_retire_chain,
                 tmp => card, c => null);
             let can_die = chain.checkCanTrigger(null);
@@ -208,6 +218,8 @@ class PlayerMaster {
                 chain.trigger(null);
                 card.card_status = CardStat.Retired;
             }
+        } else {
+            throwIfIsBackend("重複銷毀一張卡片", card);
         }
     }
     exileCard(card: ICard) {

@@ -131,9 +131,16 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             describe("拔掉其中一張升級卡", () => {
                 before(() => {
                     // TODO: 拔掉 simple_upgrade1
+                    pm.retireCard(simple_upgrade1);
                 });
-                it("拔掉後，角色的戰力應該是1");
-                it("一張裝備卡重複拔兩次應該噴錯誤");
+                it("拔掉後，角色的戰力應該是1", () => {
+                    assert.equal(1, pm.getStrength(simple_char));
+                });
+                it("一張裝備卡重複拔兩次應該噴錯誤", () => {
+                    checkBadOperationError(() => {
+                        pm.retireCard(simple_upgrade1);
+                    });
+                });
             });
         });
     });

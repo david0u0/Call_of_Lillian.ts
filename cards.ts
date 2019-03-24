@@ -92,7 +92,7 @@ abstract class Character extends Card implements ICharacter {
     public readonly abstract basic_strength: number;
     public readonly basic_battle_role: BattleRole = BattleRole.Fighter;
 
-    private readonly _upgrade_list: IUpgrade[] = [];
+    private _upgrade_list: IUpgrade[] = [];
     public get upgrade_list() { return [...this._upgrade_list] };
     public arena_entered: IArena | null = null;
     public char_status = CharStat.StandBy;
@@ -113,20 +113,20 @@ abstract class Character extends Card implements ICharacter {
     public readonly get_exploit_cost_chain = new EventChain<{ cost: number, arena: IArena }>();
     public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena }>();
 
-    constructor(public readonly seq: number, public readonly owner: Player,
-        protected readonly g_master: GameMaster
-    ) { 
-        super(seq, owner, g_master);
-        // 把所有裝備丟掉
-        this.card_leave_chain.append(arg => {
-            for(let u of this.upgrade_list) {
-                this.g_master.getMyMaster(this).retireCard(u);
-            }
-        });
-    }
-
     addUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
+    }
+    distroyUpgrade(u: IUpgrade) {
+        let i = 0;
+        let list = this._upgrade_list;
+        for(i = 0; i < list.length; i++) {
+            if(list[i].isEqual(u)) {
+                break;
+            }
+        }
+        if(i != list.length) {
+            this._upgrade_list = [...list.slice(0, i), ...list.slice(i+1)];
+        }
     }
 
     private mem_arena_entered = this.arena_entered;
