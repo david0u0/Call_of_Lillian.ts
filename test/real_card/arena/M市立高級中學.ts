@@ -1,8 +1,8 @@
 import { CardType, CardSeries, BattleRole } from "../../../enums";
 import { Character, Upgrade, Arena } from "../../../cards";
 
-let name = "醫院";
-let description = `1情緒 -> 賺取3點魔力`;
+let name = "M市立高級中學";
+let description = `2魔力 -> 招募一名*見習魔女*至待命區`;
 
 export default class A extends Arena {
     name = name;
@@ -11,8 +11,6 @@ export default class A extends Arena {
     basic_exploit_cost = 0;
 
     onExploit(char: Character) {
-        let ch_master = this.g_master.getMyMaster(char) ;
-        ch_master.setEmo(ch_master.emo + 1);
-        return 2;
+
     }
 }

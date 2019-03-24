@@ -69,21 +69,20 @@ abstract class Card implements ICard {
 abstract class Upgrade extends Card implements IUpgrade {
     public card_type = CardType.Upgrade;
     public abstract readonly basic_strength: number;
-    protected _character_equipped: ICharacter | null = null;
-    public get character_equipped() { return this._character_equipped; }
+    public character_equipped: ICharacter | null = null;
 
     initialize() {
         let char = this.g_master.selecter.selectChars(1, 1, char => {
-            this._character_equipped = char;
+            this.character_equipped = char;
             let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
-            this._character_equipped = null;
+            this.character_equipped = null;
             return can_play;
         });
-        this._character_equipped = char[0];
+        this.character_equipped = char[0];
     }
 
     recoverFields() {
-        this._character_equipped = null;
+        this.character_equipped = null;
     }
 }
 

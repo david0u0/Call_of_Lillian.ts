@@ -102,13 +102,9 @@ class EventChain<T> {
             return true;
         }
     }
-    /** 執行真正的事件鏈之前會先執行驗證鏈 */
+    /** 只執行真正的事件鏈 */
     public trigger(arg: T): { result_arg: T, intercept_effect: boolean, break_chain: boolean } {
-        if(this.checkCanTrigger(arg)) {
-            return this.real_chain.trigger(arg);
-        } else {
-            return { result_arg: arg, intercept_effect: true, break_chain: true };
-        }
+        return this.real_chain.trigger(arg);
     }
     public chain<U>(next_chain: EventChain<U>,
         trans_func1: (result: T) => U, trans_func2: (result: U) => T

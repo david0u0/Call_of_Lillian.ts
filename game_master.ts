@@ -178,12 +178,10 @@ class PlayerMaster {
                 tmp => card, c => null).checkCanTrigger(null);
         }
     }
-    /**
-     * @param card 
-     * @returns 一個布林值，true 代表順利執行，false 代表整個效果應中斷。
-     */
-    playCard(card: ICard) {
-        card.initialize();
+    playCard(card: ICard, need_init=true) {
+        if(need_init) {
+            card.initialize();
+        }
         let cost = this.getManaCost(card);
         if(this.mana < cost) {
             throw new BadOperationError("魔力不夠還想出牌？");
@@ -377,12 +375,14 @@ class GameMaster {
         }
     }
 
-    public readonly battle_start_chain: EventChain<number> = new EventChain<number>();
-    public readonly battle_end_chain: EventChain<number> = new EventChain<number>();
+    public readonly battle_start_chain = new EventChain<IArena>();
+    public readonly get_battle_cost_chain = new EventChain<{ cost: number, arena: IArena}>();
+    public readonly battle_end_chain: EventChain<null> = new EventChain<null>();
     public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
     public readonly enter_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
     public readonly get_exploit_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
     public readonly exploit_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
+    public readonly season_end_chain = new EventChain<null>();
 }
 
 export {
