@@ -13,9 +13,9 @@ export class C2 extends Character {
 
     onPlay() {
         let master_role_chain = this.g_master.getMyMaster(this).get_battle_role_chain;
-        this.appendChainWhileAlive(master_role_chain, arg => {
-            if(arg.char.isEqual(this)) {
-                return { result_arg: { ...arg, role: BattleRole.Fighter }};
+        this.appendChainWhileAlive(master_role_chain, (role, char) => {
+            if(char.isEqual(this)) {
+                return { var_arg: BattleRole.Fighter };
             }
         });
         this.attack_chain.append(enemy => {

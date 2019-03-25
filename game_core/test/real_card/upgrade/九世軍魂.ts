@@ -17,13 +17,9 @@ export default class U extends Upgrade {
 
     onPlay() {
         let pm = this.g_master.getMyMaster(this);
-        pm.get_strength_chain.append(arg => {
-            if(arg.char.isEqual(this.character_equipped)) {
-                let result_arg = {
-                    char: arg.char,
-                    strength: arg.strength + this.modifier
-                }
-                return { result_arg };
+        pm.get_strength_chain.append((str, char) => {
+            if(char.isEqual(this.character_equipped)) {
+                return { var_arg: str + this.modifier };
             }
         });
         this.g_master.season_end_chain.append(() => {

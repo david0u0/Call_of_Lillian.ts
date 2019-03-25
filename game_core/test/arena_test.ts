@@ -45,12 +45,12 @@ describe("測試最基礎的場所卡", () => {
         };
         gm.genArenaToBoard(p1, 0, a_generater);
         gm.genArenaToBoard(p1, 1, a_generater);
-        my_h = gm.genArenaToBoard(p1, 2, a_generater);
+        my_h = gm.genArenaToBoard(p1, 2, a_generater) as Arena;
         gm.genArenaToBoard(p1, 3, a_generater);
         gm.genArenaToBoard(p1, 4, a_generater);
         gm.genArenaToBoard(p2, 0, a_generater);
         gm.genArenaToBoard(p2, 1, a_generater);
-        enemy_h = gm.genArenaToBoard(p2, 2, a_generater);
+        enemy_h = gm.genArenaToBoard(p2, 2, a_generater) as Arena;
         gm.genArenaToBoard(p2, 3, a_generater);
         gm.genArenaToBoard(p2, 4, a_generater);
         let c_generater = (seq: number, owner: Player, gm: GameMaster) => {

@@ -1,4 +1,4 @@
-import { EventChain, HookResult } from "./hook";
+import { EventChain, HookResult, HookFunc } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat } from "./enums";
 
 interface IKeeper { };
@@ -13,12 +13,12 @@ interface ICard {
 
     card_status: CardStat;
 
-    readonly get_mana_cost_chain: EventChain<number>;
-    readonly card_play_chain: EventChain<null>;
+    readonly get_mana_cost_chain: EventChain<number, null>;
+    readonly card_play_chain: EventChain<null, null>;
     /** 只要從場上離開，不論退場還是消滅都會觸發這條 */
-    readonly card_leave_chain: EventChain<null>;
+    readonly card_leave_chain: EventChain<null, null>;
     /** 只有退場會觸發這條效果 */
-    readonly card_retire_chain: EventChain<null>;
+    readonly card_retire_chain: EventChain<null, null>;
 
     isEqual(card: ICard|null): boolean;
     /** 在打牌之前執行，將該設置的變數設起來 */
@@ -36,18 +36,21 @@ interface ICard {
      * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
-     * @param check 若此項為真，則代表接上的是驗證規則
      */
-    appendChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
-        func: (arg: T) => HookResult<T>|void, check?: boolean): void ;
+    appendChainWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
+        func: HookFunc<T, U>): void ;
     /**
      * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
-     * @param check 若此項為真，則代表接上的是驗證規則
      */
-    dominantChainWhileAlive<T>(chain: EventChain<T>[]|EventChain<T>,
-        func: (arg: T) => HookResult<T>|void, check?: boolean): void;
+    dominantChainWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
+        func: HookFunc<T, U>): void;
+
+    appendCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
+        func: (arg: U) => void|HookResult<null>): void
+    dominantCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
+        func: (arg: U) => void|HookResult<null>): void
 }
 interface ICharacter extends ICard { };
 interface IUpgrade extends ICard { };
@@ -73,17 +76,17 @@ interface ICharacter extends ICard {
     readonly has_char_action: boolean;
     charAction(): void;
 
-    readonly get_strength_chain: EventChain<number>;
-    readonly enter_arena_chain: EventChain<IArena>;
-    readonly attack_chain: EventChain<ICharacter>;
-    readonly get_battle_role_chain: EventChain<BattleRole>;
-    readonly get_infight_strength_chain
-        : EventChain<{ strength: number, enemy: ICharacter }>;
+    readonly get_strength_chain: EventChain<number, null>;
+    readonly enter_arena_chain: EventChain<null, IArena>;
+    readonly attack_chain: EventChain<null, ICharacter>;
+    readonly get_battle_role_chain: EventChain<BattleRole, null>;
+    readonly get_inconflict_strength_chain
+        : EventChain<number, ICharacter>;
 
-    readonly exploit_chain: EventChain<IArena>;
-    readonly enter_chain: EventChain<IArena>;
-    readonly get_exploit_cost_chain: EventChain<{ cost: number, arena: IArena }>;
-    readonly get_enter_cost_chain: EventChain<{ cost: number, arena: IArena }>;
+    readonly exploit_chain: EventChain<null, IArena>;
+    readonly enter_chain: EventChain<null, IArena>;
+    readonly get_exploit_cost_chain: EventChain<number, IArena>;
+    readonly get_enter_cost_chain: EventChain<number, IArena>;
 
     /** 不可覆寫！ */
     addUpgrade(upgrade: IUpgrade): void;
@@ -91,15 +94,15 @@ interface ICharacter extends ICard {
 }
 
 interface IArena extends ICard {
-    readonly positioin: number;
+    readonly position: number;
     readonly char_list: ICharacter[];
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
 
-    readonly exploit_chain: EventChain<ICharacter>;
-    readonly enter_chain: EventChain<ICharacter>;
-    readonly get_exploit_cost_chain: EventChain<{ cost: number, char: ICharacter }>;
-    readonly get_enter_cost_chain: EventChain<{ cost: number, char: ICharacter }>;
+    readonly exploit_chain: EventChain<null, ICharacter>;
+    readonly enter_chain: EventChain<null, ICharacter>;
+    readonly get_exploit_cost_chain: EventChain<number, ICharacter>;
+    readonly get_enter_cost_chain: EventChain<number, ICharacter>;
 
     /** 回傳值如果是數字，代表的是魔力收入 */
     onExploit(char: ICharacter): void|number;

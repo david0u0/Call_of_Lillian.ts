@@ -9,29 +9,36 @@ type HookResult<T> = {
     was_passed?: boolean,
     break_chain?: boolean,
     intercept_effect?: boolean,
-    result_arg?: T,
+    var_arg?: T,
 };
 
-type Hook<T> = {
+type TriggerResult<T> = {
+    intercept_effect?: boolean,
+    var_arg: T,
+};
+
+type HookFunc<T, U> = (var_arg: T, const_arg: U) => HookResult<T>|void;
+
+type Hook<T, U> = {
     active_countdown: number, // 0代表無活性，-1代表永久
-    func: (arg: T) => HookResult<T>|void
+    func: HookFunc<T, U>
 };
 
 /** NOTE: 所有這些 hook 都是在動作開始前執行，所以是有可能修改動作本身的。 */
-class HookChain<T> {
-    private list: Hook<T>[] = [];
-    public trigger(arg: T): { result_arg: T, intercept_effect: boolean, break_chain: boolean } {
+class HookChain<T, U> {
+    private list: Hook<T, U>[] = [];
+    public trigger(var_arg: T, const_arg: U): TriggerResult<T> {
         let intercept_effect = false;
         let break_chain = false;
         for(let h of this.list) {
             if(h.active_countdown != 0) {
-                let result = h.func(arg);
+                let result = h.func(var_arg, const_arg);
                 if(result && !result.was_passed) {
                     if(h.active_countdown > 0) {
                         h.active_countdown--;
                     }
-                    if(typeof result.result_arg != "undefined") {
-                        arg = result.result_arg;
+                    if(typeof result.var_arg != "undefined") {
+                        var_arg = result.var_arg;
                     }
 
                     if(result.intercept_effect) {
@@ -44,28 +51,28 @@ class HookChain<T> {
                 }
             }
         }
-        return { intercept_effect, break_chain, result_arg: arg };
+        return { intercept_effect, var_arg: var_arg };
     }
-    public append(func: (arg: T) => HookResult<T>|void, active_countdown=1): Hook<T> {
+    public append(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
         let h = { active_countdown, func };
         this.list.push(h);
         return h;
     }
-    public dominant(func: (arg: T) => HookResult<T>|void, active_countdown=1): Hook<T> {
+    public dominant(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
         let h = { active_countdown, func };
         this.list = [h, ...this.list];
         return h;
     }
 }
-class EventChain<T> {
-    private real_chain = new HookChain<T>();
-    private check_chain = new HookChain<T>();
+class EventChain<T, U> {
+    private real_chain = new HookChain<T, U>();
+    private check_chain = new HookChain<null, U>();
     /**
      * 把一個規則接到鏈的尾端，預設為永久規則。
      * @param func 欲接上的規則
      * @param active_countdown 預設為-1，代表永久執行。
      */
-    public append(func: (arg: T) => HookResult<T>|void, active_countdown=-1): Hook<T> {
+    public append(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
         return this.real_chain.append(func, active_countdown);
     }
     /**
@@ -73,7 +80,7 @@ class EventChain<T> {
      * @param func 欲接上的規則
      * @param active_countdown 預設為-1，代表永久執行。
      */
-    public dominant(func: (arg: T) => HookResult<T>|void, active_countdown=-1): Hook<T> {
+    public dominant(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
         return this.real_chain.dominant(func, active_countdown);
     }
     /**
@@ -81,21 +88,25 @@ class EventChain<T> {
      * @param func 欲接上的規則
      * @param active_countdown 預設為-1，代表永久執行-1。
      */
-    public appendCheck(func: (arg: T) => HookResult<T>|void, active_countdown=-1): Hook<T> {
-        return this.check_chain.append(func, active_countdown);
+    public appendCheck(func: (arg: U) => HookResult<null>|void, active_countdown=-1): Hook<null, U> {
+        return this.check_chain.append((t, arg) => {
+            return func(arg);
+        }, active_countdown);
     }
     /**
      * 把一個規則接到驗證鏈的開頭，預設為永久規則。
      * @param func 欲接上的規則
      * @param active_countdown 預設為-1，代表永久執行。
      */
-    public dominantCheck(func: (arg: T) => HookResult<T>|void, active_countdown=-1): Hook<T> {
-        return this.check_chain.dominant(func, active_countdown);
+    public dominantCheck(func: (arg: U) => HookResult<null>|void, active_countdown=-1): Hook<null, U> {
+        return this.check_chain.dominant((t, arg) => {
+            return func(arg);
+        }, active_countdown);
     }
 
     /** 只執行驗證鏈 */
-    public checkCanTrigger(arg: T): boolean {
-        let result = this.check_chain.trigger(arg);
+    public checkCanTrigger(const_arg: U): boolean {
+        let result = this.check_chain.trigger(null, const_arg);
         if(result.intercept_effect) {
             return false;
         } else {
@@ -103,41 +114,26 @@ class EventChain<T> {
         }
     }
     /** 只執行真正的事件鏈 */
-    public trigger(arg: T): { result_arg: T, intercept_effect: boolean, break_chain: boolean } {
-        return this.real_chain.trigger(arg);
+    public trigger(var_arg: T, const_arg: U): TriggerResult<T>{
+        return this.real_chain.trigger(var_arg, const_arg);
     }
-    public chain<U>(next_chain: EventChain<U>,
-        trans_func1: (result: T) => U, trans_func2: (result: U) => T
-    ): EventChain<T> {
-        let combined_chain = new EventChain<T>();
-        combined_chain.append(arg => {
-            return this.real_chain.trigger(arg);
+    
+    public chain<V>(next_chain: EventChain<T, V>, next_const_arg: V): EventChain<T, U> {
+        let combined_chain = new EventChain<T, U>();
+        combined_chain.append((var_arg, const_arg) => {
+            return this.real_chain.trigger(var_arg, const_arg);
         });
-        combined_chain.append(arg => {
-            let new_arg = trans_func1(arg);
-            let result = next_chain.real_chain.trigger(new_arg);
-            let result_arg = trans_func2(result.result_arg);
-            return {
-                result_arg,
-                break_chain: result.break_chain,
-                intercept_effect: result.intercept_effect
-            };
+        combined_chain.append((var_arg, const_arg) => {
+            return next_chain.real_chain.trigger(var_arg, next_const_arg);
         });
-        combined_chain.appendCheck(arg => {
-            return this.check_chain.trigger(arg);
+        combined_chain.appendCheck(const_arg => {
+            return this.check_chain.trigger(null, const_arg);
         });
-        combined_chain.appendCheck(arg => {
-            let new_arg = trans_func1(arg);
-            let result = next_chain.check_chain.trigger(new_arg);
-            let result_arg = trans_func2(result.result_arg);
-            return {
-                result_arg,
-                break_chain: result.break_chain,
-                intercept_effect: result.intercept_effect
-            };
+        combined_chain.appendCheck(const_arg => {
+            return next_chain.check_chain.trigger(null, next_const_arg);
         });
         return combined_chain;
     }
 }
 
-export { EventChain, HookResult };
+export { EventChain, HookResult, HookFunc, Hook };

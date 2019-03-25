@@ -14,9 +14,9 @@ export class U1 extends Upgrade {
         if(this.character_equipped) {
             let char = this.character_equipped;
             let master_role_chain = this.g_master.getMyMaster(this).get_battle_role_chain;
-            this.appendChainWhileAlive(master_role_chain, arg => {
-                if (arg.char.isEqual(char)) {
-                    return { result_arg: { char, role: BattleRole.Sniper }};
+            this.appendChainWhileAlive(master_role_chain, (role, char) => {
+                if (char.isEqual(char)) {
+                    return { var_arg: BattleRole.Sniper };
                 }
             });
         }

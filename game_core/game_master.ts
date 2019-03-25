@@ -48,7 +48,7 @@ class PlayerMaster {
                 }
             }
         });
-        this.card_play_chain.append(card => {
+        this.card_play_chain.append((t, card) => {
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的規則
                 if(card.character_equipped) {
@@ -72,39 +72,36 @@ class PlayerMaster {
                 // TODO:
             }
         });
-        this.get_mana_cost_chain.append(arg => {
-            let card = arg.card;
+        this.get_mana_cost_chain.append((cost, card) => {
             if(TG.isArena(card)) {
                 // 改建場所的花費下降
-                let og_arena = this._arenas[card.positioin];
-                let cost = Math.max(card.basic_mana_cost - og_arena.basic_mana_cost, 0);
-                return { result_arg: { ...arg, cost }};
+                let og_arena = this._arenas[card.position];
+                cost = Math.max(cost - og_arena.basic_mana_cost, 0);
+                return { var_arg: cost };
             }
         });
         // 計算戰鬥職位的通則
-        this.get_battle_role_chain.append(arg => {
-            let role = arg.role;
-            if(this.getStrength(arg.char) == 0) {
-                role = BattleRole.Civilian;
+        this.get_battle_role_chain.append((role, char) => {
+            if(this.getStrength(char) == 0) {
+                return { var_arg: BattleRole.Civilian };
             }
-            return { result_arg: { role, char: arg.char }};
         });
     }
     
-    public card_play_chain: EventChain<ICard> = new EventChain();
-    public card_retire_chain: EventChain<ICard> = new EventChain();
+    public card_play_chain: EventChain<null, ICard> = new EventChain();
+    public card_retire_chain: EventChain<null, ICard> = new EventChain();
 
-    public set_mana_chain: EventChain<number> = new EventChain();
-    public set_emo_chain: EventChain<number> = new EventChain();
+    public set_mana_chain: EventChain<number, null> = new EventChain();
+    public set_emo_chain: EventChain<number, null> = new EventChain();
 
     public get_strength_chain
-        = new EventChain<{ strength: number, char: ICharacter }>();
-    public get_infight_strength_chain
-        = new EventChain<{ strength: number, me: ICharacter, enemy: ICharacter }>();
+        = new EventChain<number, ICharacter>();
+    public get_inconflict_strength_chain
+        = new EventChain<number, { me: ICharacter, enemy: ICharacter }>();
     public get_mana_cost_chain
-        = new EventChain<{ cost: number, card: ICard }>();
+        = new EventChain<number, ICard>();
     public get_battle_role_chain
-        = new EventChain<{ role: BattleRole, char: ICharacter }>();
+        = new EventChain<BattleRole, ICharacter>();
 
     addToDeck(card: ICard) {
         // TODO: 加上事件鏈?
@@ -125,25 +122,22 @@ class PlayerMaster {
     }
 
     setEmo(new_emo: number) {
-        let { result_arg, intercept_effect } = this.set_emo_chain.trigger(new_emo);
+        let { var_arg, intercept_effect } = this.set_emo_chain.trigger(new_emo, null);
         if(!intercept_effect) {
-            this._emo = result_arg;
+            this._emo = var_arg;
         }
     }
 
     getManaCost(card: ICard): number {
-        return card.get_mana_cost_chain.chain(this.get_mana_cost_chain,
-            cost => {
-                return { cost, card };
-            },
-            result => result.cost).trigger(card.basic_mana_cost).result_arg;
+        return card.get_mana_cost_chain.chain(this.get_mana_cost_chain, card)
+            .trigger(card.basic_mana_cost, null).var_arg;
     }
 
     setMana(new_mana: number) {
         new_mana = new_mana > 0 ? new_mana : 0;
-        let { result_arg, intercept_effect } = this.set_mana_chain.trigger(new_mana);
+        let { var_arg, intercept_effect } = this.set_mana_chain.trigger(new_mana, null);
         if(!intercept_effect) {
-            this._mana = result_arg;
+            this._mana = var_arg;
         }
     }
 
@@ -152,27 +146,21 @@ class PlayerMaster {
         for(let u of char.upgrade_list) {
             strength += u.basic_strength;
         }
-        return char.get_strength_chain.chain(this.get_strength_chain, strength => {
-            return { strength, char };
-        }, result => {
-            return result.strength;
-        }).trigger(strength).result_arg;
+        return char.get_strength_chain.chain(this.get_strength_chain, char)
+            .trigger(strength, null).var_arg;
     }
     
     getBattleRole(char: ICharacter) {
-        return char.get_battle_role_chain.chain(this.get_battle_role_chain, role => {
-            return { role, char };
-        }, result => {
-            return result.role;
-        }).trigger(char.basic_battle_role).result_arg;
+        return char.get_battle_role_chain.chain(this.get_battle_role_chain, char)
+            .trigger(char.basic_battle_role, null).var_arg;
     }
 
     checkCanPlay(card: ICard): boolean {
         if(card.card_status != CardStat.Hand) {
             return false;
         } else {
-            return card.card_play_chain.chain(this.card_play_chain,
-                tmp => card, c => null).checkCanTrigger(null);
+            return card.card_play_chain.chain(this.card_play_chain, card)
+                .checkCanTrigger(null);
         }
     }
     playCard(card: ICard) {
@@ -185,8 +173,8 @@ class PlayerMaster {
         }
         // TODO: 這裡應該先執行 card_play_chain.checkCanTrigger，因為觸發的效果很可能有副作用。
         // 用 intercept_effect 來解決是行不通的，傷害已經造成了！
-        let result = card.card_play_chain.chain(this.card_play_chain,
-            tmp => card , c => null).trigger(null);
+        let result = card.card_play_chain.chain(this.card_play_chain, card)
+            .trigger(null, null);
         if(result.intercept_effect) {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -199,16 +187,15 @@ class PlayerMaster {
     }
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private _leaveCard(card: ICard) {
-        card.card_leave_chain.trigger(null);
+        card.card_leave_chain.trigger(null, null);
     }
     retireCard(card: ICard) {
         if(card.card_status == CardStat.Onboard) {
-            let chain = card.card_retire_chain.chain(this.card_retire_chain,
-                tmp => card, c => null);
+            let chain = card.card_retire_chain.chain(this.card_retire_chain, card);
             let can_die = chain.checkCanTrigger(null);
             if (can_die) {
                 this._leaveCard(card);
-                chain.trigger(null);
+                chain.trigger(null, null);
                 card.card_status = CardStat.Retired;
             }
         } else {
@@ -289,9 +276,9 @@ class GameMaster {
 
     constructor() {
         // 進入別人的場所要支付代價
-        this.get_enter_cost_chain.append(arg => {
+        this.get_enter_cost_chain.append((cost, arg) => {
             if (arg.char.owner != arg.arena.owner) {
-                return { result_arg: { ...arg, cost: arg.cost + ENTER_ENEMY_COST }};
+                return { var_arg: cost + ENTER_ENEMY_COST };
             }
         });
         this.enter_chain.appendCheck(arg => {
@@ -315,15 +302,9 @@ class GameMaster {
         } else {
             let arena = _arena;
             // NOTE: 觸發順序：場所 -> 角色 -> 世界
-            return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arg => {
-                return { cost: arg.cost, arena };
-            }, arg => {
-                return { cost: arg.cost, char };
-            }).chain(this.get_enter_cost_chain, arg => {
-                return { cost: arg.cost, arena, char };
-            }, arg => {
-                return { cost: arg.cost, char };
-            }).trigger({ char, cost: 0 }).result_arg.cost;
+            return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arena)
+                .chain(this.get_enter_cost_chain, { char, arena })
+                .trigger(0, char).var_arg;
         }
     }
     enterArena(char: ICharacter) {
@@ -353,14 +334,11 @@ class GameMaster {
             char.recoverFields();
             throwIfIsBackend("魔不夠就想進入場所");
         } else {
-            let enter_chain = arena.enter_chain.chain(char.enter_chain,
-                arg => arena, arg => char
-            ).chain(this.enter_chain, arg => {
-                return { arena, char };
-            }, arg => char);
+            let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
+                .chain(this.enter_chain, { char, arena });
             if(enter_chain.checkCanTrigger(char)) {
                 p_master.setMana(p_master.mana - cost);
-                enter_chain.trigger(char);
+                enter_chain.trigger(null, char);
                 char.char_status = CharStat.InArena;
                 arena.enter(char);
             } else {
@@ -394,23 +372,23 @@ class GameMaster {
         return list;
     }
 
-    public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
-    public readonly enter_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
-    public readonly get_exploit_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
-    public readonly exploit_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
+    public readonly get_enter_cost_chain = new EventChain<number, { arena: IArena, char: ICharacter }>();
+    public readonly enter_chain = new EventChain<null, { arena: IArena, char: ICharacter }>();
+    public readonly get_exploit_cost_chain = new EventChain<number, { arena: IArena, char: ICharacter }>();
+    public readonly exploit_chain = new EventChain<null, { arena: IArena, char: ICharacter }>();
 
-    public readonly battle_start_chain = new EventChain<IArena>();
-    public readonly get_battle_cost_chain = new EventChain<{ cost: number, arena: IArena}>();
-    public readonly battle_end_chain = new EventChain<null>();
+    public readonly battle_start_chain = new EventChain<null, IArena>();
+    public readonly get_battle_cost_chain = new EventChain<number, IArena>();
+    public readonly battle_end_chain = new EventChain<null, null>();
 
     public readonly before_conflict_chain
-        = new EventChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
+        = new EventChain<null, { def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
     public readonly conflict_chain
-        = new EventChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
+        = new EventChain<null, { def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
     public readonly repluse_chain
-        = new EventChain<{ loser: ICharacter, winner: ICharacter|null }>();
+        = new EventChain<null, { loser: ICharacter, winner: ICharacter|null }>();
 
-    public readonly season_end_chain = new EventChain<null>();
+    public readonly season_end_chain = new EventChain<null, null>();
 }
 
 export {

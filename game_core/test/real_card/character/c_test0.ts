@@ -25,15 +25,14 @@ export class C_Test0 extends Character {
         enemy_master.setMana(enemy_master.mana - 10);
 
         // NOTE: 我方戰力加5
-        this.appendChainWhileAlive(my_master.get_strength_chain, arg => {
-            let result_arg = { ...arg, strength: arg.strength + 5 };
-            return { result_arg };
+        this.appendChainWhileAlive(my_master.get_strength_chain, (str, char) => {
+            return { var_arg: str + 5};
         });
 
         // NOTE: 任一角色退場造成情緒傷害
         this.appendChainWhileAlive(
             [my_master.card_retire_chain, enemy_master.card_retire_chain],
-            card => {
+            (t, card) => {
                 if(TypeGaurd.isCharacter(card)) {
                     enemy_master.setEmo(enemy_master.emo + 3);
                 }
@@ -41,21 +40,20 @@ export class C_Test0 extends Character {
         );
 
         // NOTE: 裝備免費
-        this.appendChainWhileAlive(my_master.get_mana_cost_chain, ({ card }) => {
+        this.appendChainWhileAlive(my_master.get_mana_cost_chain, (cost, card) => {
             if (card instanceof Upgrade) {
                 if (this.isEqual(card.character_equipped)) {
-                    return { result_arg: { card, cost: 0 } };
+                    return { var_arg: 0 };
                 }
             }
         });
 
-
         // NOTE: 禁止施咒
-        this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {
+        this.dominantCheckWhileAlive(enemy_master.card_play_chain, card => {
             if(TypeGaurd.isSpell(card)) {
                 return { intercept_effect: true };
             }
-        }, true);
+        });
     }
     // NOTE: 角色行動
     public readonly has_char_action = true;

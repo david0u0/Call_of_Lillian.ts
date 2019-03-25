@@ -14,10 +14,10 @@ export class C2 extends Character {
     basic_battle_role = BattleRole.Sniper;
 
     onPlay() {
-        this.get_infight_strength_chain.append(arg => {
+        this.get_inconflict_strength_chain.append((str, enemy) => {
             if(this.arena_entered) {
-                if(this.arena_entered.isEqual(arg.enemy.arena_entered)) {
-                    return { result_arg: { ...arg, strength: arg.strength+3 }};
+                if(!this.arena_entered.isEqual(enemy.arena_entered)) {
+                    return { var_arg: str + 3 };
                 }
             }
             return { was_passed: true };

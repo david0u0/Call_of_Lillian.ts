@@ -12,7 +12,7 @@ export default class C extends Character {
 
     onPlay() {
         let master_chain = this.g_master.enter_chain;
-        this.dominantChainWhileAlive(master_chain, arg => {
+        this.dominantChainWhileAlive(master_chain, (t, arg) => {
             let { char, arena } = arg;
             if (!char.isEqual(this) && arena.isEqual(this.arena_entered)) {
                 let pm = this.g_master.getMyMaster(char);
