@@ -1,5 +1,6 @@
 import { Upgrade, Character } from "../../../cards";
 import { BattleRole, CardType, CharStat } from "../../../enums";
+import { TypeGaurd } from "../../../interface";
 
 let name = "和平天使";
 let description = `陷阱
@@ -14,13 +15,9 @@ export default class U extends Upgrade {
     onPlay() {
         this.appendChainWhileAlive(this.g_master.conflict_chain, arg => {
             if(arg.def.isEqual(this) && !arg.is_blocked) {
-                this.g_master.getAll(CardType.Character, c => {
-                    if(c instanceof Character) {
-                        return c.char_status == CharStat.InBattle;
-                    }
-                    return false;
-                }).forEach(c => {
-                    let char = c as Character;
+                this.g_master.getAll(TypeGaurd.isCharacter, c => {
+                    return c.char_status == CharStat.InBattle;
+                }).forEach(char => {
                     this.g_master.repulse(char, null);
                 });
                 return { intercept_effect: true };

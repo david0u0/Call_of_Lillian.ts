@@ -1,7 +1,7 @@
 import { Character } from "../../../cards";
 import { BattleRole } from "../../../enums";
 import Selecter from "../../../selecter";
-import { IEvent } from "../../../interface";
+import { IEvent, TypeGaurd } from "../../../interface";
 import { BadOperationError } from "../../../game_master";
 
 let name = "魔法少女莉莉安";
@@ -21,7 +21,7 @@ export class C2 extends Character {
     }
 
     initialize() {
-        let events = this.g_master.selecter.selectEvents(1, 1, evt => {
+        let events = this.g_master.selecter.selectCard(TypeGaurd.isEvent, 1, 1, evt => {
             return evt.owner == this.owner;
         });
         this.recoverFields();

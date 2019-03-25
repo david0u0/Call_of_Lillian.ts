@@ -1,5 +1,5 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, IArena, ISpell } from "./interface";
+import { ICard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd } from "./interface";
 import { GameMaster } from "./game_master";
 import { EventChain, HookResult } from "./hook";
 import Selecter from "./selecter";
@@ -72,7 +72,7 @@ abstract class Upgrade extends Card implements IUpgrade {
     public character_equipped: ICharacter | null = null;
 
     initialize() {
-        let char = this.g_master.selecter.selectChars(1, 1, char => {
+        let char = this.g_master.selecter.selectCard(TypeGaurd.isCharacter, 1, 1, char => {
             this.character_equipped = char;
             let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
             this.character_equipped = null;

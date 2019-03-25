@@ -1,5 +1,6 @@
-import { CardType, CardSeries, BattleRole } from "../../../enums";
+import { CardSeries, BattleRole } from "../../../enums";
 import { Character, Upgrade } from "../../../cards";
+import { TypeGaurd } from "../../../interface";
 
 let name = "零卍佛滅卍實驗體少女";
 let description = `
@@ -33,7 +34,7 @@ export class C_Test0 extends Character {
         this.appendChainWhileAlive(
             [my_master.card_retire_chain, enemy_master.card_retire_chain],
             card => {
-                if (card.card_type == CardType.Character) {
+                if(TypeGaurd.isCharacter(card)) {
                     enemy_master.setEmo(enemy_master.emo + 3);
                 }
             }
@@ -51,7 +52,7 @@ export class C_Test0 extends Character {
 
         // NOTE: 禁止施咒
         this.dominantChainWhileAlive(enemy_master.card_play_chain, card => {
-            if (card.card_type == CardType.Spell) {
+            if(TypeGaurd.isSpell(card)) {
                 return { intercept_effect: true };
             }
         }, true);

@@ -1,8 +1,8 @@
 // NOTE: 所有的鏈在觸發時，先觸發卡片事件（特例），再觸發世界事件（通則）。
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
-import { Player, CardStat, BattleRole, CardType, CharStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent } from "./interface";
+import { Player, CardStat, BattleRole, CharStat } from "./enums";
+import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent, TypeGaurd } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import Selecter from "./selecter";
@@ -29,58 +29,55 @@ class PlayerMaster {
 
     constructor(public readonly player: Player) {
         this.card_play_chain.appendCheck(card => {
-            if(card.card_type == CardType.Upgrade) {
+            if(TypeGaurd.isUpgrade(card)) {
                 // 打出升級卡的規則
-                let upgrade = card as IUpgrade;
-                if (upgrade.character_equipped) {
-                    if (upgrade.character_equipped.card_status != CardStat.Onboard) {
-                        throwIfIsBackend("指定的角色不在場上", upgrade)
+                if (card.character_equipped) {
+                    if (card.character_equipped.card_status != CardStat.Onboard) {
+                        throwIfIsBackend("指定的角色不在場上", card);
                         return { intercept_effect: true };
-                    } else if (upgrade.character_equipped.char_status != CharStat.StandBy) {
-                        throwIfIsBackend("指定的角色不在待命區", upgrade)
+                    } else if (card.character_equipped.char_status != CharStat.StandBy) {
+                        throwIfIsBackend("指定的角色不在待命區", card);
                         return { intercept_effect: true };
-                    } else if(upgrade.character_equipped.owner != upgrade.owner) {
-                        throwIfIsBackend("指定的角色不屬於你", upgrade)
+                    } else if(card.character_equipped.owner != card.owner) {
+                        throwIfIsBackend("指定的角色不屬於你", card);
                         return { intercept_effect: true };
                     }
                 } else {
-                    throwIfIsBackend("未指定角色就打出升級", upgrade)
+                    throwIfIsBackend("未指定角色就打出升級", card);
                     return { intercept_effect: true };
                 }
             }
         });
         this.card_play_chain.append(card => {
-            if(card.card_type == CardType.Upgrade) {
+            if(TypeGaurd.isUpgrade(card)) {
                 // 打出升級卡的規則
-                let upgrade = card as IUpgrade;
-                if(upgrade.character_equipped) {
-                    let char = upgrade.character_equipped;
-                    char.addUpgrade(upgrade);
-                    upgrade.card_leave_chain.append(tmp => {
-                        char.distroyUpgrade(upgrade);
+                if(card.character_equipped) {
+                    let char = card.character_equipped;
+                    char.addUpgrade(card);
+                    card.card_leave_chain.append(tmp => {
+                        char.distroyUpgrade(card);
                     });
                 }
-            } else if(card.card_type == CardType.Character) {
+            } else if(TypeGaurd.isCharacter(card)) {
                 // 打出角色後把她加入角色區
-                let char = card as ICharacter;
-                this.addCharacter(char);
+                this.addCharacter(card);
                 // 角色離場時銷毀所有裝備
-                char.card_leave_chain.append(arg => {
-                    for (let u of char.upgrade_list) {
+                card.card_leave_chain.append(arg => {
+                    for (let u of card.upgrade_list) {
                         this.retireCard(u);
                     }
                 });
-            } else if(card.card_type == CardType.Arena) {
+            } else if(TypeGaurd.isArena(card)) {
                 // 打出場所的規則（把之前的建築拆了）
                 // TODO:
             }
         });
         this.get_mana_cost_chain.append(arg => {
-            if(arg.card.card_type == CardType.Arena) {
+            let card = arg.card;
+            if(TypeGaurd.isArena(card)) {
                 // 改建場所的花費下降
-                let arena = arg.card as IArena;
-                let og_arena = this._arenas[arena.positioin];
-                let cost = Math.max(arena.basic_mana_cost - og_arena.basic_mana_cost, 0);
+                let og_arena = this._arenas[card.positioin];
+                let cost = Math.max(card.basic_mana_cost - og_arena.basic_mana_cost, 0);
                 return { result_arg: { ...arg, cost }};
             }
         });
@@ -334,7 +331,7 @@ class GameMaster {
             throw new BadOperationError("欲進入場所的角色不在場上");
         }
 
-        let arena = this.selecter.selectArena(1, 1, arena => {
+        let arena = this.selecter.selectCard(TypeGaurd.isArena, 1, 1, arena => {
             if(arena.char_list.length + 1 > arena.max_capacity) {
                 throwIfIsBackend("欲進入的場所人數已達上限");
                 return false;
@@ -372,13 +369,15 @@ class GameMaster {
             }
         }
     }
-    getAll(card_type: CardType, filter=(c: ICard) => true) {
-        let list = [];
+    getAll<T extends ICard>(guard: (c: ICard) => c is T, filter=(c: T) => true) {
+        let list = new Array<T>();
         for(let seq in this.card_table) {
-            let c = this.card_table[seq]
-            if (c.card_type == card_type && c.card_status == CardStat.Onboard) {
-                if (filter(c)) {
-                    list.push(c);
+            let c = this.card_table[seq];
+            if (guard(c)) {
+                if (c.card_status == CardStat.Onboard) {
+                    if (filter(c)) {
+                        list.push(c);
+                    }
                 }
             }
         }

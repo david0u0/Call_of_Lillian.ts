@@ -117,6 +117,24 @@ interface ISpell extends ICard {
 
 }
 
+const TypeGaurd = {
+    isUpgrade: function(c: ICard): c is IUpgrade {
+        return c.card_type == CardType.Upgrade;
+    },
+    isCharacter: function(c: ICard): c is ICharacter {
+        return c.card_type == CardType.Character;
+    },
+    isArena: function(c: ICard): c is IArena {
+        return c.card_type == CardType.Arena;
+    },
+    isSpell: function(c: ICard): c is ISpell {
+        return c.card_type == CardType.Spell;
+    },
+    isEvent: function(c: ICard): c is IEvent {
+        return c.card_type == CardType.Event;
+    },
+};
+
 export {
-    IKeeper, ICard, ICharacter, IUpgrade, IArena, IEvent, ISpell
+    IKeeper, ICard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
 }
