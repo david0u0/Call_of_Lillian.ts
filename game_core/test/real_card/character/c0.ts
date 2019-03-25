@@ -21,11 +21,11 @@ export class C2 extends Character {
     }
 
     initialize() {
-        let events = this.g_master.selecter.selectCard(TypeGaurd.isEvent, 1, 1, evt => {
+        let event = this.g_master.selecter.selectSingleCard(TypeGaurd.isEvent, evt => {
             return evt.owner == this.owner;
         });
-        this.recoverFields();
-        this.event_to_pay = events[0];
+        this.event_to_pay = event;
+        return event ? true : false;
     }
 
     onPlay() {

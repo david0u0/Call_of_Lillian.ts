@@ -61,16 +61,13 @@ describe("測試最基礎的場所卡", () => {
         e_rainy3 = gm.genCardToHand(p2, c_generater) as Character;
         pm.playCard(rainy);
         pm.playCard(rainy2);
-        pm.playCard(e_rainy3);
+        enemy_master.playCard(e_rainy3);
     });
     it("進入自己場所應該不用花費", () => {
-        rainy.arena_entered = my_h;
-        assert.equal(gm.getEnterCost(rainy), 0);
+        assert.equal(gm.getEnterCost(rainy, my_h), 0);
     });
     it("進入敵人的場所要多花1魔力", () => {
-        rainy.arena_entered = enemy_h;
-        gm.getEnterCost(rainy);
-        assert.equal(gm.getEnterCost(rainy), 1);
+        assert.equal(gm.getEnterCost(rainy, enemy_h), 1);
     });
     describe("測試進入場所的功能", () => {
         it("選擇的場所如果不到一個應該要報錯", () => {
@@ -89,11 +86,7 @@ describe("測試最基礎的場所卡", () => {
                     gm.enterArena(rainy);
                 });
             });
-            it("上一個操作應該會修改到角色記錄中的進入地點（因為報錯把復原過程打斷了）", () => {
-                assert.equal(true, enemy_h.isEqual(rainy.arena_entered));
-            });
-            it("手動復原後應該就沒問題了", () => {
-                rainy.recoverFields();
+            it("角色進入的場所應該是自己的醫院", () => {
                 assert.equal(true, my_h.isEqual(rainy.arena_entered));
             })
             it("場所中應該洽好有一個角色", () => {
@@ -108,13 +101,18 @@ describe("測試最基礎的場所卡", () => {
                     gm.enterArena(rainy2);
                 });
             });
+            it("對手的角色進入我方的場所，其魔力應該為1000-4-1=995", () => {
+                assert.equal(995, enemy_master.mana);
+            });
             it("由於角色能力，敵人應該承受了一點情緒傷害", () => {
                 assert.equal(enemy_master.emo, 1);
                 assert.equal(pm.emo, 0);
             });
-        });
-        describe("測試實際使用場所", () => {
-
+            describe("測試實際使用場所", () => {
+                it("我方的魔力應該是1000-4-4=992", () => {
+                    assert.equal(pm.mana, 992);
+                });
+            });
         });
     });
 });

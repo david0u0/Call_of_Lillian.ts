@@ -19,7 +19,7 @@ abstract class Card implements ICard {
     public readonly card_leave_chain = new EventChain<null, null>();
     public readonly card_retire_chain = new EventChain<null, null>();
 
-    public initialize() { }
+    public initialize() { return true; }
     public onPlay() { }
     public onRetrieve() { }
 
@@ -99,19 +99,31 @@ abstract class Upgrade extends Card implements IUpgrade {
     public card_type = CardType.Upgrade;
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
+    private mem_character_equipped: ICharacter | null = this.character_equipped;
 
-    initialize() {
-        let char = this.g_master.selecter.selectCard(TypeGaurd.isCharacter, 1, 1, char => {
-            this.character_equipped = char;
-            let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
-            this.character_equipped = null;
-            return can_play;
+    public initialize() {
+        let char = this.g_master.selecter.selectSingleCard(TypeGaurd.isCharacter, char => {
+            if(char.owner != this.owner) {
+                return false;
+            } else {
+                this.character_equipped = char;
+                let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
+                return can_play;
+            }
         });
-        this.character_equipped = char[0];
+        if(char) {
+            this.character_equipped = char;
+            return true;
+        } else {
+            return false;
+        }
     }
 
+    rememberFields() {
+        this.mem_character_equipped = this.character_equipped;
+    }
     recoverFields() {
-        this.character_equipped = null;
+        this.character_equipped = this.mem_character_equipped;
     }
 }
 
@@ -190,7 +202,8 @@ abstract class Arena extends Card implements IArena {
     }
     abstract onExploit(char: ICharacter): number|void;
 
-    initialize() {
+    public initialize() {
+        return true;
         /*let char = this.g_master.selecter.selectChars(1, 1, pos => {
         });
         this._character_equipped = char[0];*/

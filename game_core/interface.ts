@@ -21,8 +21,14 @@ interface ICard {
     readonly card_retire_chain: EventChain<null, null>;
 
     isEqual(card: ICard|null): boolean;
-    /** 在打牌之前執行，將該設置的變數設起來 */
-    initialize(): void;
+
+    /**
+     * 在打牌之前執行，內部會呼叫選擇器，將該設置的變數設起來。
+     * 之所以把這函式放在卡牌中而不是由 GameMaster 來決定，是因為有時候需要客製化每張牌的打牌流程。
+     * 例如：施放咒語前指定任意角色，使他們疲勞，每指定一個角色降一費。
+     * @returns 如果被取消就會回傳 false
+     */
+    initialize(): boolean;
     /** 入場曲或咒語效果的概念 */
     onPlay(): void;
     /** 退場曲的概念 */

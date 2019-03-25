@@ -64,6 +64,10 @@ class HookChain<T, U> {
         return h;
     }
 }
+/**
+ * checkCanTrigger() 回傳假，代表不會執行 trigger，自然也不會發生任何副作用，在UI層級就該擋下來。
+ * tigger() 被攔截效果，代表一連串副作用已然執行，而最後的 callback 卻無法執行。
+ */
 class EventChain<T, U> {
     private real_chain = new HookChain<T, U>();
     private check_chain = new HookChain<null, U>();
@@ -113,9 +117,18 @@ class EventChain<T, U> {
             return true;
         }
     }
-    /** 只執行真正的事件鏈 */
-    public trigger(var_arg: T, const_arg: U): TriggerResult<T>{
-        return this.real_chain.trigger(var_arg, const_arg);
+    /** 只執行真正的事件鏈 
+     * @param callback 如果沒有被欄截效果就會執行它
+     * @param recover 如果效果被攔結就會執行它
+    */
+    public trigger(var_arg: T, const_arg: U,
+        callback=(arg: T) => {}, recover=() => {}
+    ): T {
+        let result = this.real_chain.trigger(var_arg, const_arg);
+        if(!result.intercept_effect) {
+            callback(result.var_arg);
+        }
+        return result.var_arg;
     }
     
     public chain<V>(next_chain: EventChain<T, V>, next_const_arg: V): EventChain<T, U> {
