@@ -343,6 +343,7 @@ class GameMaster {
             .chain(this.get_exploit_cost_chain, { arena, char })
             .trigger(arena.basic_exploit_cost, char);
     }
+    /** 這應該是難得不用跟前端糾纏不清的函式了= = */
     exploit(char: ICharacter) {
         if(!char.arena_entered) {
             throw new BadOperationError("不在場所的角色無法開發資源", char);
@@ -358,7 +359,10 @@ class GameMaster {
                 if(exploit_chain.checkCanTrigger(char)) {
                     p_master.setMana(p_master.mana - cost);
                     exploit_chain.trigger(null, char, t => {
-                        arena.onExploit(char);
+                        let income = arena.onExploit(char);
+                        if(income) {
+                            p_master.setMana(p_master.mana + income);
+                        }
                     });
                 }
             }
