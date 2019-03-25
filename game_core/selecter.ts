@@ -5,7 +5,7 @@ import { BadOperationError } from "./game_master";
 class UISelecter {
 }
 
-class Selecter {
+class BackendSelecter {
     constructor(private card_table: { [index: number]: ICard }) { }
     private selected_args = new Array<Array<number>>();
     private top = 0;
@@ -49,6 +49,7 @@ class Selecter {
         this.top += len;
         return cards;
     }
+
     public selectChars(max=1, min=1,
         checkCanSelect=(char: ICharacter) => true
     ): ICharacter[] {
@@ -70,6 +71,24 @@ class Selecter {
             return checkCanSelect(card as IArena);
         }) as IArena[];
     }
+
+    /**
+     * 後端會卡住，等待前端送訊息過來
+     * 前端沒有「取消」的選項
+     * 應用實例：某個事件已確定發生，你必需選一個目標來回應，如強迫棄牌、強迫擊退等。
+     */
+    private selectCardInteractive(card_type: CardType, max: number, min: number,
+        checkCanSelect=(char: ICard) => true
+    ): ICard[] {
+        return [];
+    }
+    public selectCharsInteractive(max=1, min=1,
+        checkCanSelect=(char: ICharacter) => true
+    ): ICharacter[] {
+        return this.selectCardInteractive(CardType.Character, max, min, card => {
+            return checkCanSelect(card as ICharacter);
+        }) as ICharacter[];
+    }
 }
 
-export default Selecter;
+export default BackendSelecter;

@@ -178,10 +178,8 @@ class PlayerMaster {
                 tmp => card, c => null).checkCanTrigger(null);
         }
     }
-    playCard(card: ICard, need_init=true) {
-        if(need_init) {
-            card.initialize();
-        }
+    playCard(card: ICard) {
+        card.initialize();
         let cost = this.getManaCost(card);
         if(this.mana < cost) {
             throw new BadOperationError("魔力不夠還想出牌？");

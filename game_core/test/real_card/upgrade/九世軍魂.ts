@@ -29,21 +29,13 @@ export default class U extends Upgrade {
             this.modifier += 2;
         });
         this.card_retire_chain.append(() => {
-            // 創造一個新的這件裝備，將它附到別人身上，然後把自己放逐掉。
-            let constructor = (seq: number, owner: Player, gm: GameMaster) => {
-                return new U(seq, owner, gm);
-            }
-            let new_chars = this.g_master.selecter.selectChars(1, 0, char => {
+            let new_char = this.g_master.selecter.selectCharsInteractive(1, 0, char => {
                 return char.owner == this.owner;
-            });
-            if(new_chars.length == 1) {
-                let relive = this.g_master.genCardToHand(this.owner, constructor) as U;
-                relive.modifier = this.modifier;
-                this.g_master.getMyMaster(this)
-                relive.character_equipped = new_chars[0];
-                pm.playCard(relive, false);
-                pm.exileCard(this);
-                return { intercept_effect: true };
+            }, true)[0];
+            if(new_char) {
+                // 把自己附到別人身上，然後打斷這條退場鏈
+                this.character_equipped = new_char;
+                new_char.addUpgrade(this);
             }
         });
     }
