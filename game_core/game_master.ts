@@ -372,14 +372,39 @@ class GameMaster {
             }
         }
     }
+    getAll(card_type: CardType, filter=(c: ICard) => true) {
+        let list = [];
+        for(let seq in this.card_table) {
+            let c = this.card_table[seq]
+            if (c.card_type == card_type && c.card_status == CardStat.Onboard) {
+                if (filter(c)) {
+                    list.push(c);
+                }
+            }
+        }
+        return list;
+    }
 
-    public readonly battle_start_chain = new EventChain<IArena>();
-    public readonly get_battle_cost_chain = new EventChain<{ cost: number, arena: IArena}>();
-    public readonly battle_end_chain: EventChain<null> = new EventChain<null>();
+    repulse(loser: ICharacter, winner: ICharacter|null) {
+        // TODO:
+    }
+
     public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
     public readonly enter_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
     public readonly get_exploit_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
     public readonly exploit_chain = new EventChain<{ arena: IArena, char: ICharacter }>();
+
+    public readonly battle_start_chain = new EventChain<IArena>();
+    public readonly get_battle_cost_chain = new EventChain<{ cost: number, arena: IArena}>();
+    public readonly battle_end_chain = new EventChain<null>();
+
+    public readonly before_conflict_chain
+        = new EventChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
+    public readonly conflict_chain
+        = new EventChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
+    public readonly repluse_chain
+        = new EventChain<{ loser: ICharacter, winner: ICharacter|null }>();
+
     public readonly season_end_chain = new EventChain<null>();
 }
 

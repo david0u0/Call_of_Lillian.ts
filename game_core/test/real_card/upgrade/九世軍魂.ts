@@ -31,7 +31,7 @@ export default class U extends Upgrade {
         this.card_retire_chain.append(() => {
             let new_char = this.g_master.selecter.selectCharsInteractive(1, 0, char => {
                 return char.owner == this.owner;
-            }, true)[0];
+            })[0];
             if(new_char) {
                 // 把自己附到別人身上，然後打斷這條退場鏈
                 this.character_equipped = new_char;

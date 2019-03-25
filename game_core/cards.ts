@@ -96,6 +96,7 @@ abstract class Character extends Card implements ICharacter {
     public arena_entered: IArena | null = null;
     public char_status = CharStat.StandBy;
     public is_tired = false;
+    public way_worn = false;
 
     public has_char_action = false;
     public charAction() { }

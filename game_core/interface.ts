@@ -51,7 +51,6 @@ interface ICard {
 }
 interface ICharacter extends ICard { };
 interface IUpgrade extends ICard { };
-interface ICharacter extends ICard { };
 interface IArena extends ICard { };
 interface IEvent extends ICard { };
 interface ISpell extends ICard { };
@@ -67,6 +66,9 @@ interface ICharacter extends ICard {
     arena_entered: IArena|null;
     char_status: CharStat;
     is_tired: boolean;
+    
+    /** 剛進行移動的角色會陷入旅行疲勞，下個回合才可攻擊。 */
+    way_worn: boolean;
 
     readonly has_char_action: boolean;
     charAction(): void;
