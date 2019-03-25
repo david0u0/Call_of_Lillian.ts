@@ -2,7 +2,7 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent, TypeGaurd } from "./interface";
+import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent, TypeGaurd as TG } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import Selecter from "./selecter";
@@ -29,7 +29,7 @@ class PlayerMaster {
 
     constructor(public readonly player: Player) {
         this.card_play_chain.appendCheck(card => {
-            if(TypeGaurd.isUpgrade(card)) {
+            if(TG.isUpgrade(card)) {
                 // 打出升級卡的規則
                 if (card.character_equipped) {
                     if (card.character_equipped.card_status != CardStat.Onboard) {
@@ -49,7 +49,7 @@ class PlayerMaster {
             }
         });
         this.card_play_chain.append(card => {
-            if(TypeGaurd.isUpgrade(card)) {
+            if(TG.isUpgrade(card)) {
                 // 打出升級卡的規則
                 if(card.character_equipped) {
                     let char = card.character_equipped;
@@ -58,7 +58,7 @@ class PlayerMaster {
                         char.distroyUpgrade(card);
                     });
                 }
-            } else if(TypeGaurd.isCharacter(card)) {
+            } else if(TG.isCharacter(card)) {
                 // 打出角色後把她加入角色區
                 this.addCharacter(card);
                 // 角色離場時銷毀所有裝備
@@ -67,14 +67,14 @@ class PlayerMaster {
                         this.retireCard(u);
                     }
                 });
-            } else if(TypeGaurd.isArena(card)) {
+            } else if(TG.isArena(card)) {
                 // 打出場所的規則（把之前的建築拆了）
                 // TODO:
             }
         });
         this.get_mana_cost_chain.append(arg => {
             let card = arg.card;
-            if(TypeGaurd.isArena(card)) {
+            if(TG.isArena(card)) {
                 // 改建場所的花費下降
                 let og_arena = this._arenas[card.positioin];
                 let cost = Math.max(card.basic_mana_cost - og_arena.basic_mana_cost, 0);
@@ -331,7 +331,7 @@ class GameMaster {
             throw new BadOperationError("欲進入場所的角色不在場上");
         }
 
-        let arena = this.selecter.selectCard(TypeGaurd.isArena, 1, 1, arena => {
+        let arena = this.selecter.selectCard(TG.isArena, 1, 1, arena => {
             if(arena.char_list.length + 1 > arena.max_capacity) {
                 throwIfIsBackend("欲進入的場所人數已達上限");
                 return false;
@@ -369,6 +369,16 @@ class GameMaster {
             }
         }
     }
+    exploit(char: ICharacter) {
+        if(!char.arena_entered) {
+            throw new BadOperationError("不在場所的角色無法開發資源", char);
+        } else {
+            // TODO:
+        }
+    }
+    repulse(loser: ICharacter, winner: ICharacter|null) {
+        // TODO:
+    }
     getAll<T extends ICard>(guard: (c: ICard) => c is T, filter=(c: T) => true) {
         let list = new Array<T>();
         for(let seq in this.card_table) {
@@ -382,10 +392,6 @@ class GameMaster {
             }
         }
         return list;
-    }
-
-    repulse(loser: ICharacter, winner: ICharacter|null) {
-        // TODO:
     }
 
     public readonly get_enter_cost_chain = new EventChain<{ cost: number, arena: IArena, char: ICharacter }>();
