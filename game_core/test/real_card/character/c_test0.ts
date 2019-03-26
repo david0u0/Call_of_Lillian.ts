@@ -49,9 +49,9 @@ export class C_Test0 extends Character {
         });
 
         // NOTE: 禁止施咒
-        this.dominantCheckWhileAlive(enemy_master.card_play_chain, card => {
+        this.dominantCheckWhileAlive(enemy_master.card_play_chain, (t, card) => {
             if(TypeGaurd.isSpell(card)) {
-                return { intercept_effect: true };
+                return { var_arg: false };
             }
         });
     }

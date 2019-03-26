@@ -28,23 +28,23 @@ class PlayerMaster {
     public get arenas() { return [...this._arenas] };
 
     constructor(public readonly player: Player) {
-        this.card_play_chain.appendCheck(card => {
+        this.card_play_chain.appendCheck((can_play, card) => {
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的規則
                 if (card.character_equipped) {
                     if (card.character_equipped.card_status != CardStat.Onboard) {
                         throwIfIsBackend("指定的角色不在場上", card);
-                        return { intercept_effect: true };
+                        return { var_arg: false };
                     } else if (card.character_equipped.char_status != CharStat.StandBy) {
                         throwIfIsBackend("指定的角色不在待命區", card);
-                        return { intercept_effect: true };
+                        return { var_arg: false };
                     } else if(card.character_equipped.owner != card.owner) {
                         throwIfIsBackend("指定的角色不屬於你", card);
-                        return { intercept_effect: true };
+                        return { var_arg: false };
                     }
                 } else {
                     throwIfIsBackend("未指定角色就打出升級", card);
-                    return { intercept_effect: true };
+                    return { var_arg: true };
                 }
             }
         });
@@ -279,15 +279,15 @@ class GameMaster {
                 return { var_arg: cost + ENTER_ENEMY_COST };
             }
         });
-        this.enter_chain.appendCheck(arg => {
+        this.enter_chain.appendCheck((can_enter, arg) => {
             if(arg.char.char_status != CharStat.StandBy) {
                 // 理論上，在場所中的角色不能移動
                 throwIfIsBackend("場所中的角色不能移動");
-                return { intercept_effect: true };
+                return { var_arg: false };
             } else if(arg.char.is_tired) {
                 // 理論上，疲勞中的角色不能移動
                 throwIfIsBackend("疲勞中的角色不能移動");
-                return { intercept_effect: true };
+                return { var_arg: false };
             }
         });
     }

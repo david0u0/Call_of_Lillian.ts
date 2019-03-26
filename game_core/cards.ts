@@ -66,7 +66,7 @@ abstract class Card implements ICard {
         }
     }
     appendCheckWhileAlive<T, U>(
-        chain: EventChain<T, U>[]|EventChain<T, U>, func: (arg: U) => void|HookResult<null>
+        chain: EventChain<T, U>[]|EventChain<T, U>, func: HookFunc<boolean, U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
@@ -80,7 +80,7 @@ abstract class Card implements ICard {
         }
     }
     dominantCheckWhileAlive<T, U>(
-        chain: EventChain<T, U>[]|EventChain<T, U>, func: (arg: U) => void|HookResult<null>
+        chain: EventChain<T, U>[]|EventChain<T, U>, func: HookFunc<boolean, U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {

@@ -20,7 +20,7 @@ export default class U extends Upgrade {
                 }).forEach(char => {
                     this.g_master.repulse(char, null);
                 });
-                return { intercept_effect: true };
+                return { intercept_effect: () => {} };
             } else {
                 return { was_passed: true };
             }

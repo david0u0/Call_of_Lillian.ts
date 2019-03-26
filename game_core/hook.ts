@@ -1,19 +1,21 @@
+import { throwDevError } from "./errors";
+
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
 
-/**
- * 注意此處的 intercept_effect 不是像魔不夠這種限制，而是特殊效果，例如「某個角色不會退場」之類。
- * 魔不夠這類的限制應該在進入事件鏈之前就被擋下來了。
- */
 type HookResult<T> = {
     was_passed?: boolean,
     break_chain?: boolean,
-    intercept_effect?: boolean,
+    after_effect?: (arg: T) => void,
+    intercept_effect?: (arg: T) => void,
+    /** 可變的參數 */
     var_arg?: T,
 };
 
 type TriggerResult<T> = {
-    intercept_effect?: boolean,
+    intercept_effect?: (arg: T) => void,
+    after_effects: Array<(arg: T) => void>,
+    break_chain: boolean,
     var_arg: T,
 };
 
@@ -28,8 +30,9 @@ type Hook<T, U> = {
 class HookChain<T, U> {
     private list: Hook<T, U>[] = [];
     public trigger(var_arg: T, const_arg: U): TriggerResult<T> {
-        let intercept_effect = false;
+        let intercept_effect = undefined;
         let break_chain = false;
+        let after_effects = new Array<(arg: T) => void>();
         for(let h of this.list) {
             if(h.active_countdown != 0) {
                 let result = h.func(var_arg, const_arg);
@@ -40,9 +43,12 @@ class HookChain<T, U> {
                     if(typeof result.var_arg != "undefined") {
                         var_arg = result.var_arg;
                     }
+                    if(result.after_effect) {
+                        after_effects.push(result.after_effect);
+                    }
 
                     if(result.intercept_effect) {
-                        intercept_effect = true;
+                        intercept_effect = result.intercept_effect;
                         break;
                     } else if(result.break_chain) {
                         break_chain = true;
@@ -51,7 +57,7 @@ class HookChain<T, U> {
                 }
             }
         }
-        return { intercept_effect, var_arg: var_arg };
+        return { intercept_effect, break_chain, after_effects, var_arg };
     }
     public append(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
         let h = { active_countdown, func };
@@ -70,7 +76,7 @@ class HookChain<T, U> {
  */
 class EventChain<T, U> {
     private real_chain = new HookChain<T, U>();
-    private check_chain = new HookChain<null, U>();
+    private check_chain = new HookChain<boolean, U>();
     /**
      * 把一個規則接到鏈的尾端，預設為永久規則。
      * @param func 欲接上的規則
@@ -92,30 +98,27 @@ class EventChain<T, U> {
      * @param func 欲接上的規則
      * @param active_countdown 預設為-1，代表永久執行-1。
      */
-    public appendCheck(func: (arg: U) => HookResult<null>|void, active_countdown=-1): Hook<null, U> {
-        return this.check_chain.append((t, arg) => {
-            return func(arg);
-        }, active_countdown);
+    public appendCheck(func: HookFunc<boolean, U>, active_countdown=-1): Hook<boolean, U> {
+        return this.check_chain.append(func);
     }
     /**
      * 把一個規則接到驗證鏈的開頭，預設為永久規則。
      * @param func 欲接上的規則
      * @param active_countdown 預設為-1，代表永久執行。
      */
-    public dominantCheck(func: (arg: U) => HookResult<null>|void, active_countdown=-1): Hook<null, U> {
-        return this.check_chain.dominant((t, arg) => {
-            return func(arg);
-        }, active_countdown);
+    public dominantCheck(func: HookFunc<boolean, U>, active_countdown=-1): Hook<boolean, U> {
+        return this.check_chain.dominant(func);
     }
 
     /** 只執行驗證鏈 */
     public checkCanTrigger(const_arg: U): boolean {
-        let result = this.check_chain.trigger(null, const_arg);
+        let result = this.check_chain.trigger(true, const_arg);
         if(result.intercept_effect) {
-            return false;
-        } else {
-            return true;
+            throwDevError("驗證鏈竟然有 intercept_effect ？");
+        } else if(result.after_effects.length != 0) {
+            throwDevError("驗證鏈中竟然有 after_effects ？");
         }
+        return result.var_arg;
     }
     /** 只執行真正的事件鏈 
      * @param callback 如果沒有被欄截效果就會執行它
@@ -125,8 +128,14 @@ class EventChain<T, U> {
         callback=(arg: T) => {}, recover=() => {}
     ): T {
         let result = this.real_chain.trigger(var_arg, const_arg);
-        if(!result.intercept_effect) {
+        if(result.intercept_effect) {
+            result.intercept_effect(result.var_arg);
+            recover();
+        } else {
             callback(result.var_arg);
+            for(let effect of result.after_effects) {
+                effect(result.var_arg);
+            }
         }
         return result.var_arg;
     }
@@ -139,11 +148,11 @@ class EventChain<T, U> {
         combined_chain.append((var_arg, const_arg) => {
             return next_chain.real_chain.trigger(var_arg, next_const_arg);
         });
-        combined_chain.appendCheck(const_arg => {
-            return this.check_chain.trigger(null, const_arg);
+        combined_chain.appendCheck((can_trigger, const_arg) => {
+            return this.check_chain.trigger(can_trigger, const_arg);
         });
-        combined_chain.appendCheck(const_arg => {
-            return next_chain.check_chain.trigger(null, next_const_arg);
+        combined_chain.appendCheck((can_trigger, const_arg) => {
+            return next_chain.check_chain.trigger(can_trigger, next_const_arg);
         });
         return combined_chain;
     }

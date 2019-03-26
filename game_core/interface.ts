@@ -54,9 +54,9 @@ interface ICard {
         func: HookFunc<T, U>): void;
 
     appendCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
-        func: (arg: U) => void|HookResult<null>): void
+        func: HookFunc<boolean, U>): void
     dominantCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
-        func: (arg: U) => void|HookResult<null>): void
+        func: HookFunc<boolean, U>): void
 }
 interface ICharacter extends ICard { };
 interface IUpgrade extends ICard { };
