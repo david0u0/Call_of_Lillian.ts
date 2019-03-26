@@ -125,6 +125,8 @@ export class HardRule {
         return true;
     }
     public static onEnter(char: ICharacter, arena: IArena) {
+        // 角色陷入疲勞
+        char.is_tired = true;
         // 讓角色跟場所記得對方
         char.char_status = CharStat.InArena;
         char.arena_entered = arena;
