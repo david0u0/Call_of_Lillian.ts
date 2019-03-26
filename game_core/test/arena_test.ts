@@ -30,8 +30,8 @@ let selecter = gm.selecter;
 let pm = gm.getMyMaster(p1);
 let enemy_master = gm.getEnemyMaster(p1);
 
-pm.setMana(1000);
-enemy_master.setMana(1000);
+pm.addMana(1000);
+enemy_master.addMana(1000);
 
 describe("測試最基礎的場所卡", () => {
     let my_h: Arena;

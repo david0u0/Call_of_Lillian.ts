@@ -64,7 +64,8 @@ class PlayerMaster {
         return card;
     }
 
-    setEmo(new_emo: number) {
+    addEmo(n: number) {
+        let new_emo = Math.max(0, this.emo + n);
         this.set_emo_chain.trigger(new_emo, null, new_emo => {
             this._emo = new_emo;
         });
@@ -75,8 +76,8 @@ class PlayerMaster {
             .trigger(card.basic_mana_cost, null);
     }
 
-    setMana(new_mana: number) {
-        new_mana = new_mana > 0 ? new_mana : 0;
+    addMana(n: number) {
+        let new_mana = Math.max(0, this.mana + n);
         this.set_mana_chain.trigger(new_mana, null, new_mana => {
             this._mana = new_mana;
         });
@@ -110,7 +111,7 @@ class PlayerMaster {
             card.recoverFields();
             return;
         }
-        this.setMana(this.mana - this.getManaCost(card));
+        this.addMana(-this.getManaCost(card));
         card.card_play_chain.chain(this.card_play_chain, card).trigger(null, null, () => {
             card.card_status = CardStat.Onboard;
             card.onPlay();
@@ -191,21 +192,19 @@ class GameMaster {
 
     private p_master1: PlayerMaster = new PlayerMaster(Player.Player1);
     private p_master2: PlayerMaster = new PlayerMaster(Player.Player2);
-    getMyMaster(arg: ICard | Player): PlayerMaster {
-        if (typeof arg != "number") {
+    getMyMaster(arg: Player|ICard): PlayerMaster {
+        if(typeof(arg) != "number") {
             return this.getMyMaster(arg.owner);
-        }
-        else if (arg == Player.Player1) {
+        } else if (arg == Player.Player1) {
             return this.p_master1;
         } else {
             return this.p_master2;
         }
     }
-    getEnemyMaster(arg: ICard | Player): PlayerMaster {
-        if (typeof arg != "number") {
+    getEnemyMaster(arg: Player|ICard): PlayerMaster {
+        if(typeof(arg) != "number") {
             return this.getEnemyMaster(arg.owner);
-        }
-        else if (arg == Player.Player2) {
+        } else if (arg == Player.Player2) {
             return this.p_master1;
         } else {
             return this.p_master2;
@@ -216,8 +215,7 @@ class GameMaster {
         SR.onGetEnterCost(this.get_enter_cost_chain);
         SR.checkEnter(this.enter_chain);
         SR.onEnter(this.enter_chain, (p, mana) => {
-            let pm = this.getMyMaster(p);
-            pm.setMana(pm.mana  + mana);
+            this.getMyMaster(p).addMana(mana);
         });
     }
 
@@ -241,7 +239,7 @@ class GameMaster {
             let arena = _arena;
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
                 .chain(this.enter_chain, { char, arena });
-            p_master.setMana(p_master.mana - this.getEnterCost(char, arena));
+            p_master.addMana(-this.getEnterCost(char, arena));
             enter_chain.trigger(null, char, () => {
                 HR.onEnter(char, arena);
             });
@@ -263,11 +261,11 @@ class GameMaster {
                 let exploit_chain = arena.exploit_chain.chain(char.exploit_chain, arena)
                     .chain(this.exploit_chain, { arena, char });
                 if (exploit_chain.checkCanTrigger(char)) {
-                    p_master.setMana(p_master.mana - this.getExploitCost(char, arena));
+                    p_master.addMana(-this.getExploitCost(char, arena));
                     exploit_chain.trigger(null, char, t => {
                         let income = arena.onExploit(char);
                         if (income) {
-                            p_master.setMana(p_master.mana + income);
+                            p_master.addMana(income);
                         }
                     });
                 }
@@ -312,5 +310,5 @@ class GameMaster {
 }
 
 export {
-    GameMaster, BadOperationError, throwIfIsBackend
+    GameMaster, BadOperationError, PlayerMaster
 }

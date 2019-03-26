@@ -12,11 +12,14 @@ export class U1 extends Upgrade {
 
     onPlay() {
         if(this.character_equipped) {
-            let char = this.character_equipped;
-            let master_role_chain = this.g_master.getMyMaster(this).get_battle_role_chain;
+            let master_role_chain = this.my_master.get_battle_role_chain;
             this.appendChainWhileAlive(master_role_chain, (role, char) => {
-                if (char.isEqual(char)) {
-                    return { var_arg: BattleRole.Sniper };
+                if (char.isEqual(this.character_equipped)) {
+                    if(role == BattleRole.Attacker) {
+                        return { var_arg: BattleRole.Sniper_Attacker };
+                    } else if(role != BattleRole.Civilian && role != BattleRole.Defender) {
+                        return { var_arg: BattleRole.Sniper };
+                    }
                 }
             });
         }

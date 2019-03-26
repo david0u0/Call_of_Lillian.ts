@@ -44,8 +44,8 @@ let simple_upgrade4 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C_Test0(seq, owner, _gm));
 let ultimate_0_test_char = pm.draw() as Character;
 
-pm.setMana(1000);
-enemy_master.setMana(1000);
+pm.addMana(1000);
+enemy_master.addMana(1000);
 
 function checkBadOperationError(func: () => void) {
     let error_caught = true;

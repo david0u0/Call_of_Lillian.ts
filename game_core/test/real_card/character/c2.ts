@@ -12,15 +12,14 @@ export class C2 extends Character {
     readonly basic_strength = 0;
 
     onPlay() {
-        let master_role_chain = this.g_master.getMyMaster(this).get_battle_role_chain;
+        let master_role_chain = this.my_master.get_battle_role_chain;
         this.appendChainWhileAlive(master_role_chain, (role, char) => {
             if(char.isEqual(this)) {
                 return { var_arg: BattleRole.Fighter };
             }
         });
         this.attack_chain.append(enemy => {
-            let enemy_master = this.g_master.getEnemyMaster(this);
-            enemy_master.setMana(enemy_master.mana - 1);
+            this.enemy_master.addMana(-1);
         });
     }
 }

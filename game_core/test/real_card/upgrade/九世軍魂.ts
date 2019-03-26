@@ -16,8 +16,7 @@ export default class U extends Upgrade {
     protected modifier = 0;
 
     onPlay() {
-        let pm = this.g_master.getMyMaster(this);
-        pm.get_strength_chain.append((str, char) => {
+        this.my_master.get_strength_chain.append((str, char) => {
             if(char.isEqual(this.character_equipped)) {
                 return { var_arg: str + this.modifier };
             }

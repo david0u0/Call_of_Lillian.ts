@@ -1,6 +1,5 @@
 import { Character, Upgrade } from "../../../cards";
 import { CardType, CardStat, CharStat } from "../../../enums";
-import { throwIfIsBackend } from "../../../game_master";
 import { TypeGaurd } from "../../../interface";
 
 let name = "數據之海的水手";
@@ -16,7 +15,7 @@ export class C4 extends Character {
     onPlay() {
         // NOTE: 本來在場所中的角色如果要安裝升級卡，會被 p_master.play_card_chain 攔下來
         // 所以要在 p_master.play_card_chain 的尾巴插入新的規則
-        this.g_master.getMyMaster(this).card_play_chain.appendCheck((t, card) => {
+        this.my_master.card_play_chain.appendCheck((t, card) => {
             if(TypeGaurd.isUpgrade(card)) {
                 let u = card;
                 if (this.isEqual(u.character_equipped)) {

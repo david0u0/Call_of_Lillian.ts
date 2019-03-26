@@ -19,10 +19,10 @@ export class C_Test0 extends Character {
     public readonly basic_battle_role = BattleRole.Sniper;
 
     onPlay() {
-        let my_master = this.g_master.getMyMaster(this);
-        let enemy_master = this.g_master.getEnemyMaster(this);
+        let my_master = this.my_master;
+        let enemy_master = this.enemy_master;
         // NOTE: 對手魔力減10
-        enemy_master.setMana(enemy_master.mana - 10);
+        enemy_master.addMana(-10);
 
         // NOTE: 我方戰力加5
         this.appendChainWhileAlive(my_master.get_strength_chain, (str, char) => {
@@ -34,7 +34,7 @@ export class C_Test0 extends Character {
             [my_master.card_retire_chain, enemy_master.card_retire_chain],
             (t, card) => {
                 if(TypeGaurd.isCharacter(card)) {
-                    enemy_master.setEmo(enemy_master.emo + 3);
+                    enemy_master.addEmo(3);
                 }
             }
         );
@@ -58,7 +58,6 @@ export class C_Test0 extends Character {
     // NOTE: 角色行動
     public readonly has_char_action = true;
     charAction() {
-        let enemy_master = this.g_master.getEnemyMaster(this);
-        enemy_master.setEmo(enemy_master.emo + 3);
+        this.enemy_master.addEmo(3);
     }
 }

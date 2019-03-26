@@ -15,8 +15,7 @@ export default class C extends Character {
         this.dominantChainWhileAlive(master_chain, (t, arg) => {
             let { char, arena } = arg;
             if (!char.isEqual(this) && arena.isEqual(this.arena_entered)) {
-                let pm = this.g_master.getMyMaster(char);
-                pm.setEmo(pm.emo + 1);
+                this.g_master.getMyMaster(char).addEmo(1);
             }
         });
     }

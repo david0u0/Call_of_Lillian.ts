@@ -1,6 +1,6 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd } from "./interface";
-import { GameMaster } from "./game_master";
+import { GameMaster, PlayerMaster } from "./game_master";
 import { EventChain, HookResult, HookFunc, Hook } from "./hook";
 import Selecter from "./selecter";
 import { BadOperationError } from "./errors";
@@ -19,12 +19,19 @@ abstract class Card implements ICard {
     public readonly card_leave_chain = new EventChain<null, null>();
     public readonly card_retire_chain = new EventChain<null, null>();
 
+    protected readonly my_master: PlayerMaster;
+    protected readonly enemy_master: PlayerMaster;
+
     public initialize() { return true; }
     public onPlay() { }
     public onRetrieve() { }
 
     constructor(public readonly seq: number, public readonly owner: Player,
-        protected readonly g_master: GameMaster) { }
+        protected readonly g_master: GameMaster
+    ) {
+        this.my_master = g_master.getMyMaster(owner);
+        this.enemy_master = g_master.getEnemyMaster(owner);
+    }
 
     public isEqual(card: ICard|null) {
         if(card) {
@@ -104,7 +111,7 @@ abstract class Upgrade extends Card implements IUpgrade {
     public initialize() {
         let char = this.g_master.selecter.selectSingleCard(TypeGaurd.isCharacter, char => {
             this.character_equipped = char;
-            let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
+            let can_play = this.my_master.checkCanPlay(this);
             return can_play;
         });
         if(char) {
