@@ -5,6 +5,14 @@ import { throwIfIsBackend } from "./errors";
 
 const ENTER_ENEMY_COST = 1;
 
+/**
+ * 這裡的每條規則都會被接到世界的事件鏈上，因此是可以被斷鏈機制覆蓋掉的。
+ * 需注意的是，由於斷鏈機制會把整個規則覆蓋掉，但通常你要覆蓋的只是一部份規則，因此使用斷鏈機制時應該注意把需要的規則手動補回來。
+ * 
+ * 例如：有張升級卡能夠被裝備給在場所中的人物
+ * 你會想要覆蓋掉 checkPlayUpgrade 的功能，但你要覆蓋的應該只有「指定的角色不在待命區這項」，其它項應該手動補上。
+ * 否則，它就可能被裝備給不在場中的角色，或是裝備給對手的角色！！
+ */
 export default class Rule {
     public static checkPlay(card_play_chain: EventChain<null, ICard>) {
         card_play_chain.appendCheck((can_play, card) => {
@@ -59,6 +67,7 @@ export default class Rule {
             }
         });
     }
+
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         // 打出升級卡的限制
         if (u.character_equipped) {

@@ -8,7 +8,7 @@ import { BadOperationError } from "../errors";
 import { C2 } from "./real_card/character/c2";
 import { C_Test0 } from "./real_card/character/c_test0";
 import { C1 } from "./real_card/character/c1";
-import { C4 } from "./real_card/character/c4";
+import { C4 } from "./real_card/character/數據之海的水手";
 import { U1 } from "./real_card/upgrade/u1";
 import { U_Test0 } from "./real_card/upgrade/u_test0";
 
