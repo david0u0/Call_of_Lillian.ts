@@ -36,12 +36,15 @@ export class SoftRule {
         });
     }
     public static checkEnter(enter_chain: EventChain<null, { char: ICharacter, arena: IArena }>) {
-        enter_chain.appendCheck((can_enter, arg) => {
-            if(arg.char.char_status != CharStat.StandBy) {
+        enter_chain.appendCheck((can_enter, { arena, char }) => {
+            if(char.char_status != CharStat.StandBy) {
                 // 理論上，在場所中的角色不能移動
                 return { var_arg: false };
-            } else if(arg.char.is_tired) {
+            } else if(char.is_tired) {
                 // 理論上，疲勞中的角色不能移動
+                return { var_arg: false };
+            } else if (arena.char_list.length + 1 > arena.max_capacity) {
+                // 理論上，場所中的角色不可超過上限
                 return { var_arg: false };
             }
         });
@@ -73,6 +76,7 @@ export class SoftRule {
  * 這裡的每條規則都無法被覆蓋（除非整個效果被攔截），大部份是為了防止奇奇怪怪的錯誤。
  */
 export class HardRule {
+    static readonly MAX_ARENA = 5;
     public static checkPlay(player: Player, card: ICard, mana: number, cost: number): boolean {
         if(card.owner != player) {
             throw new BadOperationError("你想出對手的牌！！？", card);
@@ -82,7 +86,9 @@ export class HardRule {
             throwIfIsBackend("魔力不夠還想出牌？", card);
             return false;
         } else if(TG.isUpgrade(card)) {
-            return this.checkPlayUpgrade(card);
+            return HardRule.checkPlayUpgrade(card);
+        } else if(TG.isArena(card)) {
+            return HardRule.checkPlayArena(card);
         }
 
         return true;
@@ -107,6 +113,37 @@ export class HardRule {
             HardRule.onLeaveCharacter(card, retireCard);
         }
     }
+    public static checkEnter(char: ICharacter, arena: IArena, mana: number, cost: number): boolean {
+        if (char.card_status != CardStat.Onboard) {
+            throw new BadOperationError("欲進入場所的角色不在場上");
+        } else if (arena.card_status != CardStat.Onboard) {
+            throw new BadOperationError("欲進入的場所不在場上");
+        } else if (cost > mana) {
+            throwIfIsBackend("魔不夠就想進入場所");
+            return false;
+        }
+        return true;
+    }
+    public static onEnter(char: ICharacter, arena: IArena) {
+        // 讓角色跟場所記得對方
+        char.char_status = CharStat.InArena;
+        char.arena_entered = arena;
+        arena.enter(char);
+        // 跟據角色有沒有突擊特性，決定她會不會陷入旅行疲勞
+        char.way_worn = char.assault;
+    }
+    public static checkExploit(char: ICharacter, mana: number, getCost: (a: IArena) => number): boolean {
+        if(!char.arena_entered) {
+            throw new BadOperationError("不在場所的角色無法開發資源", char);
+        } else {
+            if(getCost(char.arena_entered) > mana) {
+                throw new BadOperationError("魔不夠就想開發場所資源？");
+            } else {
+                return true;
+            }
+        }
+        
+    }
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         if (u.character_equipped) {
             if (u.character_equipped.card_status != CardStat.Onboard) {
@@ -120,6 +157,13 @@ export class HardRule {
         } else {
             throwIfIsBackend("未指定角色就打出升級", u);
             return false;
+        }
+    }
+    private static checkPlayArena(a: IArena): boolean {
+        if(a.position >= HardRule.MAX_ARENA || a.position < 0) {
+            throw new BadOperationError("場所的位置超過範圍");
+        } else {
+            return true;
         }
     }
     private static onPlayUpgrade(u: IUpgrade) {

@@ -134,6 +134,7 @@ abstract class Character extends Card implements ICharacter {
     public char_status = CharStat.StandBy;
     public is_tired = false;
     public way_worn = false;
+    public readonly assault = true;
 
     public has_char_action = false;
     public charAction() { }
@@ -149,9 +150,9 @@ abstract class Character extends Card implements ICharacter {
     public readonly enter_chain = new EventChain<null, IArena>();
     public readonly get_exploit_cost_chain = new EventChain<number, IArena>();
     public readonly get_enter_cost_chain = new EventChain<number, IArena>();
+    // TODO: 加入某種角色內部的升級鏈（因為裝備升級未必是出牌）
 
     addUpgrade(u: IUpgrade) {
-        // TODO: 觸發某種角色內部的升級鏈（因為裝備升級未必是出牌）
         this._upgrade_list.push(u);
     }
     distroyUpgrade(u: IUpgrade) {
@@ -192,9 +193,6 @@ abstract class Arena extends Card implements IArena {
     public readonly get_enter_cost_chain = new EventChain<number, ICharacter>();
 
     enter(char: ICharacter) {
-        if(this.char_list.length + 1 > this.max_capacity) {
-            throw new BadOperationError("超過場所的人數上限！");
-        }
         this._char_list.push(char);
     }
     abstract onExploit(char: ICharacter): number|void;

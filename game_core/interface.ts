@@ -76,8 +76,10 @@ interface ICharacter extends ICard {
     char_status: CharStat;
     is_tired: boolean;
     
-    /** 剛進行移動的角色會陷入旅行疲勞，下個回合才可攻擊。 */
+    /** 剛進行移動的角色帶有旅行疲勞，下個回合才可攻擊。 */
     way_worn: boolean;
+    /** 擁有突擊特性的角色不會陷入旅行疲勞 */
+    readonly assault: boolean;
 
     readonly has_char_action: boolean;
     charAction(): void;

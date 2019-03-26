@@ -9,8 +9,6 @@ import { SoftRule as SR, HardRule as HR } from "./general_rules";
 
 import Selecter from "./selecter";
 
-const MAX_ARENA = 5;
-
 class PlayerMaster {
     private _mana = 0;
     private _emo = 0;
@@ -18,7 +16,7 @@ class PlayerMaster {
     private _hand = new Array<ICard>();
     private _gravyard = new Array<ICard>();
     private _characters = new Array<ICharacter>();
-    private _arenas = new Array<IArena>(MAX_ARENA);
+    private _arenas = new Array<IArena>(HR.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
     private _events_succeeded = new Array<IEvent>();
     private _events_failed = new Array<IEvent>();
@@ -230,43 +228,25 @@ class GameMaster {
             .trigger(0, char);
     }
     enterArena(char: ICharacter) {
-        if (char.card_status != CardStat.Onboard) {
-            throw new BadOperationError("欲進入場所的角色不在場上");
-        }
         let p_master = this.getMyMaster(char);
         let _arena = this.selecter.selectSingleCard(TG.isArena, arena => {
-            if(arena.char_list.length + 1 > arena.max_capacity) {
-                throwIfIsBackend("欲進入的場所人數已達上限");
-                return false;
-            } else if(arena.card_status != CardStat.Onboard) {
-                throwIfIsBackend("欲進入的場所不在場上");
-                return false;
+            if(HR.checkEnter(char, arena, p_master.mana, this.getEnterCost(char, arena))) {
+                return arena.enter_chain.chain(char.enter_arena_chain, arena)
+                    .chain(this.enter_chain, { char, arena }).checkCanTrigger(char);
             } else {
-                if(this.getEnterCost(char, arena) > p_master.mana) {
-                    throwIfIsBackend("魔不夠就想進入場所");
-                    return false;
-                } else {
-                    return arena.enter_chain.chain(char.enter_arena_chain, arena)
-                        .chain(this.enter_chain, { char, arena }).checkCanTrigger(char);
-                }
+                return false;
             }
         });
-
-        // NOTE: 否則代表進入程序取消
         if(_arena) {
             let arena = _arena;
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
                 .chain(this.enter_chain, { char, arena });
-            if(enter_chain.checkCanTrigger(char)) {
-                p_master.setMana(p_master.mana - this.getEnterCost(char, arena));
-                enter_chain.trigger(null, char, () => {
-                    char.char_status = CharStat.InArena;
-                    char.arena_entered = arena;
-                    arena.enter(char);
-                });
-            } else {
-                throwIfIsBackend("未通過進入場所的檢查");
-            }
+            p_master.setMana(p_master.mana - this.getEnterCost(char, arena));
+            enter_chain.trigger(null, char, () => {
+                HR.onEnter(char, arena);
+            });
+        } else {
+            throwIfIsBackend("進入程序取消");
         }
     }
     getExploitCost(char: ICharacter, arena: IArena) {
@@ -274,24 +254,19 @@ class GameMaster {
             .chain(this.get_exploit_cost_chain, { arena, char })
             .trigger(arena.basic_exploit_cost, char);
     }
-    /** 這應該是難得不用跟前端糾纏不清的函式了= = */
+    /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
     exploit(char: ICharacter) {
-        if(!char.arena_entered) {
-            throw new BadOperationError("不在場所的角色無法開發資源", char);
-        } else {
-            let arena = char.arena_entered;
-            let cost = this.getExploitCost(char, arena);
-            let p_master = this.getMyMaster(char);
-            if(cost > p_master.mana) {
-                throw new BadOperationError("魔不夠就想開發場所資源？");
-            } else {
+        let p_master = this.getMyMaster(char);
+        if(HR.checkExploit(char, p_master.mana, a => this.getExploitCost(char, a))) {
+            if(char.arena_entered) {
+                let arena = char.arena_entered;
                 let exploit_chain = arena.exploit_chain.chain(char.exploit_chain, arena)
                     .chain(this.exploit_chain, { arena, char });
-                if(exploit_chain.checkCanTrigger(char)) {
-                    p_master.setMana(p_master.mana - cost);
+                if (exploit_chain.checkCanTrigger(char)) {
+                    p_master.setMana(p_master.mana - this.getExploitCost(char, arena));
                     exploit_chain.trigger(null, char, t => {
                         let income = arena.onExploit(char);
-                        if(income) {
+                        if (income) {
                             p_master.setMana(p_master.mana + income);
                         }
                     });
