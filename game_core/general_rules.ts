@@ -1,9 +1,14 @@
-import { ICard, IUpgrade, TypeGaurd as TG, ICharacter, IArena } from "./interface";
+import { ICard, IUpgrade, TypeGaurd as TG, ICharacter, IArena, IEvent } from "./interface";
 import { EventChain } from "./hook";
 import { CardStat, CharStat, BattleRole, Player } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
-const ENTER_ENEMY_COST = 1;
+export const Constant = {
+    ENTER_ENEMY_COST: 1,
+    MAX_ARENA: 5,
+    ARENA_CAPACITY: 2,
+    PUSH_COST: 2
+}
 
 /**
  * 這裡的每條規則都會被接到世界的事件鏈上，因此可以被斷鏈，也可以被同條鏈上後面的規則覆蓋。
@@ -31,7 +36,7 @@ export class SoftRule {
     public static onGetEnterCost(get_enter_cost_chain: EventChain<number, { char: ICharacter, arena: IArena }>) {
         get_enter_cost_chain.append((cost, arg) => {
             if (arg.char.owner != arg.arena.owner) {
-                return { var_arg: cost + ENTER_ENEMY_COST };
+                return { var_arg: cost + Constant.ENTER_ENEMY_COST };
             }
         });
     }
@@ -55,7 +60,31 @@ export class SoftRule {
     ) {
         enter_chain.append((t, arg) => {
             if (arg.char.owner != arg.arena.owner) {
-                addMana(arg.arena.owner, ENTER_ENEMY_COST);
+                addMana(arg.arena.owner, Constant.ENTER_ENEMY_COST);
+            }
+        });
+    }
+    public static checkExploit(exploit_chain: EventChain<null, { arena: IArena, char: ICharacter|Player }>) {
+        exploit_chain.appendCheck((t, { arena, char }) => {
+            if(typeof(char) == "object") {
+                if(!arena.isEqual(char.arena_entered)) {
+                    // 角色不可開發自身所在地之外的場所
+                    return { var_arg: false };
+                }
+            }
+        });
+    }
+    public static checkPush(push_chain: EventChain<null, { char: ICharacter|null, event: IEvent }>) {
+        push_chain.appendCheck((t, { char, event }) => {
+            if(event.cur_time_count <= 0) {
+                // 不可推進倒數為0的事件
+                return { var_arg: false };
+            } else if(event.cur_progress_count >= event.goal_progress_count) {
+                // 不可推進已到達目標的事件
+                return { var_arg: false };
+            } else if(char && event.owner != char.owner) {
+                // 不可推進別人的事件
+                return { var_arg: false };
             }
         });
     }
@@ -76,7 +105,6 @@ export class SoftRule {
  * 這裡的每條規則都無法被覆蓋（除非整個效果被攔截），大部份是為了防止奇奇怪怪的錯誤。
  */
 export class HardRule {
-    static readonly MAX_ARENA = 5;
     public static checkPlay(player: Player, card: ICard, mana: number, cost: number): boolean {
         if(card.owner != player) {
             throw new BadOperationError("你想出對手的牌！！？", card);
@@ -134,17 +162,32 @@ export class HardRule {
         // 跟據角色有沒有突擊特性，決定她會不會陷入旅行疲勞
         char.way_worn = char.assault;
     }
-    public static checkExploit(char: ICharacter, mana: number, getCost: (a: IArena) => number): boolean {
-        if(!char.arena_entered) {
-            throw new BadOperationError("不在場所的角色無法開發資源", char);
-        } else {
-            if(getCost(char.arena_entered) > mana) {
-                throw new BadOperationError("魔不夠就想開發場所資源？");
-            } else {
-                return true;
+    /** 這裡的 char 可以是一個玩家 */
+    public static checkExploit(arena: IArena, char: ICharacter|Player, mana: number, cost: number): boolean {
+        if ((typeof(char) != "number" )){ 
+            if(char.card_status != CardStat.Onboard) {
+                throw new BadOperationError("欲開發場所的角色不在場上");
+            }
+        } else if (arena.card_status != CardStat.Onboard) {
+            throw new BadOperationError("欲開發的場所不在場上");
+        } else if (cost > mana) {
+            throwIfIsBackend("魔不夠就想開發資源？");
+            return false;
+        }
+        return true;
+    }
+    public static checkPush(player: Player, event: IEvent, char: ICharacter|Player): boolean {
+        if(event.card_status != CardStat.Onboard) {
+            throw new BadOperationError("嘗試推進不在場上事件！");
+        } else if(event.owner != player) {
+            throwIfIsBackend("推進的事件不屬於該玩家");
+            return false;
+        } else if(typeof(char) == "object") {
+            if(char.card_status != CardStat.Onboard) {
+                throw new BadOperationError("嘗試用不在場上的角色推進事件！");
             }
         }
-        
+        return true;
     }
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         if (u.character_equipped) {
@@ -162,7 +205,7 @@ export class HardRule {
         }
     }
     private static checkPlayArena(a: IArena): boolean {
-        if(a.position >= HardRule.MAX_ARENA || a.position < 0) {
+        if(a.position >= Constant.MAX_ARENA || a.position < 0) {
             throw new BadOperationError("場所的位置超過範圍");
         } else {
             return true;

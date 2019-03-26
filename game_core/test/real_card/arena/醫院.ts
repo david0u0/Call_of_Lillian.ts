@@ -1,6 +1,6 @@
-import { CardType, CardSeries, BattleRole } from "../../../enums";
+import { CardType, CardSeries, BattleRole, Player } from "../../../enums";
 import { Character, Upgrade, Arena } from "../../../cards";
-import { ICharacter } from "../../../interface";
+import { ICharacter, IArena } from "../../../interface";
 
 let name = "醫院";
 let description = `1情緒 -> 賺取3點魔力`;
@@ -11,7 +11,7 @@ export default class A extends Arena {
     basic_mana_cost = 0;
     basic_exploit_cost = 0;
 
-    onExploit(char: ICharacter) {
+    onExploit(char: ICharacter|Player) {
         this.g_master.getMyMaster(char).addEmo(1);
         return 2;
     }

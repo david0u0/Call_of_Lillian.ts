@@ -5,7 +5,7 @@ import { Player, CardStat, BattleRole, CharStat } from "./enums";
 import { ICard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
-import { SoftRule as SR, HardRule as HR } from "./general_rules";
+import { SoftRule as SR, HardRule as HR, Constant as C } from "./general_rules";
 
 import Selecter from "./selecter";
 
@@ -16,7 +16,7 @@ class PlayerMaster {
     private _hand = new Array<ICard>();
     private _gravyard = new Array<ICard>();
     private _characters = new Array<ICharacter>();
-    private _arenas = new Array<IArena>(HR.MAX_ARENA);
+    private _arenas = new Array<IArena>(C.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
     private _events_succeeded = new Array<IEvent>();
     private _events_failed = new Array<IEvent>();
@@ -29,6 +29,7 @@ class PlayerMaster {
     constructor(public readonly player: Player) {
         SR.checkPlay(this.card_play_chain);
         SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
+        SR.checkPush(this.push_chain);
     }
     
     public card_play_chain: EventChain<null, ICard> = new EventChain();
@@ -45,6 +46,9 @@ class PlayerMaster {
         = new EventChain<number, ICard>();
     public get_battle_role_chain
         = new EventChain<BattleRole, ICharacter>();
+
+    public get_push_cost_chain = new EventChain<number, { char: ICharacter|null, event: IEvent }>();
+    public push_chain = new EventChain<null, { char: ICharacter|null, event: IEvent }>();
 
     addToDeck(card: ICard) {
         // TODO: 加上事件鏈?
@@ -149,6 +153,15 @@ class PlayerMaster {
     addCharacter(char: ICharacter) {
         this._characters.push(char);
     }
+
+    finishEvent(event: IEvent, char: ICharacter|Player) {
+        // TODO:
+    }
+    pushEvent(event: IEvent, char: ICharacter|Player) {
+        if(HR.checkPush(this.player, event, char)) {
+            // TODO: soft check
+        }
+    }
 }
 
 class GameMaster {
@@ -217,6 +230,7 @@ class GameMaster {
         SR.onEnter(this.enter_chain, (p, mana) => {
             this.getMyMaster(p).addMana(mana);
         });
+        SR.checkExploit(this.exploit_chain);
     }
 
     getEnterCost(char: ICharacter, arena: IArena): number {
@@ -247,28 +261,32 @@ class GameMaster {
             throwIfIsBackend("進入程序取消");
         }
     }
-    getExploitCost(char: ICharacter, arena: IArena) {
-        return arena.get_exploit_cost_chain.chain(char.get_exploit_cost_chain, arena)
-            .chain(this.get_exploit_cost_chain, { arena, char })
-            .trigger(arena.basic_exploit_cost, char);
+    getExploitCost(arena: IArena, char: ICharacter|Player) {
+        let get_cost_chain = arena.get_exploit_cost_chain
+                .chain(this.get_exploit_cost_chain, { arena, char });
+        if(typeof(char) != "number") {
+            get_cost_chain.chain(char.get_exploit_cost_chain, arena);
+        }
+        return get_cost_chain.trigger(arena.basic_exploit_cost, char);
     }
     /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
-    exploit(char: ICharacter) {
+    exploit(arena: IArena, char: ICharacter|Player) {
         let p_master = this.getMyMaster(char);
-        if(HR.checkExploit(char, p_master.mana, a => this.getExploitCost(char, a))) {
-            if(char.arena_entered) {
-                let arena = char.arena_entered;
-                let exploit_chain = arena.exploit_chain.chain(char.exploit_chain, arena)
-                    .chain(this.exploit_chain, { arena, char });
-                if (exploit_chain.checkCanTrigger(char)) {
-                    p_master.addMana(-this.getExploitCost(char, arena));
-                    exploit_chain.trigger(null, char, t => {
-                        let income = arena.onExploit(char);
-                        if (income) {
-                            p_master.addMana(income);
-                        }
-                    });
-                }
+        let cost = this.getExploitCost(arena, char);
+        if(HR.checkExploit(arena, char, p_master.mana, cost)) {
+            let exploit_chain = arena.exploit_chain
+                .chain(this.exploit_chain, { arena, char });
+            if (typeof (char) != "number") {
+                exploit_chain.chain(char.exploit_chain, arena);
+            }
+            if (exploit_chain.checkCanTrigger(char)) {
+                p_master.addMana(-cost);
+                exploit_chain.trigger(null, char, t => {
+                    let income = arena.onExploit(char);
+                    if (income) {
+                        p_master.addMana(income);
+                    }
+                });
             }
         }
     }
@@ -292,8 +310,8 @@ class GameMaster {
 
     public readonly get_enter_cost_chain = new EventChain<number, { arena: IArena, char: ICharacter }>();
     public readonly enter_chain = new EventChain<null, { arena: IArena, char: ICharacter }>();
-    public readonly get_exploit_cost_chain = new EventChain<number, { arena: IArena, char: ICharacter }>();
-    public readonly exploit_chain = new EventChain<null, { arena: IArena, char: ICharacter }>();
+    public readonly get_exploit_cost_chain = new EventChain<number, { arena: IArena, char: ICharacter|Player }>();
+    public readonly exploit_chain = new EventChain<null, { arena: IArena, char: ICharacter|Player }>();
 
     public readonly battle_start_chain = new EventChain<null, IArena>();
     public readonly get_battle_cost_chain = new EventChain<number, IArena>();

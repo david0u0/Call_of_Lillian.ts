@@ -1,9 +1,10 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd } from "./interface";
+import { ICard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent } from "./interface";
 import { GameMaster, PlayerMaster } from "./game_master";
 import { EventChain, HookResult, HookFunc, Hook } from "./hook";
 import Selecter from "./selecter";
 import { BadOperationError } from "./errors";
+import { Constant as C } from "./general_rules"
 
 abstract class Card implements ICard {
     public abstract readonly card_type: CardType;
@@ -159,6 +160,9 @@ abstract class Character extends Card implements ICharacter {
     public readonly get_enter_cost_chain = new EventChain<number, IArena>();
     // TODO: 加入某種角色內部的升級鏈（因為裝備升級未必是出牌）
 
+    public readonly push_chain = new EventChain<null, IEvent>();
+    public readonly get_push_cost_chain = new EventChain<number, IEvent>();
+
     addUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
     }
@@ -192,17 +196,17 @@ abstract class Arena extends Card implements IArena {
 
     private _char_list = new Array<ICharacter>();
     public get char_list() { return [...this._char_list] };
-    public readonly max_capacity = 2;
+    public readonly max_capacity = C.ARENA_CAPACITY;
 
-    public readonly exploit_chain = new EventChain<null, ICharacter>();
+    public readonly exploit_chain = new EventChain<null, ICharacter|Player>();
     public readonly enter_chain = new EventChain<null, ICharacter>();
-    public readonly get_exploit_cost_chain = new EventChain<number, ICharacter>();
+    public readonly get_exploit_cost_chain = new EventChain<number, ICharacter|Player>();
     public readonly get_enter_cost_chain = new EventChain<number, ICharacter>();
 
     enter(char: ICharacter) {
         this._char_list.push(char);
     }
-    abstract onExploit(char: ICharacter): number|void;
+    abstract onExploit(char: ICharacter|Player): number|void;
 
     public initialize() {
         return true;
@@ -210,6 +214,55 @@ abstract class Arena extends Card implements IArena {
         });
         this._character_equipped = char[0];*/
     }
+}
+
+abstract class Event extends Card implements IEvent {
+    public readonly card_type = CardType.Event;
+    public abstract readonly is_ending: boolean;
+    public abstract readonly goal_progress_count: number;
+    private _cur_progress_count = 0;
+    public get cur_progress_count() { return this._cur_progress_count; };
+    public abstract readonly init_time_count: number;
+    private _cur_time_count = this.init_time_count;
+    public get cur_time_count() { return this._cur_progress_count; }
+    public readonly push_cost = C.PUSH_COST;
+
+    public readonly push_chain = (() => {
+        // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
+        let chain = new EventChain<null, ICharacter>();
+        chain.appendCheck((t, char) => {
+            return { var_arg: this.checkCanPush(char) };
+        });
+        return chain;
+    })();
+    public readonly get_push_cost_chain = new EventChain<number, ICharacter|Player>();
+
+    public abstract checkCanPush(char: ICharacter|Player): boolean;
+    public abstract onPush(char: ICharacter|Player): void;
+    public abstract onFinish(char: ICharacter|Player): void;
+    public onFail() {
+        // 底下是默認的失敗代價：扣掉等同於基礎花費的魔力，多出來的一比一轉成情緒
+        let mana_cost = Math.min(this.basic_mana_cost, this.my_master.mana);
+        let emo_add = this.basic_mana_cost - mana_cost;
+        this.my_master.addMana(-mana_cost);
+        this.my_master.addEmo(emo_add);
+    }
+
+    public push() {
+        this._cur_progress_count++;
+    }
+    public countDown() {
+        if(this.cur_time_count > 0) {
+            this._cur_time_count--;
+        }
+    }
+    public setProgrss(progress: number) {
+        this._cur_progress_count = progress;
+    }
+    public setTimeCount(time_count: number) {
+        this._cur_time_count = time_count;
+    }
+
 }
 
 export { Card, Upgrade, Character, Arena };

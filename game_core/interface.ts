@@ -96,6 +96,9 @@ interface ICharacter extends ICard {
     readonly get_exploit_cost_chain: EventChain<number, IArena>;
     readonly get_enter_cost_chain: EventChain<number, IArena>;
 
+    readonly get_push_cost_chain: EventChain<number, IEvent>;
+    readonly push_chain: EventChain<null, IEvent>;
+
     /** 不可覆寫！ */
     addUpgrade(upgrade: IUpgrade): void;
     distroyUpgrade(u: IUpgrade): void;
@@ -107,13 +110,13 @@ interface IArena extends ICard {
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
 
-    readonly exploit_chain: EventChain<null, ICharacter>;
+    readonly exploit_chain: EventChain<null, ICharacter|Player>;
     readonly enter_chain: EventChain<null, ICharacter>;
-    readonly get_exploit_cost_chain: EventChain<number, ICharacter>;
+    readonly get_exploit_cost_chain: EventChain<number, ICharacter|Player>;
     readonly get_enter_cost_chain: EventChain<number, ICharacter>;
 
     /** 回傳值如果是數字，代表的是魔力收入 */
-    onExploit(char: ICharacter): void|number;
+    onExploit(char: ICharacter|Player): void|number;
     /** 不可覆寫！ */
     enter(char: ICharacter): void;
 }
@@ -123,6 +126,20 @@ interface IEvent extends ICard {
     readonly init_time_count: number;
     readonly cur_time_count: number;
     readonly is_ending: boolean;
+
+    checkCanPush(char: ICharacter|Player): boolean;
+    onPush(char: ICharacter|Player): void;
+    onFinish(char: ICharacter|Player): void;
+    onFail(): void;
+
+    /** 不可覆寫！ */
+    push(char: ICharacter|Player): void;
+    /** 不可覆寫！ */
+    countDown(): void;
+    /** 不可覆寫！ */
+    setProgrss(progress: number): void;
+    /** 不可覆寫！ */
+    setTimeCount(time_count: number): void;
 }
 interface ISpell extends ICard {
 
