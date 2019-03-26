@@ -103,13 +103,9 @@ abstract class Upgrade extends Card implements IUpgrade {
 
     public initialize() {
         let char = this.g_master.selecter.selectSingleCard(TypeGaurd.isCharacter, char => {
-            if(char.owner != this.owner) {
-                return false;
-            } else {
-                this.character_equipped = char;
-                let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
-                return can_play;
-            }
+            this.character_equipped = char;
+            let can_play = this.g_master.getMyMaster(this).checkCanPlay(this);
+            return can_play;
         });
         if(char) {
             this.character_equipped = char;

@@ -1,7 +1,6 @@
 import { ICard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd } from "./interface";
 import { Player } from "./enums";
-import { BadOperationError } from "./game_master";
-import { throwIfIsBackend } from "./errors";
+import { BadOperationError } from "./errors";
 
 class UISelecter {
 }
@@ -50,7 +49,7 @@ class BackendSelecter {
             }
         });
         if(!checkCanSelect(cards)) {
-            throw new BadOperationError("選到的卡片不符合要求！")
+            throw new BadOperationError("選到的卡片不符合要求！");
         } else {
             return cards;
         }

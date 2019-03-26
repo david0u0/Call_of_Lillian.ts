@@ -37,6 +37,8 @@ gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
 let simple_upgrade2 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
 let simple_upgrade3 = pm.draw() as Upgrade;
+gm.genCardToDeck(Player.Player2, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+let enemy_upgrade1 = enemy_master.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
 let simple_upgrade4 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C_Test0(seq, owner, _gm));
@@ -103,6 +105,13 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             selecter.setSelectedSeqs(cyber_char.seq);
             assert.doesNotThrow(() => {
                 pm.playCard(simple_upgrade4);
+            });
+        });
+        it("但該角色還是不能違抗硬性規則，如：裝備敵人的卡", () => {
+            cyber_char.char_status = CharStat.InArena;
+            selecter.setSelectedSeqs(cyber_char.seq);
+            checkBadOperationError(() => {
+                pm.playCard(enemy_upgrade1);
             });
         });
         describe("裝備兩張最基礎的升級卡", () => {

@@ -6,8 +6,8 @@ import { throwIfIsBackend, BadOperationError } from "./errors";
 const ENTER_ENEMY_COST = 1;
 
 /**
- * 這裡的每條規則都會被接到世界的事件鏈上，因此是可以被斷鏈機制覆蓋掉的。
- * 需注意的是，由於斷鏈機制會把整個規則覆蓋掉，如果你要覆蓋的只是一部份規則，使用斷鏈機制時應該注意把需要的規則手動補回來。
+ * 這裡的每條規則都會被接到世界的事件鏈上，因此可以被斷鏈，也可以被同條鏈上後面的規則覆蓋。
+ * 需注意的是，如果你要覆蓋的只是一部份規則，使用覆蓋機制時應該注意把需要的規則手動補回來。
  */
 export class SoftRule {
     public static checkPlay(card_play_chain: EventChain<null, ICard>) {
@@ -39,11 +39,9 @@ export class SoftRule {
         enter_chain.appendCheck((can_enter, arg) => {
             if(arg.char.char_status != CharStat.StandBy) {
                 // 理論上，在場所中的角色不能移動
-                throwIfIsBackend("場所中的角色不能移動");
                 return { var_arg: false };
             } else if(arg.char.is_tired) {
                 // 理論上，疲勞中的角色不能移動
-                throwIfIsBackend("疲勞中的角色不能移動");
                 return { var_arg: false };
             }
         });
@@ -62,7 +60,7 @@ export class SoftRule {
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         // 打出升級卡的限制
         if (u.character_equipped && u.character_equipped.char_status != CharStat.StandBy) {
-            throwIfIsBackend("指定的角色不在待命區", u);
+            // 指定的角色不在待命區
             return false;
         } else {
             return true;
@@ -71,6 +69,9 @@ export class SoftRule {
     
 }
 
+/**
+ * 這裡的每條規則都無法被覆蓋（除非整個效果被攔截），大部份是為了防止奇奇怪怪的錯誤。
+ */
 export class HardRule {
     public static checkPlay(player: Player, card: ICard, mana: number, cost: number): boolean {
         if(card.owner != player) {
@@ -109,8 +110,7 @@ export class HardRule {
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         if (u.character_equipped) {
             if (u.character_equipped.card_status != CardStat.Onboard) {
-                throwIfIsBackend("指定的角色不在場上", u);
-                return false;
+                throw new BadOperationError("指定的角色不在場上", u);
             } else if (u.character_equipped.owner != u.owner) {
                 throwIfIsBackend("指定的角色不屬於你", u);
                 return false;
