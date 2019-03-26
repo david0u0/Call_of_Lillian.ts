@@ -61,8 +61,8 @@ class BackendSelecter {
      * 前端沒有「取消」的選項
      * 應用實例：某個事件已確定發生，你必需選一個目標來回應，如強迫棄牌、強迫擊退等。
      */
-    public selectCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
-        max=1, min=1, checkCanSelect=(char: ICard) => true
+    public selectCardsInteractive<T extends ICard>(guard: (c: ICard) => c is T,
+        max=1, min=1, checkCanSelect=(card: T[]) => true
     ): T[] {
         return [];
     }
@@ -83,6 +83,11 @@ class BackendSelecter {
         } else {
             return null;
         }
+    }
+    public selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
+        checkCanSelect=(card: T) => true
+    ): T {
+        throw "Not yet implemented";
     }
 }
 

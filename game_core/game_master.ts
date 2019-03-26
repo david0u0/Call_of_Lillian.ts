@@ -5,10 +5,11 @@ import { Player, CardStat, BattleRole, CharStat } from "./enums";
 import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent, TypeGaurd as TG } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
+import Rule from "./general_rules";
+
 import Selecter from "./selecter";
 
 const MAX_ARENA = 5;
-const ENTER_ENEMY_COST = 1;
 
 class PlayerMaster {
     private _mana = 0;
@@ -28,64 +29,9 @@ class PlayerMaster {
     public get arenas() { return [...this._arenas] };
 
     constructor(public readonly player: Player) {
-        this.card_play_chain.appendCheck((can_play, card) => {
-            if(TG.isUpgrade(card)) {
-                // 打出升級卡的規則
-                if (card.character_equipped) {
-                    if (card.character_equipped.card_status != CardStat.Onboard) {
-                        throwIfIsBackend("指定的角色不在場上", card);
-                        return { var_arg: false };
-                    } else if (card.character_equipped.char_status != CharStat.StandBy) {
-                        throwIfIsBackend("指定的角色不在待命區", card);
-                        return { var_arg: false };
-                    } else if(card.character_equipped.owner != card.owner) {
-                        throwIfIsBackend("指定的角色不屬於你", card);
-                        return { var_arg: false };
-                    }
-                } else {
-                    throwIfIsBackend("未指定角色就打出升級", card);
-                    return { var_arg: true };
-                }
-            }
-        });
-        this.card_play_chain.append((t, card) => {
-            if(TG.isUpgrade(card)) {
-                // 打出升級卡的規則
-                if(card.character_equipped) {
-                    let char = card.character_equipped;
-                    char.addUpgrade(card);
-                    card.card_leave_chain.append(tmp => {
-                        char.distroyUpgrade(card);
-                    });
-                }
-            } else if(TG.isCharacter(card)) {
-                // 打出角色後把她加入角色區
-                this.addCharacter(card);
-                // 角色離場時銷毀所有裝備
-                card.card_leave_chain.append(arg => {
-                    for (let u of card.upgrade_list) {
-                        this.retireCard(u);
-                    }
-                });
-            } else if(TG.isArena(card)) {
-                // 打出場所的規則（把之前的建築拆了）
-                // TODO:
-            }
-        });
-        this.get_mana_cost_chain.append((cost, card) => {
-            if(TG.isArena(card)) {
-                // 改建場所的花費下降
-                let og_arena = this._arenas[card.position];
-                cost = Math.max(cost - og_arena.basic_mana_cost, 0);
-                return { var_arg: cost };
-            }
-        });
-        // 計算戰鬥職位的通則
-        this.get_battle_role_chain.append((role, char) => {
-            if(this.getStrength(char) == 0) {
-                return { var_arg: BattleRole.Civilian };
-            }
-        });
+        Rule.checkPlay(this.card_play_chain);
+        Rule.onPlay(this.card_play_chain, this.addCharacter.bind(this), this.retireCard.bind(this));
+        Rule.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
     }
     
     public card_play_chain: EventChain<null, ICard> = new EventChain();
@@ -273,23 +219,8 @@ class GameMaster {
     }
 
     constructor() {
-        // 進入別人的場所要支付代價
-        this.get_enter_cost_chain.append((cost, arg) => {
-            if (arg.char.owner != arg.arena.owner) {
-                return { var_arg: cost + ENTER_ENEMY_COST };
-            }
-        });
-        this.enter_chain.appendCheck((can_enter, arg) => {
-            if(arg.char.char_status != CharStat.StandBy) {
-                // 理論上，在場所中的角色不能移動
-                throwIfIsBackend("場所中的角色不能移動");
-                return { var_arg: false };
-            } else if(arg.char.is_tired) {
-                // 理論上，疲勞中的角色不能移動
-                throwIfIsBackend("疲勞中的角色不能移動");
-                return { var_arg: false };
-            }
-        });
+        Rule.onGetEnterCost(this.get_enter_cost_chain);
+        Rule.checkEnter(this.enter_chain);
     }
 
     getEnterCost(char: ICharacter, arena: IArena): number {

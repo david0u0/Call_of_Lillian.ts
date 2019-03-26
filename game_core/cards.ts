@@ -155,6 +155,7 @@ abstract class Character extends Card implements ICharacter {
     public readonly get_enter_cost_chain = new EventChain<number, IArena>();
 
     addUpgrade(u: IUpgrade) {
+        // TODO: 觸發某種角色內部的升級鏈（因為裝備升級未必是出牌）
         this._upgrade_list.push(u);
     }
     distroyUpgrade(u: IUpgrade) {
