@@ -109,12 +109,12 @@ describe("測試最基礎的場所卡", () => {
                 assert.equal(pm.emo, 0);
             });
             describe("測試實際使用場所", () => {
-                it("我方的魔力應該是1000-4-4=992", () => {
-                    assert.equal(992, pm.mana);
+                it("我方的魔力應該是1000-4-4+1=993", () => {
+                    assert.equal(993, pm.mana);
                 });
-                it("使用後魔力應該變成992+2=994", () => {
+                it("使用後魔力應該變成993+2=995", () => {
                     gm.exploit(rainy)
-                    assert.equal(994, pm.mana);
+                    assert.equal(995, pm.mana);
                 });
             });
         });

@@ -2,10 +2,10 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, ISpell, IArena, IEvent, TypeGaurd as TG } from "./interface";
+import { ICard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
-import Rule from "./general_rules";
+import { SoftRule as SR, HardRule as HR } from "./general_rules";
 
 import Selecter from "./selecter";
 
@@ -29,9 +29,8 @@ class PlayerMaster {
     public get arenas() { return [...this._arenas] };
 
     constructor(public readonly player: Player) {
-        Rule.checkPlay(this.card_play_chain);
-        Rule.onPlay(this.card_play_chain, this.addCharacter.bind(this), this.retireCard.bind(this));
-        Rule.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
+        SR.checkPlay(this.card_play_chain);
+        SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
     }
     
     public card_play_chain: EventChain<null, ICard> = new EventChain();
@@ -100,16 +99,11 @@ class PlayerMaster {
     }
 
     checkCanPlay(card: ICard): boolean {
-        if(card.owner != this.player) {
-            throw new BadOperationError("你想出對手的牌！！？", card);
-        } else if(card.card_status != CardStat.Hand) {
-            throw new BadOperationError("牌不在手上還想出牌？", card);
-        } else if(this.mana < this.getManaCost(card)) {
-            throwIfIsBackend("魔力不夠還想出牌？", card);
-            return false;
-        } else {
+        if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
             return card.card_play_chain.chain(this.card_play_chain, card)
                 .checkCanTrigger(null);
+        } else {
+            return false;
         }
     }
     playCard(card: ICard) {
@@ -122,6 +116,7 @@ class PlayerMaster {
         card.card_play_chain.chain(this.card_play_chain, card).trigger(null, null, () => {
             card.card_status = CardStat.Onboard;
             card.onPlay();
+            HR.onPlay(card, this.addCharacter.bind(this), this.retireCard.bind(this));
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -131,6 +126,7 @@ class PlayerMaster {
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private _leaveCard(card: ICard) {
         card.card_leave_chain.trigger(null, null);
+        HR.onLeave(card, this.retireCard.bind(this));
     }
     retireCard(card: ICard) {
         if(card.card_status == CardStat.Onboard) {
@@ -219,8 +215,12 @@ class GameMaster {
     }
 
     constructor() {
-        Rule.onGetEnterCost(this.get_enter_cost_chain);
-        Rule.checkEnter(this.enter_chain);
+        SR.onGetEnterCost(this.get_enter_cost_chain);
+        SR.checkEnter(this.enter_chain);
+        SR.onEnter(this.enter_chain, (p, mana) => {
+            let pm = this.getMyMaster(p);
+            pm.setMana(pm.mana  + mana);
+        });
     }
 
     getEnterCost(char: ICharacter, arena: IArena): number {
