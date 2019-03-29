@@ -5,11 +5,11 @@ import { Character, Upgrade } from "../cards"
 import { GameMaster } from "../game_master";
 import { BadOperationError } from "../errors";
 
-import { C2 } from "./real_card/character/c2";
+import C2 from "./real_card/character/終末之民";
 import { C_Test0 } from "./real_card/character/c_test0";
 import { C1 } from "./real_card/character/c1";
 import { C4 } from "./real_card/character/數據之海的水手";
-import { U1 } from "./real_card/upgrade/u1";
+import { U1 } from "./real_card/upgrade/精靈炸彈";
 import { U_Test0 } from "./real_card/upgrade/u_test0";
 
 let p = Player.Player1;
@@ -85,7 +85,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
             assert.equal(0, pm.getStrength(simple_char));
         });
         it("角色的戰鬥特徵應該是平民(由於戰力為0)", () => {
-            assert.equal(BattleRole.Civilian, pm.getBattleRole(simple_char));
+            assert.deepEqual({ can_attack: false, can_block: false }, pm.getBattleRole(simple_char));
         });
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
             assert.equal(pm.getManaCost(simple_upgrade1), 1);
@@ -132,7 +132,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
                 assert.equal(2, pm.getStrength(simple_char));
             });
             it("角色的戰鬥特徵應該是戰士(由於戰力不再是0)", () => {
-                assert.equal(BattleRole.Fighter, pm.getBattleRole(simple_char))
+                assert.deepEqual({ can_attack: true, can_block: true }, pm.getBattleRole(simple_char))
             });
             it("一張裝備卡重複打兩次應該噴錯誤", () => {
                 checkBadOperationError(() => pm.playCard(simple_upgrade1));
@@ -164,7 +164,7 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
             assert.equal(0, pm.getStrength(waste_land_char));
         });
         it("雖然戰力為0，仍應該擁有戰士屬性", () => {
-            assert.equal(BattleRole.Fighter, pm.getBattleRole(waste_land_char));
+            assert.deepEqual({ can_attack: true, can_block: true }, pm.getBattleRole(waste_land_char));
         });
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
             selecter.setSelectedSeqs(waste_land_char.seq);
@@ -180,7 +180,7 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
             assert.equal(2, pm.getStrength(waste_land_char));
         });
         it("由於裝備的影響，角色的戰鬥職位變成「狙擊」", () => {
-            assert.equal(BattleRole.Sniper, pm.getBattleRole(waste_land_char));
+            assert.equal(false, pm.getBattleRole(waste_land_char).can_be_blocked);
         });
     });
 });
@@ -192,9 +192,6 @@ describe("測試一張強得亂七八糟的角色卡", () => {
         });
         it("角色的戰力應該是10", () => {
             assert.equal(10, pm.getStrength(ultimate_0_test_char));
-        });
-        it("角色的先天戰鬥職位就是狙擊", () => {
-            assert.equal(BattleRole.Sniper, pm.getBattleRole(ultimate_0_test_char));
         });
     });
     describe("測試進階的能力", () => {

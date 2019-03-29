@@ -28,7 +28,7 @@ export class SoftRule {
     ) {
         get_battle_role_chain.append((role, char) => {
             if(getStrength(char) == 0) {
-                return { var_arg: BattleRole.Civilian };
+                return { var_arg: { ...role, can_attack: false, can_block: false }};
             }
         });
     }

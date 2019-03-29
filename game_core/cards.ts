@@ -134,7 +134,7 @@ abstract class Upgrade extends Card implements IUpgrade {
 abstract class Character extends Card implements ICharacter {
     public readonly card_type = CardType.Character;
     public readonly abstract basic_strength: number;
-    public readonly basic_battle_role: BattleRole = BattleRole.Fighter;
+    public readonly basic_battle_role: BattleRole = { can_attack: true, can_block: true };
 
     private _upgrade_list: IUpgrade[] = [];
     public get upgrade_list() { return [...this._upgrade_list] };
@@ -220,11 +220,11 @@ abstract class Event extends Card implements IEvent {
     public readonly card_type = CardType.Event;
     public abstract readonly is_ending: boolean;
     public abstract readonly goal_progress_count: number;
+    public abstract readonly init_time_count: number;
     private _cur_progress_count = 0;
     public get cur_progress_count() { return this._cur_progress_count; };
-    public abstract readonly init_time_count: number;
-    private _cur_time_count = this.init_time_count;
-    public get cur_time_count() { return this._cur_progress_count; }
+    private _time_count_upward = 0;
+    public get cur_time_count() { return this.init_time_count - this._time_count_upward; }
     public readonly push_cost = C.PUSH_COST;
 
     public readonly push_chain = (() => {
@@ -253,16 +253,15 @@ abstract class Event extends Card implements IEvent {
     }
     public countDown() {
         if(this.cur_time_count > 0) {
-            this._cur_time_count--;
+            this._time_count_upward++;
         }
     }
     public setProgrss(progress: number) {
         this._cur_progress_count = progress;
     }
     public setTimeCount(time_count: number) {
-        this._cur_time_count = time_count;
+        this._time_count_upward = this.init_time_count - time_count;
     }
-
 }
 
 export { Card, Upgrade, Character, Arena };

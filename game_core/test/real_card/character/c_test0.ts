@@ -16,7 +16,6 @@ export class C_Test0 extends Character {
     series = [ CardSeries.Testing ];
     basic_mana_cost = 1;
     basic_strength = 10;
-    public readonly basic_battle_role = BattleRole.Sniper;
 
     onPlay() {
         let my_master = this.my_master;

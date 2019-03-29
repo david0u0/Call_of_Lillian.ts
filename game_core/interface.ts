@@ -115,7 +115,10 @@ interface IArena extends ICard {
     readonly get_exploit_cost_chain: EventChain<number, ICharacter|Player>;
     readonly get_enter_cost_chain: EventChain<number, ICharacter>;
 
-    /** 回傳值如果是數字，代表的是魔力收入 */
+    /**
+     * @param char 如果是玩家，代表是利用某些效果不靠角色就使用場所
+     * @returns 回傳值如果是數字，代表的是魔力收入 
+     */
     onExploit(char: ICharacter|Player): void|number;
     /** 不可覆寫！ */
     enter(char: ICharacter): void;
