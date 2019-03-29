@@ -3,11 +3,13 @@ import * as assert from "assert";
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
 import { Character, Upgrade } from "../cards"
 import { GameMaster } from "../game_master";
+import { ICharacter, IEvent, IArena } from "../interface";
 
 import checkBadOperationError from "./check_bad_operation";
 import Rainy from "./real_card/character/雨季的魔女．語霽";
 import Violatioin from "./real_card/event/違停派對";
-import { ICharacter, IEvent } from "../interface";
+import Emergency from "./real_card/event/緊急醫療";
+import Hospital from "./real_card/arena/醫院";
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;
@@ -27,22 +29,23 @@ describe("測試事件卡功能", () => {
         enemy_master = gm.getEnemyMaster(p1);
         pm.addMana(1000);
         enemy_master.addMana(1000);
+        char = gm.genCardToHand(p1, (seq, owner, gm) => new Rainy(seq, owner, gm)) as ICharacter;
+        char2 = gm.genCardToHand(p1, (seq, owner, gm) => new Rainy(seq, owner, gm)) as ICharacter;
+        pm.playCard(char);
+        pm.playCard(char2);
     });
     describe("測試基本的事件卡（違停派對）", () => {
         beforeEach(() => {
-            char = gm.genCardToHand(p1, (seq, owner, gm) => new Rainy(seq, owner, gm)) as ICharacter;
-            char2 = gm.genCardToHand(p1, (seq, owner, gm) => new Rainy(seq, owner, gm)) as ICharacter;
             event = gm.genCardToHand(p1, (seq, owner, gm) => new Violatioin(seq, owner, gm)) as IEvent;
-            pm.playCard(char);
             pm.playCard(event);
         });
-        it("玩家的魔力應該是1000-4-4+7=999", () => {
-            assert.equal(pm.mana, 999);
+        it("玩家的魔力應該是1000-4-4-4+7=995", () => {
+            assert.equal(pm.mana, 995);
         });
-        it("玩家推進一次之後魔力應該變為999-1=998", () => {
+        it("玩家推進一次之後魔力應該變為995-1=994", () => {
             selecter.setSelectedSeqs(event.seq);
             pm.pushEvent(char);
-            assert.equal(pm.mana, 998);
+            assert.equal(pm.mana, 994);
         });
         it("推進一次之後進度應該變成1", () => {
             assert.equal(event.cur_progress_count, 0);
@@ -56,10 +59,16 @@ describe("測試事件卡功能", () => {
             pm.pushEvent(char);
             assert.equal(char.is_tired, true);
         });
-        it("推進兩次之後會成功，魔力應該變為999-4-1-1+5=998，總分變成1", () => {
+        it("陷入疲勞的角色應該無法推進", () => {
+            char.is_tired = true;
+            selecter.setSelectedSeqs(event.seq);
+            checkBadOperationError(() => {
+                pm.pushEvent(char);
+            });
+        });
+        it("推進兩次之後會成功，魔力應該變為995-1-1+5=998，總分變成1", () => {
             assert.equal(pm.getScore(), 0, "一開始總分不為0");
-            pm.playCard(char2);
-            assert.equal(pm.mana, 999-4, "打出角色後魔力不對");
+            assert.equal(pm.mana, 995, "打出角色後魔力不對");
             selecter.setSelectedSeqs(event.seq);
             pm.pushEvent(char);
             selecter.setSelectedSeqs(event.seq);
@@ -68,10 +77,49 @@ describe("測試事件卡功能", () => {
             assert.equal(pm.getScore(), 1, "完成後總分不對");
             assert.equal(event.card_status, CardStat.Finished, "完成後事件沒有標記為完成");
         });
-        it("事件如果失敗，魔力應該變成999-4-2=993", () => {
-            assert.equal(pm.mana, 999, "事件失敗前魔力不對");
+        it("事件如果失敗，魔力應該變成995-4-2=989", () => {
+            assert.equal(pm.mana, 995, "事件失敗前魔力不對");
             pm.failEvent(event);
-            assert.equal(pm.mana, 993, "事件失敗後魔力不對");
+            assert.equal(pm.mana, 989, "事件失敗後魔力不對");
+        });
+    });
+    describe("", () => {
+        let hospital: IArena;
+        let e_hospital: IArena;
+        beforeEach(() => {
+            event = gm.genCardToHand(p1, (seq, owner, gm) => new Emergency(seq, owner, gm)) as IEvent;
+            pm.playCard(event);
+            hospital = gm.genArenaToBoard(p1, 3, (seq, owner, gm) => {
+                return new Hospital(seq, owner, gm);
+            });
+            e_hospital = gm.genArenaToBoard(p2, 3, (seq, owner, gm) => {
+                return new Hospital(seq, owner, gm);
+            });
+        });
+        it("玩家的魔力應該是1000-4-4-4=988", () => {
+            assert.equal(pm.mana, 988);
+        });
+        it("進入醫院前應該無法推進", () => {
+            checkBadOperationError(() => {
+                selecter.setSelectedSeqs(event.seq);
+                pm.pushEvent(char);
+            });
+        });
+        it("進入醫院後應該就可以推進了", () => {
+            selecter.setSelectedSeqs(hospital.seq);
+            gm.enterArena(char);
+            assert.doesNotThrow(() => {
+                selecter.setSelectedSeqs(event.seq);
+                pm.pushEvent(char2);
+            });
+        });
+        it("進入敵方的醫院應該也可以推進了", () => {
+            selecter.setSelectedSeqs(e_hospital.seq);
+            gm.enterArena(char);
+            assert.doesNotThrow(() => {
+                selecter.setSelectedSeqs(event.seq);
+                pm.pushEvent(char2);
+            });
         });
     });
 });
