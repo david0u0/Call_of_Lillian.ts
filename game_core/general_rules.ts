@@ -7,7 +7,7 @@ export const Constant = {
     ENTER_ENEMY_COST: 1,
     MAX_ARENA: 5,
     ARENA_CAPACITY: 2,
-    PUSH_COST: 2
+    PUSH_COST: 1
 }
 
 /**
@@ -66,7 +66,7 @@ export class SoftRule {
     }
     public static checkExploit(exploit_chain: EventChain<null, { arena: IArena, char: ICharacter|Player }>) {
         exploit_chain.appendCheck((t, { arena, char }) => {
-            if(typeof(char) == "object") {
+            if(TG.isCard(char)) {
                 if(!arena.isEqual(char.arena_entered)) {
                     // 角色不可開發自身所在地之外的場所
                     return { var_arg: false };
@@ -82,9 +82,42 @@ export class SoftRule {
             } else if(event.cur_progress_count >= event.goal_progress_count) {
                 // 不可推進已到達目標的事件
                 return { var_arg: false };
-            } else if(char && event.owner != char.owner) {
-                // 不可推進別人的事件
+            } else if(TG.isCard(char) && char.is_tired) {
+                // 不可用疲勞的角色來推進
                 return { var_arg: false };
+            }
+        });
+    }
+    // 理論上，當任務失敗，應該扣掉等同基礎開銷的魔力，多出來的話一比一變成情緒傷害。
+    public static onFail(fail_chain: EventChain<null, IEvent>, getMana: () => number,
+        addMana: (mana: number) => void, addEmo: (emo: number) => void
+    ) {
+        fail_chain.append((t, evt) => {
+            let mana_cost = Math.max(getMana(), evt.basic_mana_cost);
+            let emo_cost = evt.basic_mana_cost - mana_cost;
+            addMana(-mana_cost);
+            addEmo(-emo_cost);
+        });
+    }
+    // 理論上，當任務成功，完成的角色應該退場
+    public static onFinish(finish_chain: EventChain<null, { char: ICharacter|null, event: IEvent}>,
+        retireCard: (c: ICard) => void
+    ) {
+        finish_chain.append((t, { char, event }) => {
+            if(TG.isCard(char)) {
+                retireCard(char);
+            }
+        });
+    }
+
+    public static onGetManaCost(
+        get_mana_cost_chain: EventChain<number, ICard>, arenas: IArena[]
+    ) {
+        get_mana_cost_chain.append((cost, card) => {
+            // 改建的費用可以下降
+            if(TG.isArena(card)) {
+                let new_cost = Math.max(0, cost - arenas[card.position].basic_mana_cost);
+                return { var_arg: new_cost } 
             }
         });
     }
@@ -123,15 +156,22 @@ export class HardRule {
     }
     public static onPlay(card: ICard,
         addCharacter: (ch: ICharacter) => void,
-        retireCard: (c: ICard) => void
+        addEvent: (evt: IEvent) => void,
     ) {
         if (TG.isUpgrade(card)) {
-            HardRule.onPlayUpgrade(card);
+            // 把這件升級加入角色的裝備欄
+            if (card.character_equipped) {
+                card.character_equipped.addUpgrade(card);
+            }
         } else if (TG.isCharacter(card)) {
-            HardRule.onPlayCharacter(card, addCharacter, retireCard);
+            // 打出角色後把她加入角色區
+            addCharacter(card);
         } else if (TG.isArena(card)) {
             // 打出場所的規則（把之前的建築拆了）
             // TODO:
+        } else if (TG.isEvent(card)) {
+            // 把事件加入待完成區
+            addEvent(card);
         }
     }
     public static onLeave(card: ICard, retireCard: (c: ICard) => void) {
@@ -164,7 +204,7 @@ export class HardRule {
     }
     /** 這裡的 char 可以是一個玩家 */
     public static checkExploit(arena: IArena, char: ICharacter|Player, mana: number, cost: number): boolean {
-        if ((typeof(char) != "number" )){ 
+        if (TG.isCard(char)){ 
             if(char.card_status != CardStat.Onboard) {
                 throw new BadOperationError("欲開發場所的角色不在場上");
             }
@@ -176,18 +216,24 @@ export class HardRule {
         }
         return true;
     }
-    public static checkPush(player: Player, event: IEvent, char: ICharacter|Player): boolean {
+    public static checkPush(event: IEvent, char: ICharacter|null, mana: number, cost: number): boolean {
         if(event.card_status != CardStat.Onboard) {
             throw new BadOperationError("嘗試推進不在場上事件！");
-        } else if(event.owner != player) {
-            throwIfIsBackend("推進的事件不屬於該玩家");
-            return false;
-        } else if(typeof(char) == "object") {
+        } else if(TG.isCard(char)) {
             if(char.card_status != CardStat.Onboard) {
                 throw new BadOperationError("嘗試用不在場上的角色推進事件！");
+            } else if(char.owner != event.owner) {
+                throwIfIsBackend("你想推進別人的事件？")
+                return false;
             }
+        } else if(char != event.owner) {
+            throwIfIsBackend("你想推進別人的事件？")
+            return false;
         }
         return true;
+    }
+    public static onPushEvent(event: IEvent) {
+        event.push();
     }
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         if (u.character_equipped) {
@@ -210,19 +256,6 @@ export class HardRule {
         } else {
             return true;
         }
-    }
-    private static onPlayUpgrade(u: IUpgrade) {
-        if(u.character_equipped) {
-            let char = u.character_equipped;
-            char.addUpgrade(u);
-        }
-    }
-    private static onPlayCharacter(c: ICharacter,
-        addCharacter: (ch: ICharacter) => void,
-        retireCard: (c: ICard) => void
-    ) {
-        // 打出角色後把她加入角色區
-        addCharacter(c);
     }
     private static onLeaveUpgrade(u: IUpgrade) {
         if(u.character_equipped) {

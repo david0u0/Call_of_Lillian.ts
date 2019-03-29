@@ -4,7 +4,7 @@ import { ICharacter } from "../../../interface";
 
 let name = "終末之民";
 let description = `
-**輻射吐息**：即使*終末之民*的戰力為0仍可攻擊與格擋。每當本角色發動攻擊，對手損失1魔力。`;
+**輻射吐息**：即使*終末之民*的戰力為0仍可攻擊與格擋。每當本角色被擊退，對手損失1魔力。`;
 
 export  default class C extends Character implements ICharacter {
     name = name;

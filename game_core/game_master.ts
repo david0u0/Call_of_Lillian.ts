@@ -18,18 +18,21 @@ class PlayerMaster {
     private _characters = new Array<ICharacter>();
     private _arenas = new Array<IArena>(C.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
-    private _events_succeeded = new Array<IEvent>();
-    private _events_failed = new Array<IEvent>();
+    private _events_finished = new Array<IEvent>();
     public get mana() { return this._mana };
     public get emo() { return this._emo };
     public get deck() { return [...this._deck] };
     public get characters() { return [...this._characters] };
     public get arenas() { return [...this._arenas] };
 
-    constructor(public readonly player: Player) {
+    constructor(public readonly player: Player, private readonly selecter: Selecter) {
         SR.checkPlay(this.card_play_chain);
         SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
+        SR.onFail(this.fail_chain, () => this.mana,
+            this.addMana.bind(this), this.addEmo.bind(this));
         SR.checkPush(this.push_chain);
+        SR.onFinish(this.finish_chain, this.retireCard.bind(this));
+        SR.onGetManaCost(this.get_mana_cost_chain, this.arenas);
     }
     
     public card_play_chain: EventChain<null, ICard> = new EventChain();
@@ -37,6 +40,11 @@ class PlayerMaster {
 
     public set_mana_chain: EventChain<number, null> = new EventChain();
     public set_emo_chain: EventChain<number, null> = new EventChain();
+
+    public fail_chain = new EventChain<null, IEvent>();
+    public get_push_cost_chain = new EventChain<number, { char: ICharacter|null, event: IEvent }>();
+    public push_chain = new EventChain<null, { char: ICharacter|null, event: IEvent }>();
+    public finish_chain = new EventChain<null, { char: ICharacter|null, event: IEvent }>();
 
     public get_strength_chain
         = new EventChain<number, ICharacter>();
@@ -46,9 +54,6 @@ class PlayerMaster {
         = new EventChain<number, ICard>();
     public get_battle_role_chain
         = new EventChain<BattleRole, ICharacter>();
-
-    public get_push_cost_chain = new EventChain<number, { char: ICharacter|null, event: IEvent }>();
-    public push_chain = new EventChain<null, { char: ICharacter|null, event: IEvent }>();
 
     addToDeck(card: ICard) {
         // TODO: 加上事件鏈?
@@ -119,7 +124,8 @@ class PlayerMaster {
         card.card_play_chain.chain(this.card_play_chain, card).trigger(null, null, () => {
             card.card_status = CardStat.Onboard;
             card.onPlay();
-            HR.onPlay(card, this.addCharacter.bind(this), this.retireCard.bind(this));
+            HR.onPlay(card, this.addCharacter.bind(this),
+                this.addEvent.bind(this));
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -153,13 +159,64 @@ class PlayerMaster {
     addCharacter(char: ICharacter) {
         this._characters.push(char);
     }
-
-    finishEvent(event: IEvent, char: ICharacter|Player) {
-        // TODO:
+    addEvent(event: IEvent) {
+        this._events_ongoing.push(event);
     }
-    pushEvent(event: IEvent, char: ICharacter|Player) {
-        if(HR.checkPush(this.player, event, char)) {
-            // TODO: soft check
+
+    // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
+    failEvent(event: IEvent) {
+        this.fail_chain.trigger(null, event, () => {
+            event.onFail();
+            this.retireCard(event);
+        });
+    }
+
+    finishEvent(char: ICharacter|null, event: IEvent) {
+        // 應該不太需要 checkCanTrigger 啦 @@
+        this.retireCard(event);
+        this.finish_chain.trigger(null, { char, event }, () => {
+            event.onFinish(char);
+            this.retireCard(event);
+        });
+    }
+    getPushCost(char: ICharacter|null, event: IEvent) {
+        let cost_chain = event.get_push_cost_chain
+            .chain(this.get_push_cost_chain, { event, char });
+        if(TG.isCard(char)) {
+            cost_chain.chain(char.get_push_cost_chain, event);
+        }
+        return cost_chain.trigger(event.push_cost, char);
+    }
+    pushEvent(char: ICharacter|null) {
+        let push_chain = new EventChain<null, ICharacter|null>();
+        let cost = 0;
+        let _event = this.selecter.selectSingleCard(TG.isEvent, event => {
+            cost = this.getPushCost(char, event);
+            if(HR.checkPush(event, char, this.mana, cost)) {
+                return false;
+            } else {
+                push_chain = event.push_chain.chain(this.push_chain, { event, char });
+                if(TG.isCard(char)) {
+                    push_chain.chain(char.push_chain, event);
+                }
+                return push_chain.checkCanTrigger(char);
+            }
+        });
+
+        if(_event) {
+            let event = _event;
+            this.addMana(-cost);
+            if(char) {
+                char.is_tired = true;
+            }
+            push_chain.trigger(null, char, () => {
+                HR.onPushEvent(event);
+                event.onPush(char);
+                if(event.cur_progress_count == event.goal_progress_count) {
+                    // 事件已完成
+                    this.finishEvent(char, event);
+                }
+            });
         }
     }
 }
@@ -203,10 +260,10 @@ class GameMaster {
         return arena;
     }
 
-    private p_master1: PlayerMaster = new PlayerMaster(Player.Player1);
-    private p_master2: PlayerMaster = new PlayerMaster(Player.Player2);
+    private p_master1: PlayerMaster = new PlayerMaster(Player.Player1, this.selecter);
+    private p_master2: PlayerMaster = new PlayerMaster(Player.Player2, this.selecter);
     getMyMaster(arg: Player|ICard): PlayerMaster {
-        if(typeof(arg) != "number") {
+        if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);
         } else if (arg == Player.Player1) {
             return this.p_master1;
@@ -215,7 +272,7 @@ class GameMaster {
         }
     }
     getEnemyMaster(arg: Player|ICard): PlayerMaster {
-        if(typeof(arg) != "number") {
+        if(TG.isCard(arg)) {
             return this.getEnemyMaster(arg.owner);
         } else if (arg == Player.Player2) {
             return this.p_master1;
@@ -254,6 +311,7 @@ class GameMaster {
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
                 .chain(this.enter_chain, { char, arena });
             p_master.addMana(-this.getEnterCost(char, arena));
+            char.is_tired = true; // 使角色疲勞
             enter_chain.trigger(null, char, () => {
                 HR.onEnter(char, arena);
             });
@@ -264,7 +322,7 @@ class GameMaster {
     getExploitCost(arena: IArena, char: ICharacter|Player) {
         let get_cost_chain = arena.get_exploit_cost_chain
                 .chain(this.get_exploit_cost_chain, { arena, char });
-        if(typeof(char) != "number") {
+        if(TG.isCard(char)) {
             get_cost_chain.chain(char.get_exploit_cost_chain, arena);
         }
         return get_cost_chain.trigger(arena.basic_exploit_cost, char);
@@ -276,10 +334,10 @@ class GameMaster {
         if(HR.checkExploit(arena, char, p_master.mana, cost)) {
             let exploit_chain = arena.exploit_chain
                 .chain(this.exploit_chain, { arena, char });
-            if (typeof (char) != "number") {
+            if(TG.isCard(char)) {
                 exploit_chain.chain(char.exploit_chain, arena);
             }
-            if (exploit_chain.checkCanTrigger(char)) {
+            if(exploit_chain.checkCanTrigger(char)) {
                 p_master.addMana(-cost);
                 exploit_chain.trigger(null, char, t => {
                     let income = arena.onExploit(char);
@@ -324,7 +382,7 @@ class GameMaster {
     public readonly repluse_chain
         = new EventChain<null, { loser: ICharacter, winner: ICharacter|null }>();
 
-    public readonly season_end_chain = new EventChain<null, null>();
+    public readonly era_end_chain = new EventChain<null, null>();
 }
 
 export {

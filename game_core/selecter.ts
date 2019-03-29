@@ -29,7 +29,7 @@ class BackendSelecter {
      * @param checkCanSelect 一個篩選器，決定哪些卡可以選（回傳的都是符合此條件者）
      * @returns 理論上應該是一個符合條件的卡牌陣列，如果是 null，代表被取消。（應該只有在前端會發生）
      */
-    public selectCards<T extends ICard>(guard: (c: ICard) => c is T,
+    public _selectCards<T extends ICard>(guard: (c: ICard) => c is T,
         max=1 , min=1, checkCanSelect=(card: T[]) => true
     ): T[]|null {
         if(this.selected_args.length <= this.top) {
@@ -74,7 +74,7 @@ class BackendSelecter {
     public selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
         checkCanSelect=(card: T) => true
     ): T|null {
-        let list = this.selectCards(guard, 1, 1, list => {
+        let list = this._selectCards(guard, 1, 1, list => {
             return checkCanSelect(list[0]);
         });
         if(list) {

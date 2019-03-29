@@ -2,6 +2,7 @@ import { throwDevError } from "./errors";
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
+// TODO: 要不要把鏈分為需要檢查的（如取得戰力）和需要檢查的？
 
 type HookResult<T> = {
     was_passed?: boolean,

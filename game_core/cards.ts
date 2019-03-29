@@ -160,8 +160,9 @@ abstract class Character extends Card implements ICharacter {
     public readonly get_enter_cost_chain = new EventChain<number, IArena>();
     // TODO: 加入某種角色內部的升級鏈（因為裝備升級未必是出牌）
 
-    public readonly push_chain = new EventChain<null, IEvent>();
     public readonly get_push_cost_chain = new EventChain<number, IEvent>();
+    public readonly push_chain = new EventChain<null, IEvent>();
+    public readonly finish_chain = new EventChain<null, IEvent>();
 
     addUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
@@ -229,24 +230,20 @@ abstract class Event extends Card implements IEvent {
 
     public readonly push_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
-        let chain = new EventChain<null, ICharacter>();
+        let chain = new EventChain<null, ICharacter|null>();
         chain.appendCheck((t, char) => {
             return { var_arg: this.checkCanPush(char) };
         });
         return chain;
     })();
-    public readonly get_push_cost_chain = new EventChain<number, ICharacter|Player>();
+    
+    public readonly get_push_cost_chain = new EventChain<number, ICharacter|null>();
 
-    public abstract checkCanPush(char: ICharacter|Player): boolean;
-    public abstract onPush(char: ICharacter|Player): void;
-    public abstract onFinish(char: ICharacter|Player): void;
-    public onFail() {
-        // 底下是默認的失敗代價：扣掉等同於基礎花費的魔力，多出來的一比一轉成情緒
-        let mana_cost = Math.min(this.basic_mana_cost, this.my_master.mana);
-        let emo_add = this.basic_mana_cost - mana_cost;
-        this.my_master.addMana(-mana_cost);
-        this.my_master.addEmo(emo_add);
-    }
+    public abstract checkCanPush(char: ICharacter|null): boolean;
+    public abstract onPush(char: ICharacter|null): void;
+    public abstract onFinish(char: ICharacter|null): void;
+
+    public onFail() { }
 
     public push() {
         this._cur_progress_count++;

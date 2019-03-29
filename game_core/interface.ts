@@ -98,6 +98,7 @@ interface ICharacter extends ICard {
 
     readonly get_push_cost_chain: EventChain<number, IEvent>;
     readonly push_chain: EventChain<null, IEvent>;
+    readonly finish_chain: EventChain<null, IEvent>;
 
     /** 不可覆寫！ */
     addUpgrade(upgrade: IUpgrade): void;
@@ -128,15 +129,18 @@ interface IEvent extends ICard {
     readonly cur_progress_count: number;
     readonly init_time_count: number;
     readonly cur_time_count: number;
+    readonly push_cost: number;
     readonly is_ending: boolean;
 
-    checkCanPush(char: ICharacter|Player): boolean;
-    onPush(char: ICharacter|Player): void;
-    onFinish(char: ICharacter|Player): void;
+    readonly get_push_cost_chain: EventChain<number, ICharacter|null>
+    readonly push_chain: EventChain<null, ICharacter|null>
+
+    onPush(char: ICharacter|null): void;
+    onFinish(char: ICharacter|null): void;
     onFail(): void;
 
     /** 不可覆寫！ */
-    push(char: ICharacter|Player): void;
+    push(): void;
     /** 不可覆寫！ */
     countDown(): void;
     /** 不可覆寫！ */
@@ -164,6 +168,13 @@ const TypeGaurd = {
     isEvent: function(c: ICard): c is IEvent {
         return c.card_type == CardType.Event;
     },
+    isCard: function(c: ICard|null|number|undefined): c is ICard {
+        if(c) {
+            return typeof(c) == "object";
+        } else {
+            return false;
+        }
+    }
 };
 
 export {
