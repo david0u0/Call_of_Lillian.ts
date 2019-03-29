@@ -93,7 +93,7 @@ export class SoftRule {
         addMana: (mana: number) => void, addEmo: (emo: number) => void
     ) {
         fail_chain.append((t, evt) => {
-            let mana_cost = Math.max(getMana(), evt.basic_mana_cost);
+            let mana_cost = Math.min(getMana(), evt.basic_mana_cost);
             let emo_cost = evt.basic_mana_cost - mana_cost;
             addMana(-mana_cost);
             addEmo(-emo_cost);

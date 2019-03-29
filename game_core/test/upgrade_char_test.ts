@@ -3,11 +3,11 @@ import * as assert from "assert";
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
 import { Character, Upgrade } from "../cards"
 import { GameMaster } from "../game_master";
-import { BadOperationError } from "../errors";
 
+import checkBadOperationError from "./check_bad_operation";
 import C2 from "./real_card/character/終末之民";
 import { C_Test0 } from "./real_card/character/c_test0";
-import { C1 } from "./real_card/character/c1";
+import { C1 } from "./real_card/character/見習魔女";
 import { C4 } from "./real_card/character/數據之海的水手";
 import { U1 } from "./real_card/upgrade/精靈炸彈";
 import { U_Test0 } from "./real_card/upgrade/u_test0";
@@ -47,21 +47,6 @@ let ultimate_0_test_char = pm.draw() as Character;
 pm.addMana(1000);
 enemy_master.addMana(1000);
 
-function checkBadOperationError(func: () => void) {
-    let error_caught = true;
-    try {
-        func();
-        error_caught = false;
-    } catch (e) {
-        if (!(e instanceof BadOperationError)) {
-            assert.fail(`抓到不正確的錯誤：${e.message}`);
-        }
-    }
-    if (!error_caught) {
-        assert.fail("沒有抓到錯誤");
-    }
-}
-
 describe("測試最基礎的角色卡與升級卡的互動", () => {
     describe("測試各種錯誤", () => {
         it("升級卡未設置欲安裝的角色應該噴錯誤", () => {
@@ -84,8 +69,8 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
         it("角色的戰力應該是0", () => {
             assert.equal(0, pm.getStrength(simple_char));
         });
-        it("角色的戰鬥特徵應該是平民(由於戰力為0)", () => {
-            assert.deepEqual({ can_attack: false, can_block: false }, pm.getBattleRole(simple_char));
+        it("角色不可攻擊防守(由於戰力為0)", () => {
+            assert.deepEqual({ can_attack: false, can_block: false, is_melee: true }, pm.getBattleRole(simple_char));
         });
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
             assert.equal(pm.getManaCost(simple_upgrade1), 1);
@@ -132,7 +117,7 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
                 assert.equal(2, pm.getStrength(simple_char));
             });
             it("角色的戰鬥特徵應該是戰士(由於戰力不再是0)", () => {
-                assert.deepEqual({ can_attack: true, can_block: true }, pm.getBattleRole(simple_char))
+                assert.deepEqual({ can_attack: true, can_block: true, is_melee: true }, pm.getBattleRole(simple_char))
             });
             it("一張裝備卡重複打兩次應該噴錯誤", () => {
                 checkBadOperationError(() => pm.playCard(simple_upgrade1));

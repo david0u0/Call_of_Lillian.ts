@@ -130,6 +130,7 @@ interface IEvent extends ICard {
     readonly init_time_count: number;
     readonly cur_time_count: number;
     readonly push_cost: number;
+    readonly score: number;
     readonly is_ending: boolean;
 
     readonly get_push_cost_chain: EventChain<number, ICharacter|null>

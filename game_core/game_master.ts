@@ -24,6 +24,8 @@ class PlayerMaster {
     public get deck() { return [...this._deck] };
     public get characters() { return [...this._characters] };
     public get arenas() { return [...this._arenas] };
+    public get events_ongoing() { return [...this._events_ongoing] };
+    public get events_finished() { return [...this._events_finished] };
 
     constructor(public readonly player: Player, private readonly selecter: Selecter) {
         SR.checkPlay(this.card_play_chain);
@@ -90,6 +92,11 @@ class PlayerMaster {
         this.set_mana_chain.trigger(new_mana, null, new_mana => {
             this._mana = new_mana;
         });
+    }
+
+    getScore() {
+        // TODO: 這邊是不是也該寫個鏈？
+        return this.events_finished.reduce((sum, e) => sum + e.score, 0);
     }
 
     getStrength(char: ICharacter) {
@@ -173,10 +180,10 @@ class PlayerMaster {
 
     finishEvent(char: ICharacter|null, event: IEvent) {
         // 應該不太需要 checkCanTrigger 啦 @@
-        this.retireCard(event);
         this.finish_chain.trigger(null, { char, event }, () => {
             event.onFinish(char);
-            this.retireCard(event);
+            event.card_status = CardStat.Finished;
+            this._events_finished.push(event);
         });
     }
     getPushCost(char: ICharacter|null, event: IEvent) {
@@ -193,13 +200,13 @@ class PlayerMaster {
         let _event = this.selecter.selectSingleCard(TG.isEvent, event => {
             cost = this.getPushCost(char, event);
             if(HR.checkPush(event, char, this.mana, cost)) {
-                return false;
-            } else {
                 push_chain = event.push_chain.chain(this.push_chain, { event, char });
                 if(TG.isCard(char)) {
                     push_chain.chain(char.push_chain, event);
                 }
                 return push_chain.checkCanTrigger(char);
+            } else {
+                return false;
             }
         });
 
@@ -228,7 +235,7 @@ class GameMaster {
     getSeqNumber(): number {
         return this._cur_seq++;
     }
-    genCard(owner: Player,
+    private genCard(owner: Player,
         card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
     ): ICard {
         let c = card_constructor(this.getSeqNumber(), owner, this);
@@ -351,13 +358,13 @@ class GameMaster {
     repulse(loser: ICharacter, winner: ICharacter|null) {
         // TODO:
     }
-    getAll<T extends ICard>(guard: (c: ICard) => c is T, filter=(c: T) => true) {
+    getAll<T extends ICard>(guard: (c: ICard) => c is T, filter?: (c: T) => boolean) {
         let list = new Array<T>();
         for(let seq in this.card_table) {
             let c = this.card_table[seq];
             if (guard(c)) {
                 if (c.card_status == CardStat.Onboard) {
-                    if (filter(c)) {
+                    if(!filter || filter(c)) {
                         list.push(c);
                     }
                 }
@@ -382,6 +389,9 @@ class GameMaster {
     public readonly repluse_chain
         = new EventChain<null, { loser: ICharacter, winner: ICharacter|null }>();
 
+    /** 主階段結束，開始收穫階段之前 */
+    public readonly main_phase_end_chain = new EventChain<null, null>();
+    /** 收穫階段結束之後 */
     public readonly era_end_chain = new EventChain<null, null>();
 }
 

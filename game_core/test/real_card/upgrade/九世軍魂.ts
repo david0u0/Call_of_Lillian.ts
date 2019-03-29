@@ -21,7 +21,7 @@ export default class U extends Upgrade {
                 return { var_arg: str + this.modifier };
             }
         });
-        this.g_master.season_end_chain.append(() => {
+        this.g_master.era_end_chain.append(() => {
             this.modifier += 2;
         });
         this.card_retire_chain.append(() => {

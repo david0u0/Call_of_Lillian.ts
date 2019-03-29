@@ -10,8 +10,8 @@ export  default class C extends Character implements ICharacter {
     name = name;
     description = description;
     basic_mana_cost = 0;
-    readonly basic_battle_role = { can_attack: true, can_block: true };
-    readonly basic_strength = 0;
+    public readonly basic_battle_role = { can_attack: false, can_block: true };
+    public readonly basic_strength = 0;
 
     onPlay() {
         let master_role_chain = this.my_master.get_battle_role_chain;

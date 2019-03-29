@@ -10,6 +10,7 @@ export default class A extends Arena implements IArena {
     description = description;
     basic_mana_cost = 0;
     basic_exploit_cost = 0;
+    series = [ CardSeries.Hospital ];
 
     onExploit(char: ICharacter|Player) {
         this.g_master.getMyMaster(char).addEmo(1);

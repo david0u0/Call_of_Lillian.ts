@@ -9,6 +9,7 @@ export class C1 extends Character {
     description = description;
     basic_mana_cost = 0;
     basic_strength = 0;
+    basic_battle_role = { can_attack: true, can_block: true, is_melee: true };
 
     // TODO: 塞入角色行動
 }

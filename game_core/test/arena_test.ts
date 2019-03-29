@@ -5,23 +5,9 @@ import { Character, Arena } from "../cards"
 import { GameMaster } from "../game_master";
 import { BadOperationError } from "../errors";
 
+import checkBadOperationError from "./check_bad_operation";
 import Hospital from "./real_card/arena/醫院";
 import Rainy from "./real_card/character/雨季的魔女．語霽";
-
-function checkBadOperationError(func: () => void) {
-    let error_caught = true;
-    try {
-        func();
-        error_caught = false;
-    } catch (e) {
-        if (!(e instanceof BadOperationError)) {
-            assert.fail(`抓到不正確的錯誤：${e.message}`);
-        }
-    }
-    if (!error_caught) {
-        assert.fail("沒有抓到錯誤");
-    }
-}
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;

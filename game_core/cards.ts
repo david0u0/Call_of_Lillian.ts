@@ -220,6 +220,7 @@ abstract class Arena extends Card implements IArena {
 abstract class Event extends Card implements IEvent {
     public readonly card_type = CardType.Event;
     public abstract readonly is_ending: boolean;
+    public abstract readonly score: number;
     public abstract readonly goal_progress_count: number;
     public abstract readonly init_time_count: number;
     private _cur_progress_count = 0;
@@ -261,4 +262,4 @@ abstract class Event extends Card implements IEvent {
     }
 }
 
-export { Card, Upgrade, Character, Arena };
+export { Card, Upgrade, Character, Arena, Event };
