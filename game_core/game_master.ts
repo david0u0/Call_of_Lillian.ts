@@ -84,7 +84,7 @@ class PlayerMaster {
 
     getManaCost(card: ICard): number {
         return card.get_mana_cost_chain.chain(this.get_mana_cost_chain, card)
-            .trigger(card.basic_mana_cost, null);
+        .trigger(card.basic_mana_cost, null);
     }
 
     addMana(n: number) {
@@ -105,18 +105,18 @@ class PlayerMaster {
             strength += u.basic_strength;
         }
         return char.get_strength_chain.chain(this.get_strength_chain, char)
-            .trigger(strength, null);
+        .trigger(strength, null);
     }
     
     getBattleRole(char: ICharacter) {
         return char.get_battle_role_chain.chain(this.get_battle_role_chain, char)
-            .trigger(char.basic_battle_role, null);
+        .trigger(char.basic_battle_role, null);
     }
 
     checkCanPlay(card: ICard): boolean {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
             return card.card_play_chain.chain(this.card_play_chain, card)
-                .checkCanTrigger(null);
+            .checkCanTrigger(null);
         } else {
             return false;
         }
@@ -188,7 +188,7 @@ class PlayerMaster {
     }
     getPushCost(char: ICharacter|null, event: IEvent) {
         let cost_chain = event.get_push_cost_chain
-            .chain(this.get_push_cost_chain, { event, char });
+        .chain(this.get_push_cost_chain, { event, char });
         if(TG.isCard(char)) {
             cost_chain.chain(char.get_push_cost_chain, event);
         }
@@ -300,15 +300,15 @@ class GameMaster {
     getEnterCost(char: ICharacter, arena: IArena): number {
         // NOTE: 觸發順序：場所 -> 角色 -> 世界
         return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arena)
-            .chain(this.get_enter_cost_chain, { char, arena })
-            .trigger(0, char);
+        .chain(this.get_enter_cost_chain, { char, arena })
+        .trigger(0, char);
     }
     enterArena(char: ICharacter) {
         let p_master = this.getMyMaster(char);
         let _arena = this.selecter.selectSingleCard(TG.isArena, arena => {
             if(HR.checkEnter(char, arena, p_master.mana, this.getEnterCost(char, arena))) {
                 return arena.enter_chain.chain(char.enter_arena_chain, arena)
-                    .chain(this.enter_chain, { char, arena }).checkCanTrigger(char);
+                .chain(this.enter_chain, { char, arena }).checkCanTrigger(char);
             } else {
                 return false;
             }
@@ -316,7 +316,7 @@ class GameMaster {
         if(_arena) {
             let arena = _arena;
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
-                .chain(this.enter_chain, { char, arena });
+            .chain(this.enter_chain, { char, arena });
             p_master.addMana(-this.getEnterCost(char, arena));
             char.is_tired = true; // 使角色疲勞
             enter_chain.trigger(null, char, () => {
@@ -328,7 +328,7 @@ class GameMaster {
     }
     getExploitCost(arena: IArena, char: ICharacter|Player) {
         let get_cost_chain = arena.get_exploit_cost_chain
-                .chain(this.get_exploit_cost_chain, { arena, char });
+        .chain(this.get_exploit_cost_chain, { arena, char });
         if(TG.isCard(char)) {
             get_cost_chain.chain(char.get_exploit_cost_chain, arena);
         }
@@ -340,7 +340,7 @@ class GameMaster {
         let cost = this.getExploitCost(arena, char);
         if(HR.checkExploit(arena, char, p_master.mana, cost)) {
             let exploit_chain = arena.exploit_chain
-                .chain(this.exploit_chain, { arena, char });
+            .chain(this.exploit_chain, { arena, char });
             if(TG.isCard(char)) {
                 exploit_chain.chain(char.exploit_chain, arena);
             }

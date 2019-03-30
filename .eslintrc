@@ -5,6 +5,8 @@
         "sourceType": "module"
     },
     "rules": {
+        "dot-location": ["error", "property"],
+        "indent": ["error", 4, { "MemberExpression": 0 }],
         "no-var": "error",
         "quotes": ["error", "double"],
         "semi": "error",
