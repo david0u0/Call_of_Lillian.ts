@@ -1,12 +1,12 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
-import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, IUnknownCard } from "./interface";
+import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard } from "./interface";
 import { GameMaster, PlayerMaster } from "./game_master";
 import { EventChain, HookResult, HookFunc, Hook } from "./hook";
 import Selecter from "./selecter";
 import { BadOperationError } from "./errors";
 import { Constant as C } from "./general_rules";
 
-class UnknownCard implements IUnknownCard {
+class UnknownCard implements ICard {
     public readonly card_type = CardType.Unknown;
     public card_status = CardStat.Deck;
     constructor(public readonly seq: number, public readonly owner: Player) { }

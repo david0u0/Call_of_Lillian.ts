@@ -8,7 +8,6 @@ interface ICard {
     readonly owner: Player;
     card_status: CardStat;
 }
-interface IUnknownCard extends ICard { }
 interface IKnownCard extends ICard {
     readonly name: string;
     readonly description: string;
@@ -157,8 +156,8 @@ interface ISpell extends IKnownCard {
 }
 
 const TypeGaurd = {
-    isUnKnown: function(c: ICard): c is IUnknownCard {
-        return c.card_type == CardType.Unknown;
+    isKnown: function(c: ICard): c is IKnownCard {
+        return c.card_type != CardType.Unknown;
     },
     isUpgrade: function(c: ICard): c is IUpgrade {
         return c.card_type == CardType.Upgrade;
@@ -185,5 +184,5 @@ const TypeGaurd = {
 };
 
 export {
-    ICard, IKeeper, IUnknownCard, IKnownCard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
+    ICard, IKeeper, IKnownCard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
 };

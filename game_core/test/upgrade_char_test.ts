@@ -7,7 +7,7 @@ import { GameMaster } from "../game_master";
 import checkBadOperationError from "./check_bad_operation";
 import C2 from "./real_card/character/終末之民";
 import { C_Test0 } from "./real_card/character/c_test0";
-import { C1 } from "./real_card/character/見習魔女";
+import C1 from "./real_card/character/見習魔女";
 import { C4 } from "./real_card/character/數據之海的水手";
 import { U1 } from "./real_card/upgrade/精靈炸彈";
 import { U_Test0 } from "./real_card/upgrade/u_test0";

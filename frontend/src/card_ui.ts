@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 
-import { IKnownCard, ICard } from "../../game_core/interface";
+import { IKnownCard, ICard, TypeGaurd } from "../../game_core/interface";
+import { BadOperationError } from "../../game_core/errors";
 
 const H = 1000, W = 722;
 
@@ -11,13 +12,13 @@ export abstract class CardUI {
     public get height() { return this._height; };
     private _width: number;
     public get width() { return this._width; };
-    constructor(public readonly card: ICard, width: number,
-        height: number, ticker: PIXI.ticker.Ticker
+    constructor(public readonly card: ICard, width: number, height: number,
+        ticker: PIXI.ticker.Ticker, protected readonly loader: PIXI.loaders.Loader
     ) {
         this.container = new PIXI.Container();
         let ratio = Math.min(width / H, height / W);
-        this._height = H * ratio;
         this._width = W * ratio;
+        this._height = H * ratio;
         this.setCardDisplay(() => {
             let og_w = this.container.width;
             let og_h = this.container.height;
@@ -52,5 +53,17 @@ export class UnknownCardUI extends CardUI {
         let back = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
         this.container.addChild(back);
         callback();
+    }
+}
+
+export class CharacterUI extends CardUI {
+    setCardDisplay(callback: () => void) {
+        if(TypeGaurd.isCharacter(this.card)) {
+            let card_image = new PIXI.Sprite(this.loader.resources[this.card.name].texture);
+            this.container.addChild(card_image);
+            callback();
+        } else {
+            throw "??";
+        }
     }
 }

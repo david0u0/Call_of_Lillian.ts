@@ -89,9 +89,30 @@ function drawMoreMenu() {
     container.addChild(rec);
 
     let incite = new PIXI.Sprite(PIXI.loader.resources["incite"].texture);
+    incite.interactive = true;
     incite.scale.set(eh*2.5/incite.height);
+    incite.alpha = 0.8;
+    incite.on("mouseover", () => {
+        incite.alpha = 1;
+    });
+    incite.on("mouseout", () => {
+        incite.alpha = 0.8;
+    });
     container.addChild(incite);
     incite.position.set(-ew*2, -eh*3);
+
+    let war = new PIXI.Sprite(PIXI.loader.resources["war"].texture);
+    war.interactive = true;
+    war.scale.set(eh*2.5/war.height);
+    war.alpha = 0.8;
+    war.on("mouseover", () => {
+        war.alpha = 1;
+    });
+    war.on("mouseout", () => {
+        war.alpha = 0.8;
+    });
+    container.addChild(war);
+    war.position.set(-ew*2 + eh*2.5, -eh*3);
 
     container.interactive = true;
 

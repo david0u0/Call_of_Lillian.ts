@@ -8,6 +8,9 @@ import getEltSize from "./get_elemental_size";
 import { drawHands } from "./draw_hand_cards";
 import { drawPlayerArea } from "./draw_player_area";
 
+import C from "../../game_core/test/real_card/character/見習魔女";
+import C2 from "../../game_core/test/real_card/character/終末之民";
+
 function getWinSize() {
     let width = window.innerWidth;
     let height = window.innerHeight;
@@ -22,19 +25,27 @@ PIXI.loader
 .add("card_back", require("../assets/card_back.png"))
 .add("avatar", require("../assets/avatar.jpg"))
 .add("incite", require("../assets/incite.png"))
+.add("war", require("../assets/war.png"))
 .load(setup);
 
 
-function setup() {
+async function setup() {
+    let gm = new GameMaster();
+    let card_image_loader = new PIXI.loaders.Loader();
+
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
     app.stage.addChild(bg);
 
     let hands = Array(8).fill(0).map(() => {
-        return new UnknownCard(1, Player.Player1);
+        if(Math.random() > 0.5) {
+            return new C2(1, Player.Player1, gm);
+        } else {
+            return new C(1, Player.Player1, gm);
+        }
     });
-    let hands_ui1 = drawHands(hands, app.ticker);
-    let hands_ui2 = drawHands(hands, app.ticker);
+    let hands_ui1 = await drawHands(hands, app.ticker, card_image_loader);
+    let hands_ui2 = await drawHands(hands, app.ticker, card_image_loader);
     hands_ui2.position.set(0, getWinSize().height - hands_ui2.height);
     app.stage.addChild(hands_ui1);
     app.stage.addChild(hands_ui2);
