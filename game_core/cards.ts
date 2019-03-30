@@ -8,6 +8,7 @@ import { Constant as C } from "./general_rules";
 
 class UnknownCard implements IUnknownCard {
     public readonly card_type = CardType.Unknown;
+    public card_status = CardStat.Deck;
     constructor(public readonly seq: number, public readonly owner: Player) { }
 }
 
@@ -267,4 +268,4 @@ abstract class Event extends KnownCard implements IEvent {
     }
 }
 
-export { Upgrade, Character, Arena, Event };
+export { UnknownCard, Upgrade, Character, Arena, Event };

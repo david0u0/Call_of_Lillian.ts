@@ -1,44 +1,56 @@
-import { IKnownCard } from "../../game_core/interface";
+import * as PIXI from "pixi.js";
 
-const H = 90, W = 55;
+import { IKnownCard, ICard } from "../../game_core/interface";
 
-abstract class CardUI {
+const H = 1000, W = 722;
+
+export abstract class CardUI {
     public readonly container: PIXI.Container;
     private hovering = false;
-    constructor(width: number, height: number, ticker: PIXI.ticker.Ticker) {
+    private _height: number;
+    public get height() { return this._height; };
+    private _width: number;
+    public get width() { return this._width; };
+    constructor(public readonly card: ICard, width: number,
+        height: number, ticker: PIXI.ticker.Ticker
+    ) {
         this.container = new PIXI.Container();
-        this.setCardDisplay();
-        let ratio = Math.min(width/this.container.width, height/this.container.height);
-        let big_ratio = ratio + 0.01;
-        let cur_ratio = ratio;
-        this.container.scale.set(ratio);
-
-        this.container.interactive = true;
-        this.container.cursor = "pointer";
-        this.container.on("mouseover", () => {
-            this.hovering = true;
-            this.container.scale.set(ratio + 0.01);
-        });
-        this.container.on("mouseout", () => {
-            this.hovering = false;
-            this.container.scale.set(ratio);
-        });
-        ticker.add(() => {
-            if(this.hovering && cur_ratio <= big_ratio) {
-                cur_ratio += 0.002;
-                this.container.scale.set(cur_ratio);
-            } else if(!this.hovering && cur_ratio >= ratio) {
-                cur_ratio -= 0.002;
-                this.container.scale.set(cur_ratio);
-            }
+        let ratio = Math.min(width / H, height / W);
+        this._height = H * ratio;
+        this._width = W * ratio;
+        this.setCardDisplay(() => {
+            let og_w = this.container.width;
+            let og_h = this.container.height;
+            let big_ratio = ratio * 1.1;
+            let cur_ratio = ratio;
+            this.container.scale.set(ratio * W / og_w, ratio * H / og_h);
+            this.container.interactive = true;
+            this.container.cursor = "pointer";
+            this.container.on("mouseover", () => {
+                this.hovering = true;
+            });
+            this.container.on("mouseout", () => {
+                this.hovering = false;
+            });
+            ticker.add(() => {
+                if(this.hovering && cur_ratio <= big_ratio) {
+                    cur_ratio += 0.002;
+                    this.container.scale.set(cur_ratio * W / og_w, cur_ratio * H / og_h);
+                } else if(!this.hovering && cur_ratio >= ratio) {
+                    cur_ratio -= 0.002;
+                    this.container.scale.set(cur_ratio * W / og_w, cur_ratio * H / og_h);
+                }
+            });
+            this.container.pivot.set(og_w/2, og_h/2);
         });
     }
-    abstract setCardDisplay();
+    abstract setCardDisplay(callback: () => void);
 }
 
 export class UnknownCardUI extends CardUI {
-    setCardDisplay() {
+    setCardDisplay(callback: () => void) {
         let back = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
         this.container.addChild(back);
+        callback();
     }
 }

@@ -6,6 +6,7 @@ interface ICard {
     readonly card_type: CardType;
     readonly seq: number;
     readonly owner: Player;
+    card_status: CardStat;
 }
 interface IUnknownCard extends ICard { }
 interface IKnownCard extends ICard {
@@ -14,7 +15,6 @@ interface IKnownCard extends ICard {
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
 
-    card_status: CardStat;
 
     readonly get_mana_cost_chain: EventChain<number, null>;
     readonly card_play_chain: EventChain<null, null>;

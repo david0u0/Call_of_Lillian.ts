@@ -2,7 +2,7 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat } from "./enums";
-import { IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C } from "./general_rules";
@@ -12,8 +12,8 @@ import Selecter from "./selecter";
 class PlayerMaster {
     private _mana = 0;
     private _emo = 0;
-    private _deck = new Array<IKnownCard>();
-    private _hand = new Array<IKnownCard>();
+    private _deck = new Array<ICard>();
+    private _hand = new Array<ICard>();
     private _gravyard = new Array<IKnownCard>();
     private _characters = new Array<ICharacter>();
     private _arenas = new Array<IArena>(C.MAX_ARENA);
@@ -22,6 +22,7 @@ class PlayerMaster {
     public get mana() { return this._mana; };
     public get emo() { return this._emo; };
     public get deck() { return [...this._deck]; };
+    public get hand() { return [...this._hand]; };
     public get characters() { return [...this._characters]; };
     public get arenas() { return [...this._arenas]; };
     public get events_ongoing() { return [...this._events_ongoing]; };

@@ -150,9 +150,9 @@ export class HardRule {
             return HardRule.checkPlayUpgrade(card);
         } else if(TG.isArena(card)) {
             return HardRule.checkPlayArena(card);
-        } else if(TG.isUnKnown) {
+        } else if(TG.isUnKnown(card)) {
             // 理論上不太可能走到這啦
-            throw new BadOperationError("未知的牌也想拿來打？", card);
+            throw new BadOperationError("未知的牌也想拿來打？");
         }
 
         return true;
