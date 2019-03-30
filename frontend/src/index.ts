@@ -26,6 +26,8 @@ PIXI.loader
 .add("avatar", require("../assets/avatar.jpg"))
 .add("incite", require("../assets/incite.png"))
 .add("war", require("../assets/war.png"))
+.add("release", require("../assets/release.png"))
+.add("rest", require("../assets/rest.png"))
 .load(setup);
 
 
@@ -37,21 +39,24 @@ async function setup() {
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
     app.stage.addChild(bg);
 
-    let hands = Array(8).fill(0).map(() => {
+    let hands1 = Array(8).fill(0).map(() => {
+        return new UnknownCard(1, Player.Player2);
+    });
+    let hands2 = Array(8).fill(0).map(() => {
         if(Math.random() > 0.5) {
             return new C2(1, Player.Player1, gm);
         } else {
             return new C(1, Player.Player1, gm);
         }
     });
-    let hands_ui1 = await drawHands(hands, app.ticker, card_image_loader);
-    let hands_ui2 = await drawHands(hands, app.ticker, card_image_loader);
+    let hands_ui1 = await drawHands(hands1, app.ticker, card_image_loader);
+    let hands_ui2 = await drawHands(hands2, app.ticker, card_image_loader);
     hands_ui2.position.set(0, getWinSize().height - hands_ui2.height);
     app.stage.addChild(hands_ui1);
     app.stage.addChild(hands_ui2);
 
     let player_area1 = drawPlayerArea(4*ew, 6*eh, app.ticker).container;
-    let result = drawPlayerArea(4*ew, 6*eh, app.ticker);
+    let result = drawPlayerArea(4*ew, 6*eh, app.ticker, true);
     let [player_area2, height] = [result.container, result.height];
     player_area1.x = ew * 18;
     app.stage.addChild(player_area1);
