@@ -1,4 +1,4 @@
-import { ICard } from "../../game_core/interface";
+import { IKnownCard } from "../../game_core/interface";
 
 const H = 90, W = 55;
 

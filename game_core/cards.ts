@@ -1,12 +1,17 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
-import { ICard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent } from "./interface";
+import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, IUnknownCard } from "./interface";
 import { GameMaster, PlayerMaster } from "./game_master";
 import { EventChain, HookResult, HookFunc, Hook } from "./hook";
 import Selecter from "./selecter";
 import { BadOperationError } from "./errors";
 import { Constant as C } from "./general_rules";
 
-abstract class Card implements ICard {
+class UnknownCard implements IUnknownCard {
+    public readonly card_type = CardType.Unknown;
+    constructor(public readonly seq: number, public readonly owner: Player) { }
+}
+
+abstract class KnownCard implements IKnownCard {
     public abstract readonly card_type: CardType;
     public abstract readonly name: string;
     public abstract readonly description: string;
@@ -34,7 +39,7 @@ abstract class Card implements ICard {
         this.enemy_master = g_master.getEnemyMaster(owner);
     }
 
-    public isEqual(card: ICard|null) {
+    public isEqual(card: IKnownCard|null) {
         if(card) {
             return this.seq == card.seq;
         } else {
@@ -103,7 +108,7 @@ abstract class Card implements ICard {
     }
 }
 
-abstract class Upgrade extends Card implements IUpgrade {
+abstract class Upgrade extends KnownCard implements IUpgrade {
     public card_type = CardType.Upgrade;
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
@@ -131,7 +136,7 @@ abstract class Upgrade extends Card implements IUpgrade {
     }
 }
 
-abstract class Character extends Card implements ICharacter {
+abstract class Character extends KnownCard implements ICharacter {
     public readonly card_type = CardType.Character;
     public readonly abstract basic_strength: number;
     public readonly basic_battle_role: BattleRole = { can_attack: true, can_block: true };
@@ -189,7 +194,7 @@ abstract class Character extends Card implements ICharacter {
     }
 }
 
-abstract class Arena extends Card implements IArena {
+abstract class Arena extends KnownCard implements IArena {
     public readonly card_type = CardType.Arena;
     private _position = -1;
     public get position() { return this._position; };
@@ -217,7 +222,7 @@ abstract class Arena extends Card implements IArena {
     }
 }
 
-abstract class Event extends Card implements IEvent {
+abstract class Event extends KnownCard implements IEvent {
     public readonly card_type = CardType.Event;
     public abstract readonly is_ending: boolean;
     public abstract readonly score: number;
@@ -262,4 +267,4 @@ abstract class Event extends Card implements IEvent {
     }
 }
 
-export { Card, Upgrade, Character, Arena, Event };
+export { Upgrade, Character, Arena, Event };

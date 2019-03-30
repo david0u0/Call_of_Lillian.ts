@@ -2,7 +2,7 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat } from "./enums";
-import { ICard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
+import { IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C } from "./general_rules";
@@ -12,9 +12,9 @@ import Selecter from "./selecter";
 class PlayerMaster {
     private _mana = 0;
     private _emo = 0;
-    private _deck = new Array<ICard>();
-    private _hand = new Array<ICard>();
-    private _gravyard = new Array<ICard>();
+    private _deck = new Array<IKnownCard>();
+    private _hand = new Array<IKnownCard>();
+    private _gravyard = new Array<IKnownCard>();
     private _characters = new Array<ICharacter>();
     private _arenas = new Array<IArena>(C.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
@@ -37,8 +37,8 @@ class PlayerMaster {
         SR.onGetManaCost(this.get_mana_cost_chain, this.arenas);
     }
     
-    public card_play_chain: EventChain<null, ICard> = new EventChain();
-    public card_retire_chain: EventChain<null, ICard> = new EventChain();
+    public card_play_chain: EventChain<null, IKnownCard> = new EventChain();
+    public card_retire_chain: EventChain<null, IKnownCard> = new EventChain();
 
     public set_mana_chain: EventChain<number, null> = new EventChain();
     public set_emo_chain: EventChain<number, null> = new EventChain();
@@ -53,15 +53,15 @@ class PlayerMaster {
     public get_inconflict_strength_chain
         = new EventChain<number, { me: ICharacter, enemy: ICharacter }>();
     public get_mana_cost_chain
-        = new EventChain<number, ICard>();
+        = new EventChain<number, IKnownCard>();
     public get_battle_role_chain
         = new EventChain<BattleRole, ICharacter>();
 
-    addToDeck(card: ICard) {
+    addToDeck(card: IKnownCard) {
         // TODO: 加上事件鏈?
         this._deck.push(card);
     }
-    addToHand(card: ICard) {
+    addToHand(card: IKnownCard) {
         // TODO: 加上事件鏈?
         this._hand.push(card);
     }
@@ -82,7 +82,7 @@ class PlayerMaster {
         });
     }
 
-    getManaCost(card: ICard): number {
+    getManaCost(card: IKnownCard): number {
         return card.get_mana_cost_chain.chain(this.get_mana_cost_chain, card)
         .trigger(card.basic_mana_cost, null);
     }
@@ -113,7 +113,7 @@ class PlayerMaster {
         .trigger(char.basic_battle_role, null);
     }
 
-    checkCanPlay(card: ICard): boolean {
+    checkCanPlay(card: IKnownCard): boolean {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
             return card.card_play_chain.chain(this.card_play_chain, card)
             .checkCanTrigger(null);
@@ -121,7 +121,7 @@ class PlayerMaster {
             return false;
         }
     }
-    playCard(card: ICard) {
+    playCard(card: IKnownCard) {
         card.rememberFields();
         if(!card.initialize() || !this.checkCanPlay(card)) {
             card.recoverFields();
@@ -140,11 +140,11 @@ class PlayerMaster {
         });
     }
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
-    private _leaveCard(card: ICard) {
+    private _leaveCard(card: IKnownCard) {
         card.card_leave_chain.trigger(null, null);
         HR.onLeave(card, this.retireCard.bind(this));
     }
-    retireCard(card: ICard) {
+    retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
             let chain = card.card_retire_chain.chain(this.card_retire_chain, card);
             let can_die = chain.checkCanTrigger(null);
@@ -158,7 +158,7 @@ class PlayerMaster {
             throwIfIsBackend("重複銷毀一張卡片", card);
         }
     }
-    exileCard(card: ICard) {
+    exileCard(card: IKnownCard) {
         this._leaveCard(card);
         card.card_status = CardStat.Exile;
     }
@@ -230,28 +230,28 @@ class PlayerMaster {
 
 class GameMaster {
     private _cur_seq = 1;
-    public readonly card_table: { [index: number]: ICard } = {};
+    public readonly card_table: { [index: number]: IKnownCard } = {};
     public readonly selecter = new Selecter(this.card_table);
     getSeqNumber(): number {
         return this._cur_seq++;
     }
     private genCard(owner: Player,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
-    ): ICard {
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IKnownCard
+    ): IKnownCard {
         let c = card_constructor(this.getSeqNumber(), owner, this);
         this.card_table[c.seq] = c;
         return c;
     }
     genCardToDeck(owner: Player,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
-    ): ICard {
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IKnownCard
+    ): IKnownCard {
         let c = this.genCard(owner, card_constructor);
         this.getMyMaster(owner).addToDeck(c);
         return c;
     }
     genCardToHand(owner: Player,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => ICard
-    ): ICard {
+        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IKnownCard
+    ): IKnownCard {
         let c = this.genCard(owner, card_constructor);
         c.card_status = CardStat.Hand;
         this.getMyMaster(owner).addToHand(c);
@@ -269,7 +269,7 @@ class GameMaster {
 
     private p_master1: PlayerMaster = new PlayerMaster(Player.Player1, this.selecter);
     private p_master2: PlayerMaster = new PlayerMaster(Player.Player2, this.selecter);
-    getMyMaster(arg: Player|ICard): PlayerMaster {
+    getMyMaster(arg: Player|IKnownCard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);
         } else if(arg == Player.Player1) {
@@ -278,7 +278,7 @@ class GameMaster {
             return this.p_master2;
         }
     }
-    getEnemyMaster(arg: Player|ICard): PlayerMaster {
+    getEnemyMaster(arg: Player|IKnownCard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getEnemyMaster(arg.owner);
         } else if(arg == Player.Player2) {
@@ -358,7 +358,7 @@ class GameMaster {
     repulse(loser: ICharacter, winner: ICharacter|null) {
         // TODO:
     }
-    getAll<T extends ICard>(guard: (c: ICard) => c is T, filter?: (c: T) => boolean) {
+    getAll<T extends IKnownCard>(guard: (c: IKnownCard) => c is T, filter?: (c: T) => boolean) {
         let list = new Array<T>();
         for(let seq in this.card_table) {
             let c = this.card_table[seq];

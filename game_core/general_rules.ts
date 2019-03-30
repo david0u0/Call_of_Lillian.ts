@@ -1,4 +1,4 @@
-import { ICard, IUpgrade, TypeGaurd as TG, ICharacter, IArena, IEvent } from "./interface";
+import { IKnownCard, IUpgrade, TypeGaurd as TG, ICharacter, IArena, IEvent } from "./interface";
 import { EventChain } from "./hook";
 import { CardStat, CharStat, BattleRole, Player } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
@@ -15,7 +15,7 @@ export const Constant = {
  * 需注意的是，如果你要覆蓋的只是一部份規則，使用覆蓋機制時應該注意把需要的規則手動補回來。
  */
 export class SoftRule {
-    public static checkPlay(card_play_chain: EventChain<null, ICard>) {
+    public static checkPlay(card_play_chain: EventChain<null, IKnownCard>) {
         card_play_chain.appendCheck((can_play, card) => {
             if(TG.isUpgrade(card)) {
                 return { var_arg: SoftRule.checkPlayUpgrade(card) };
@@ -101,7 +101,7 @@ export class SoftRule {
     }
     // 理論上，當任務成功，完成的角色應該退場
     public static onFinish(finish_chain: EventChain<null, { char: ICharacter | null, event: IEvent }>,
-        retireCard: (c: ICard) => void
+        retireCard: (c: IKnownCard) => void
     ) {
         finish_chain.append((t, { char, event }) => {
             if(TG.isCard(char)) {
@@ -111,7 +111,7 @@ export class SoftRule {
     }
 
     public static onGetManaCost(
-        get_mana_cost_chain: EventChain<number, ICard>, arenas: IArena[]
+        get_mana_cost_chain: EventChain<number, IKnownCard>, arenas: IArena[]
     ) {
         get_mana_cost_chain.append((cost, card) => {
             // 改建的費用可以下降
@@ -138,7 +138,7 @@ export class SoftRule {
  * 這裡的每條規則都無法被覆蓋（除非整個效果被攔截），大部份是為了防止奇奇怪怪的錯誤。
  */
 export class HardRule {
-    public static checkPlay(player: Player, card: ICard, mana: number, cost: number): boolean {
+    public static checkPlay(player: Player, card: IKnownCard, mana: number, cost: number): boolean {
         if(card.owner != player) {
             throw new BadOperationError("你想出對手的牌！！？", card);
         } else if(card.card_status != CardStat.Hand) {
@@ -150,11 +150,14 @@ export class HardRule {
             return HardRule.checkPlayUpgrade(card);
         } else if(TG.isArena(card)) {
             return HardRule.checkPlayArena(card);
+        } else if(TG.isUnKnown) {
+            // 理論上不太可能走到這啦
+            throw new BadOperationError("未知的牌也想拿來打？", card);
         }
 
         return true;
     }
-    public static onPlay(card: ICard,
+    public static onPlay(card: IKnownCard,
         addCharacter: (ch: ICharacter) => void,
         addEvent: (evt: IEvent) => void,
     ) {
@@ -174,7 +177,7 @@ export class HardRule {
             addEvent(card);
         }
     }
-    public static onLeave(card: ICard, retireCard: (c: ICard) => void) {
+    public static onLeave(card: IKnownCard, retireCard: (c: IKnownCard) => void) {
         if(TG.isUpgrade(card)) {
             HardRule.onLeaveUpgrade(card);
         } else if(TG.isCharacter(card)) {
@@ -263,7 +266,7 @@ export class HardRule {
             u.character_equipped.distroyUpgrade(u);
         }
     }
-    private static onLeaveCharacter(c: ICharacter, retireCard: (c: ICard) => void) {
+    private static onLeaveCharacter(c: ICharacter, retireCard: (c: IKnownCard) => void) {
         // 銷毀所有裝備
         for(let u of c.upgrade_list) {
             retireCard(u);

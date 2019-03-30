@@ -1,6 +1,6 @@
 export enum Player { Player1, Player2 };
 export enum CardStat { Retired, Hand, Deck, Onboard, Finished, Exile };
-export enum CardType { Character, Arena, Upgrade, Spell, Event };
+export enum CardType { Character, Arena, Upgrade, Spell, Event, Unknown };
 export enum CardSeries { Testing, Cyber, War, Cosmic, Wasteland, Hospital }
 export enum CharStat { StandBy, InArena, InBattle, Attacking, Blocking, Attacked };
 

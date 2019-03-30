@@ -3,9 +3,12 @@ import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat } from "./
 
 interface IKeeper { };
 interface ICard {
+    readonly card_type: CardType;
     readonly seq: number;
     readonly owner: Player;
-    readonly card_type: CardType;
+}
+interface IUnknownCard extends ICard { }
+interface IKnownCard extends ICard {
     readonly name: string;
     readonly description: string;
     readonly basic_mana_cost: number;
@@ -20,7 +23,7 @@ interface ICard {
     /** 只有退場會觸發這條效果 */
     readonly card_retire_chain: EventChain<null, null>;
 
-    isEqual(card: ICard|null): boolean;
+    isEqual(card: IKnownCard|null): boolean;
 
     /**
      * 在打牌之前執行，內部會呼叫選擇器，將該設置的變數設起來。
@@ -58,17 +61,17 @@ interface ICard {
     dominantCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
         func: HookFunc<boolean, U>): void
 }
-interface ICharacter extends ICard { };
-interface IUpgrade extends ICard { };
-interface IArena extends ICard { };
-interface IEvent extends ICard { };
-interface ISpell extends ICard { };
+interface ICharacter extends IKnownCard { };
+interface IUpgrade extends IKnownCard { };
+interface IArena extends IKnownCard { };
+interface IEvent extends IKnownCard { };
+interface ISpell extends IKnownCard { };
 
-interface IUpgrade extends ICard {
+interface IUpgrade extends IKnownCard {
     readonly basic_strength: number;
     readonly character_equipped: ICharacter|null;
 }
-interface ICharacter extends ICard {
+interface ICharacter extends IKnownCard {
     readonly basic_strength: number;
     readonly basic_battle_role: BattleRole;
     readonly upgrade_list: IUpgrade[];
@@ -105,7 +108,7 @@ interface ICharacter extends ICard {
     distroyUpgrade(u: IUpgrade): void;
 }
 
-interface IArena extends ICard {
+interface IArena extends IKnownCard {
     readonly position: number;
     readonly char_list: ICharacter[];
     readonly basic_exploit_cost: number;
@@ -124,7 +127,7 @@ interface IArena extends ICard {
     /** 不可覆寫！ */
     enter(char: ICharacter): void;
 }
-interface IEvent extends ICard {
+interface IEvent extends IKnownCard {
     readonly goal_progress_count: number;
     readonly cur_progress_count: number;
     readonly init_time_count: number;
@@ -149,11 +152,14 @@ interface IEvent extends ICard {
     /** 不可覆寫！ */
     setTimeCount(time_count: number): void;
 }
-interface ISpell extends ICard {
+interface ISpell extends IKnownCard {
 
 }
 
 const TypeGaurd = {
+    isUnKnown: function(c: ICard): c is IUnknownCard {
+        return c.card_type == CardType.Unknown;
+    },
     isUpgrade: function(c: ICard): c is IUpgrade {
         return c.card_type == CardType.Upgrade;
     },
@@ -179,5 +185,5 @@ const TypeGaurd = {
 };
 
 export {
-    IKeeper, ICard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
+    ICard, IKeeper, IUnknownCard, IKnownCard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
 };
