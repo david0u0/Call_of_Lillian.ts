@@ -19,7 +19,7 @@ export function drawHands(hands: ICard[], ticker: PIXI.ticker.Ticker) {
         }
         container.addChild(card_ui.container);
         card_ui.container.position.set(cur_offset+card_ui.width/2, card_ui.height/2);
-        card_ui.container.rotation = -0.03;
+        card_ui.container.rotation = 0.03;
         cur_offset += card_ui.width*0.9;
     }
     if(hands.length > 8) {
