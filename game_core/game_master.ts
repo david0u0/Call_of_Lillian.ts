@@ -19,13 +19,13 @@ class PlayerMaster {
     private _arenas = new Array<IArena>(C.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
     private _events_finished = new Array<IEvent>();
-    public get mana() { return this._mana };
-    public get emo() { return this._emo };
-    public get deck() { return [...this._deck] };
-    public get characters() { return [...this._characters] };
-    public get arenas() { return [...this._arenas] };
-    public get events_ongoing() { return [...this._events_ongoing] };
-    public get events_finished() { return [...this._events_finished] };
+    public get mana() { return this._mana; };
+    public get emo() { return this._emo; };
+    public get deck() { return [...this._deck]; };
+    public get characters() { return [...this._characters]; };
+    public get arenas() { return [...this._arenas]; };
+    public get events_ongoing() { return [...this._events_ongoing]; };
+    public get events_finished() { return [...this._events_finished]; };
 
     constructor(public readonly player: Player, private readonly selecter: Selecter) {
         SR.checkPlay(this.card_play_chain);
@@ -148,7 +148,7 @@ class PlayerMaster {
         if(card.card_status == CardStat.Onboard) {
             let chain = card.card_retire_chain.chain(this.card_retire_chain, card);
             let can_die = chain.checkCanTrigger(null);
-            if (can_die) {
+            if(can_die) {
                 this._leaveCard(card);
                 chain.trigger(null, null, () => {
                     card.card_status = CardStat.Retired;
@@ -272,7 +272,7 @@ class GameMaster {
     getMyMaster(arg: Player|ICard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);
-        } else if (arg == Player.Player1) {
+        } else if(arg == Player.Player1) {
             return this.p_master1;
         } else {
             return this.p_master2;
@@ -281,7 +281,7 @@ class GameMaster {
     getEnemyMaster(arg: Player|ICard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getEnemyMaster(arg.owner);
-        } else if (arg == Player.Player2) {
+        } else if(arg == Player.Player2) {
             return this.p_master1;
         } else {
             return this.p_master2;
@@ -348,7 +348,7 @@ class GameMaster {
                 p_master.addMana(-cost);
                 exploit_chain.trigger(null, char, t => {
                     let income = arena.onExploit(char);
-                    if (income) {
+                    if(income) {
                         p_master.addMana(income);
                     }
                 });
@@ -362,8 +362,8 @@ class GameMaster {
         let list = new Array<T>();
         for(let seq in this.card_table) {
             let c = this.card_table[seq];
-            if (guard(c)) {
-                if (c.card_status == CardStat.Onboard) {
+            if(guard(c)) {
+                if(c.card_status == CardStat.Onboard) {
                     if(!filter || filter(c)) {
                         list.push(c);
                     }
@@ -397,4 +397,4 @@ class GameMaster {
 
 export {
     GameMaster, BadOperationError, PlayerMaster
-}
+};

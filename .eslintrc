@@ -1,0 +1,15 @@
+{
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": 6,
+        "sourceType": "module"
+    },
+    "rules": {
+        "no-var": "error",
+        "quotes": ["error", "double"],
+        "semi": "error",
+        "keyword-spacing": ["error", {
+            "overrides": { "if": { "after": false }, "for": { "after": false } }
+        }]
+    }
+}

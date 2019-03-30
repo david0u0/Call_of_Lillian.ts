@@ -8,7 +8,7 @@ export const Constant = {
     MAX_ARENA: 5,
     ARENA_CAPACITY: 2,
     PUSH_COST: 1
-}
+};
 
 /**
  * 這裡的每條規則都會被接到世界的事件鏈上，因此可以被斷鏈，也可以被同條鏈上後面的規則覆蓋。
@@ -28,14 +28,14 @@ export class SoftRule {
     ) {
         get_battle_role_chain.append((role, char) => {
             if(getStrength(char) == 0) {
-                return { var_arg: { ...role, can_attack: false, can_block: false }};
+                return { var_arg: { ...role, can_attack: false, can_block: false } };
             }
         });
     }
     /** 進入對手的場所要支付代價 */
     public static onGetEnterCost(get_enter_cost_chain: EventChain<number, { char: ICharacter, arena: IArena }>) {
         get_enter_cost_chain.append((cost, arg) => {
-            if (arg.char.owner != arg.arena.owner) {
+            if(arg.char.owner != arg.arena.owner) {
                 return { var_arg: cost + Constant.ENTER_ENEMY_COST };
             }
         });
@@ -48,7 +48,7 @@ export class SoftRule {
             } else if(char.is_tired) {
                 // 理論上，疲勞中的角色不能移動
                 return { var_arg: false };
-            } else if (arena.char_list.length + 1 > arena.max_capacity) {
+            } else if(arena.char_list.length + 1 > arena.max_capacity) {
                 // 理論上，場所中的角色不可超過上限
                 return { var_arg: false };
             }
@@ -59,12 +59,12 @@ export class SoftRule {
         addMana: (player: Player, mana: number) => void
     ) {
         enter_chain.append((t, arg) => {
-            if (arg.char.owner != arg.arena.owner) {
+            if(arg.char.owner != arg.arena.owner) {
                 addMana(arg.arena.owner, Constant.ENTER_ENEMY_COST);
             }
         });
     }
-    public static checkExploit(exploit_chain: EventChain<null, { arena: IArena, char: ICharacter|Player }>) {
+    public static checkExploit(exploit_chain: EventChain<null, { arena: IArena, char: ICharacter | Player }>) {
         exploit_chain.appendCheck((t, { arena, char }) => {
             if(TG.isCard(char)) {
                 if(!arena.isEqual(char.arena_entered)) {
@@ -74,7 +74,7 @@ export class SoftRule {
             }
         });
     }
-    public static checkPush(push_chain: EventChain<null, { char: ICharacter|null, event: IEvent }>) {
+    public static checkPush(push_chain: EventChain<null, { char: ICharacter | null, event: IEvent }>) {
         push_chain.appendCheck((t, { char, event }) => {
             if(event.cur_time_count <= 0) {
                 // 不可推進倒數為0的事件
@@ -100,7 +100,7 @@ export class SoftRule {
         });
     }
     // 理論上，當任務成功，完成的角色應該退場
-    public static onFinish(finish_chain: EventChain<null, { char: ICharacter|null, event: IEvent}>,
+    public static onFinish(finish_chain: EventChain<null, { char: ICharacter | null, event: IEvent }>,
         retireCard: (c: ICard) => void
     ) {
         finish_chain.append((t, { char, event }) => {
@@ -117,21 +117,21 @@ export class SoftRule {
             // 改建的費用可以下降
             if(TG.isArena(card)) {
                 let new_cost = Math.max(0, cost - arenas[card.position].basic_mana_cost);
-                return { var_arg: new_cost } 
+                return { var_arg: new_cost };
             }
         });
     }
 
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         // 打出升級卡的限制
-        if (u.character_equipped && u.character_equipped.char_status != CharStat.StandBy) {
+        if(u.character_equipped && u.character_equipped.char_status != CharStat.StandBy) {
             // 指定的角色不在待命區
             return false;
         } else {
             return true;
         }
     }
-    
+
 }
 
 /**
@@ -158,18 +158,18 @@ export class HardRule {
         addCharacter: (ch: ICharacter) => void,
         addEvent: (evt: IEvent) => void,
     ) {
-        if (TG.isUpgrade(card)) {
+        if(TG.isUpgrade(card)) {
             // 把這件升級加入角色的裝備欄
-            if (card.character_equipped) {
+            if(card.character_equipped) {
                 card.character_equipped.addUpgrade(card);
             }
-        } else if (TG.isCharacter(card)) {
+        } else if(TG.isCharacter(card)) {
             // 打出角色後把她加入角色區
             addCharacter(card);
-        } else if (TG.isArena(card)) {
+        } else if(TG.isArena(card)) {
             // 打出場所的規則（把之前的建築拆了）
             // TODO:
-        } else if (TG.isEvent(card)) {
+        } else if(TG.isEvent(card)) {
             // 把事件加入待完成區
             addEvent(card);
         }
@@ -182,11 +182,11 @@ export class HardRule {
         }
     }
     public static checkEnter(char: ICharacter, arena: IArena, mana: number, cost: number): boolean {
-        if (char.card_status != CardStat.Onboard) {
+        if(char.card_status != CardStat.Onboard) {
             throw new BadOperationError("欲進入場所的角色不在場上");
-        } else if (arena.card_status != CardStat.Onboard) {
+        } else if(arena.card_status != CardStat.Onboard) {
             throw new BadOperationError("欲進入的場所不在場上");
-        } else if (cost > mana) {
+        } else if(cost > mana) {
             throwIfIsBackend("魔不夠就想進入場所");
             return false;
         }
@@ -203,31 +203,31 @@ export class HardRule {
         char.way_worn = char.assault;
     }
     /** 這裡的 char 可以是一個玩家 */
-    public static checkExploit(arena: IArena, char: ICharacter|Player, mana: number, cost: number): boolean {
-        if (TG.isCard(char)){ 
+    public static checkExploit(arena: IArena, char: ICharacter | Player, mana: number, cost: number): boolean {
+        if(TG.isCard(char)) {
             if(char.card_status != CardStat.Onboard) {
                 throw new BadOperationError("欲開發場所的角色不在場上");
             }
-        } else if (arena.card_status != CardStat.Onboard) {
+        } else if(arena.card_status != CardStat.Onboard) {
             throw new BadOperationError("欲開發的場所不在場上");
-        } else if (cost > mana) {
+        } else if(cost > mana) {
             throwIfIsBackend("魔不夠就想開發資源？");
             return false;
         }
         return true;
     }
-    public static checkPush(event: IEvent, char: ICharacter|null, mana: number, cost: number): boolean {
+    public static checkPush(event: IEvent, char: ICharacter | null, mana: number, cost: number): boolean {
         if(event.card_status != CardStat.Onboard) {
             throw new BadOperationError("嘗試推進不在場上事件！");
         } else if(TG.isCard(char)) {
             if(char.card_status != CardStat.Onboard) {
                 throw new BadOperationError("嘗試用不在場上的角色推進事件！");
             } else if(char.owner != event.owner) {
-                throwIfIsBackend("你想推進別人的事件？")
+                throwIfIsBackend("你想推進別人的事件？");
                 return false;
             }
         } else if(char != event.owner) {
-            throwIfIsBackend("你想推進別人的事件？")
+            throwIfIsBackend("你想推進別人的事件？");
             return false;
         }
         return true;
@@ -236,10 +236,10 @@ export class HardRule {
         event.push();
     }
     private static checkPlayUpgrade(u: IUpgrade): boolean {
-        if (u.character_equipped) {
-            if (u.character_equipped.card_status != CardStat.Onboard) {
+        if(u.character_equipped) {
+            if(u.character_equipped.card_status != CardStat.Onboard) {
                 throw new BadOperationError("指定的角色不在場上", u);
-            } else if (u.character_equipped.owner != u.owner) {
+            } else if(u.character_equipped.owner != u.owner) {
                 throwIfIsBackend("指定的角色不屬於你", u);
                 return false;
             } else {

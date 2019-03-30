@@ -1,7 +1,7 @@
 import * as assert from "assert";
 
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
-import { Character, Arena } from "../cards"
+import { Character, Arena } from "../cards";
 import { GameMaster } from "../game_master";
 import { BadOperationError } from "../errors";
 
@@ -74,7 +74,7 @@ describe("測試最基礎的場所卡", () => {
             });
             it("角色進入的場所應該是自己的醫院", () => {
                 assert.equal(true, my_h.isEqual(rainy.arena_entered));
-            })
+            });
             it("場所中應該洽好有一個角色", () => {
                 assert.equal(my_h.char_list.length, 1);
                 assert.equal(true, my_h.char_list[0].isEqual(rainy));
@@ -99,7 +99,7 @@ describe("測試最基礎的場所卡", () => {
                     assert.equal(993, pm.mana);
                 });
                 it("使用後魔力應該變成993+2=995", () => {
-                    gm.exploit(my_h, rainy)
+                    gm.exploit(my_h, rainy);
                     assert.equal(995, pm.mana);
                 });
             });

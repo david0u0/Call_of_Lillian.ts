@@ -180,4 +180,4 @@ const TypeGaurd = {
 
 export {
     IKeeper, ICard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
-}
+};

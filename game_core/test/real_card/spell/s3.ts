@@ -2,7 +2,7 @@ import { CardType, CardSeries, BattleRole } from "../../../enums";
 import { Character, Upgrade } from "../../../cards";
 
 let name = "黑魔法之夜";
-let description = "召喚三個*血契使魔*至待命區。"
+let description = "召喚三個*血契使魔*至待命區。";
 
 /**
  * 血契使魔 (戰力2)

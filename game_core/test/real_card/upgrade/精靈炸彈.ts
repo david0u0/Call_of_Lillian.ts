@@ -2,7 +2,7 @@ import { Upgrade, Character } from "../../../cards";
 import { BattleRole } from "../../../enums";
 
 let name = "精靈炸彈";
-let description = `裝備者獲得*狙擊*特性。`;
+let description = "裝備者獲得*狙擊*特性。";
 
 export class U1 extends Upgrade {
     name = name;

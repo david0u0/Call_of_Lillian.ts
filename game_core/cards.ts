@@ -4,7 +4,7 @@ import { GameMaster, PlayerMaster } from "./game_master";
 import { EventChain, HookResult, HookFunc, Hook } from "./hook";
 import Selecter from "./selecter";
 import { BadOperationError } from "./errors";
-import { Constant as C } from "./general_rules"
+import { Constant as C } from "./general_rules";
 
 abstract class Card implements ICard {
     public abstract readonly card_type: CardType;
@@ -137,7 +137,7 @@ abstract class Character extends Card implements ICharacter {
     public readonly basic_battle_role: BattleRole = { can_attack: true, can_block: true };
 
     private _upgrade_list: IUpgrade[] = [];
-    public get upgrade_list() { return [...this._upgrade_list] };
+    public get upgrade_list() { return [...this._upgrade_list]; };
     public arena_entered: IArena | null = null;
     public char_status = CharStat.StandBy;
     public is_tired = false;
@@ -196,7 +196,7 @@ abstract class Arena extends Card implements IArena {
     public readonly abstract basic_exploit_cost: number;
 
     private _char_list = new Array<ICharacter>();
-    public get char_list() { return [...this._char_list] };
+    public get char_list() { return [...this._char_list]; };
     public readonly max_capacity = C.ARENA_CAPACITY;
 
     public readonly exploit_chain = new EventChain<null, ICharacter|Player>();

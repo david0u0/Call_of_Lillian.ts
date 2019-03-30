@@ -1,7 +1,7 @@
 import * as assert from "assert";
 
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
-import { Character, Upgrade } from "../cards"
+import { Character, Upgrade } from "../cards";
 import { GameMaster } from "../game_master";
 import { ICharacter, IEvent, IArena } from "../interface";
 

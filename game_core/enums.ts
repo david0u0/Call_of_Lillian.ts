@@ -36,4 +36,4 @@ export enum GamePhase {
     PostLiquidation,
 
     EndGame
-}
+};

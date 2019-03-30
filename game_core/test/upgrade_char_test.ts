@@ -1,7 +1,7 @@
 import * as assert from "assert";
 
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
-import { Character, Upgrade } from "../cards"
+import { Character, Upgrade } from "../cards";
 import { GameMaster } from "../game_master";
 
 import checkBadOperationError from "./check_bad_operation";
@@ -117,7 +117,11 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
                 assert.equal(2, pm.getStrength(simple_char));
             });
             it("角色的戰鬥特徵應該是戰士(由於戰力不再是0)", () => {
-                assert.deepEqual({ can_attack: true, can_block: true, is_melee: true }, pm.getBattleRole(simple_char))
+                assert.deepEqual({
+                    can_attack: true,
+                    can_block: true,
+                    is_melee: true
+                }, pm.getBattleRole(simple_char));
             });
             it("一張裝備卡重複打兩次應該噴錯誤", () => {
                 checkBadOperationError(() => pm.playCard(simple_upgrade1));

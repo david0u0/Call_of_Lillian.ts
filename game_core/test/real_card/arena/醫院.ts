@@ -3,7 +3,7 @@ import { Character, Upgrade, Arena } from "../../../cards";
 import { ICharacter, IArena } from "../../../interface";
 
 let name = "醫院";
-let description = `使用：賺取3點魔力，並承受1情緒。`;
+let description = "使用：賺取3點魔力，並承受1情緒。";
 
 export default class A extends Arena implements IArena {
     name = name;

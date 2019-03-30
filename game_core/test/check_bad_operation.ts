@@ -7,11 +7,11 @@ export default function checkBadOperationError(func: () => void) {
         func();
         error_caught = false;
     } catch (e) {
-        if (!(e instanceof BadOperationError)) {
+        if(!(e instanceof BadOperationError)) {
             assert.fail(`抓到不正確的錯誤：${e.message}`);
         }
     }
-    if (!error_caught) {
+    if(!error_caught) {
         assert.fail("沒有抓到錯誤");
     }
 }

@@ -24,7 +24,7 @@ export function throwIfIsBackend(msg: string, obj_with_name?: any) {
     if(ENV == "backend") {
         throw new BadOperationError(msg, obj_with_name);
     } else {
-        console.log(msg)
+        console.log(msg);
     }
 }
 

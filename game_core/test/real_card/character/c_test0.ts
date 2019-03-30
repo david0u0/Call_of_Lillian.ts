@@ -40,8 +40,8 @@ export class C_Test0 extends Character {
 
         // NOTE: 裝備免費
         this.appendChainWhileAlive(my_master.get_mana_cost_chain, (cost, card) => {
-            if (card instanceof Upgrade) {
-                if (this.isEqual(card.character_equipped)) {
+            if(card instanceof Upgrade) {
+                if(this.isEqual(card.character_equipped)) {
                     return { var_arg: 0 };
                 }
             }
