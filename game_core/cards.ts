@@ -268,4 +268,4 @@ abstract class Event extends KnownCard implements IEvent {
     }
 }
 
-export { UnknownCard, Upgrade, Character, Arena, Event };
+export { UnknownCard, KnownCard, Upgrade, Character, Arena, Event };
