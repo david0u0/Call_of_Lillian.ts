@@ -8,7 +8,9 @@ function titleStyle(width: number) {
         fontSize: width/15,
         fontWeight: "bold",
         fill: 0,
-        fontFamily: "微軟正黑體"
+        fontFamily: "微軟正黑體",
+        
+        wordWrapWidth: width * 3/5
     });
 }
 function manaStyle(width: number) {

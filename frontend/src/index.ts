@@ -47,15 +47,13 @@ async function setup() {
     let hands1 = Array(5).fill(0).map((a, b) => {
         return new UnknownCard(b, Player.Player2);
     });
-    let hands2 = Array(10).fill(0).map(() => {
+    let hands2 = Array(9).fill(0).map(() => {
         let n = Math.random();
         let CurClass;
-        if(n < 0.2) {
-            CurClass = C2;
-        } else if(n < 0.5) {
+        if(n < 0.5) {
             CurClass = C;
         } else {
-            CurClass = C3;
+            CurClass = C2;
         }
         return gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
             return new CurClass(seq, owner, gm);
@@ -95,13 +93,24 @@ async function setup() {
     setTimeout(() => {
         hands_ui2_obj.remove(4);
         hands_ui1_obj.remove(2);
-    }, 2000);
+    }, 4000);
     setTimeout(() => {
         hands_ui1_obj.remove(4);
-    }, 2500);
-    setTimeout(() => {
         hands_ui2_obj.remove(7);
+    }, 2000);
+    setTimeout(() => {
+        let card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
+            return new C3(seq, owner, gm);
+        });
+        hands_ui2_obj.add(card);
     }, 3000);
+    setTimeout(() => {
+        //hands_ui2_obj.remove(7);
+        let card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
+            return new C3(seq, owner, gm);
+        });
+        hands_ui2_obj.add(card);
+    }, 5000);
 }
 
 document.body.appendChild(app.view);

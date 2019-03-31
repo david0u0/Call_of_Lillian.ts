@@ -1,16 +1,18 @@
 import * as PIXI from "pixi.js";
 
-import { GameMaster, BadOperationError } from "../../game_core/game_master";
-import { Player } from "../../game_core/enums";
+import { BadOperationError } from "../../game_core/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
 import getEltSize from "./get_elemental_size";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
 
+// FIXME: 當一張卡被 destroy 時，如果它的大圖還開著，會永遠關不了（因為沒有觸發 mouseout 事件）
+
 const STEP = 9;
 
 class HandUI {
     private list: ICard[];
+    private readonly card_gap: number;
     public readonly view: PIXI.Container;
 
     constructor(list: ICard[], private ticker: PIXI.ticker.Ticker,
@@ -18,17 +20,17 @@ class HandUI {
         private getOffset: (c: PIXI.Container) => { x: number, y: number }
     ) {
         this.list = [...list];
-
         let view = new PIXI.Container();
         let { ew, eh } = getEltSize();
         let cur_offset = 0;
         for(let card of list) {
-            let card_ui = drawCard(card, ew * 4, eh * 10, loader);
+            let card_ui = drawCard(card, ew * 3.5, eh * 10, loader);
+            this.card_gap = card_ui.width * 0.95;
             card_ui = setupHandCardUI(card, card_ui, ticker, loader, showBigCard);
             view.addChild(card_ui);
             card_ui.position.set(cur_offset, 0);
             card_ui.rotation = 0.03;
-            cur_offset += card_ui.width * 0.95;
+            cur_offset += this.card_gap;
         }
         this.view = view;
 
@@ -48,23 +50,29 @@ class HandUI {
             this.view.scale.set(1);
         }
     }
-    private move(children: PIXI.DisplayObject[], goal_x: number) {
+    private move(children: PIXI.DisplayObject[], goal_x: number, callback?: () => void) {
         let handler = () => {
             let cur_x = children[0].x;
             if(Math.abs(cur_x - goal_x) > STEP) {
-                if(cur_x > goal_x) {
-                    for(let obj of children) {
-                        obj.x -= STEP;
-                    }
-                } else {
+                let { x, y } = this.getOffset(this.view);
+                this.view.position.set(x, y);
+                if(cur_x < goal_x) {
                     for(let obj of children) {
                         obj.x += STEP;
                     }
+                } else {
+                    for(let obj of children) {
+                        obj.x -= STEP;
+                    }
                 }
-                let { x, y } = this.getOffset(this.view);
-                this.view.position.set(x, y);
             } else {
                 this.ticker.remove(handler);
+                children.forEach((obj, i) => {
+                    obj.x = goal_x + i * this.card_gap;
+                });
+                if(callback) {
+                    callback();
+                }
             }
         };
         this.ticker.add(handler);
@@ -88,6 +96,34 @@ class HandUI {
             this.move(this.view.children.slice(index+1), goal_x);
             this.view.children[index].destroy();
         }
+    }
+    add(card: ICard) {
+        // 檢查這張卡圖載進來了沒
+        if(TG.isKnown(card)) {
+            if(this.loader.resources[card.name]) {
+                this.addLoaded(card);
+            } else {
+                this.loader.add(card.name, `/card_image/${card.name}.jpg`).load(() => {
+                    this.addLoaded(card);
+                });
+            }
+        } else {
+            this.addLoaded(card);
+        }
+    }
+    private addLoaded(card: ICard) {
+        let { ew, eh } = getEltSize();
+        let card_ui = drawCard(card, ew * 3.5, eh * 10, this.loader);
+        let offset = this.list.length * this.card_gap;
+        card_ui = setupHandCardUI(card, card_ui, this.ticker, this.loader, this.showBigCard);
+        card_ui.position.set(offset, 0);
+        card_ui.rotation = 0.03;
+        let index = this.list.length;
+        this.list.push(card);
+        this.resize();
+        this.move(this.view.children.slice(index), offset + this.card_gap, () => {
+            this.view.addChildAt(card_ui, index);
+        });
     }
 }
 
@@ -115,7 +151,7 @@ function setupHandCardUI(card: ICard, container: PIXI.Container,
 
 export function constructHandUI(hands: ICard[], ticker: PIXI.ticker.Ticker,
     loader: PIXI.loaders.Loader, showBigCard: ShowBigCard,
-    getOffset: (c: PIXI.Container) => {x: number, y: number }
+    getOffset: (c: PIXI.Container) => { x: number, y: number }
 ): Promise<HandUI> {
     for(let card of hands) {
         if(TG.isKnown(card) && !loader.resources[card.name]) {
@@ -124,20 +160,6 @@ export function constructHandUI(hands: ICard[], ticker: PIXI.ticker.Ticker,
     }
     return new Promise<HandUI>((resolve, reject) => {
         loader.load(() => {
-            let container = new PIXI.Container();
-            let { ew, eh } = getEltSize();
-            let cur_offset = 0;
-            for(let card of hands) {
-                let card_ui = drawCard(card, ew * 4, eh * 10, loader);
-                card_ui = setupHandCardUI(card, card_ui, ticker, loader, showBigCard);
-                container.addChild(card_ui);
-                card_ui.position.set(cur_offset, 0);
-                card_ui.rotation = 0.03;
-                cur_offset += card_ui.width * 0.95;
-            }
-            if(hands.length > 8) {
-                container.scale.set(8 / hands.length);
-            }
             resolve(new HandUI(hands, ticker, loader, showBigCard, getOffset));
         });
     });

@@ -19,11 +19,14 @@ export function showBigCard(container: PIXI.Container, x: number, y: number,
     // TODO: 應該以當前是在畫面上半還下半來決定該把卡圖往哪個方向呈現
     card_ui.position.set(x, y+eh);
     container.addChild(card_ui);
-    ticker.add(() => {
+    let tick_func = () => {
         if(card_ui && card_ui.y > y) {
-            card_ui.y -= eh*0.1;
+            card_ui.y -= eh * 0.1;
+        } else {
+            ticker.remove(tick_func);
         }
-    });
+    };
+    ticker.add(tick_func);
     return () => {
         card_ui.destroy();
         card_ui = null;
