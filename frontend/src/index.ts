@@ -10,7 +10,7 @@ import { drawPlayerArea } from "./player_area";
 import C from "../../game_core/test/real_card/character/見習魔女";
 import C2 from "../../game_core/test/real_card/character/終末之民";
 import C3 from "../../game_core/test/real_card/character/雨季的魔女．語霽";
-import { showBigCard, GenCard } from "./show_big_card";
+import { showBigCard, ShowBigCard } from "./show_big_card";
 import { ICard } from "../../game_core/interface";
 
 function getWinSize() {
@@ -58,9 +58,10 @@ async function setup() {
         }
     });
 
-    let show_big_card = (x: number, y: number, card: ICard, genCard: GenCard
+    let show_big_card: ShowBigCard = (x: number, y: number, card: ICard, 
+        ticker: PIXI.ticker.Ticker, loader: PIXI.loaders.Loader
     ) => {
-        return showBigCard(app.stage, x, y, card, app.ticker, genCard);
+        return showBigCard(app.stage, x, y, card, ticker, loader);
     };
 
     let hands_ui1 = await drawHands(hands1, app.ticker, card_image_loader, show_big_card);

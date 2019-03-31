@@ -9,7 +9,7 @@ import checkBadOperationError from "./check_bad_operation";
 import Rainy from "./real_card/character/雨季的魔女．語霽";
 import Violatioin from "./real_card/event/違停派對";
 import Emergency from "./real_card/event/緊急醫療";
-import Hospital from "./real_card/arena/醫院";
+import Hospital from "./real_card/arena/M市立綜合醫院";
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;
