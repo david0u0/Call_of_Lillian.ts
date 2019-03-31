@@ -2,7 +2,6 @@ import * as PIXI from "pixi.js";
 
 import { GameMaster } from "../../game_core/game_master";
 import { UnknownCard } from "../../game_core/cards";
-import { UnknownCardUI } from "./card_ui";
 import { Player } from "../../game_core/enums";
 import getEltSize from "./get_elemental_size";
 import { drawHands } from "./hand_cards";
@@ -10,6 +9,8 @@ import { drawPlayerArea } from "./player_area";
 
 import C from "../../game_core/test/real_card/character/見習魔女";
 import C2 from "../../game_core/test/real_card/character/終末之民";
+import { showBigCard, GenCard } from "./show_big_card";
+import { ICard } from "../../game_core/interface";
 
 function getWinSize() {
     let width = window.innerWidth;
@@ -38,20 +39,27 @@ async function setup() {
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
+
     app.stage.addChild(bg);
     
     let hands1 = Array(5).fill(0).map(() => {
         return new UnknownCard(1, Player.Player2);
     });
-    let hands2 = Array(8).fill(0).map(() => {
+    let hands2 = Array(9).fill(0).map(() => {
         if(Math.random() > 0.5) {
             return new C2(1, Player.Player1, gm);
         } else {
             return new C(1, Player.Player1, gm);
         }
     });
-    let hands_ui1 = await drawHands(hands1, app.ticker, card_image_loader);
-    let hands_ui2 = await drawHands(hands2, app.ticker, card_image_loader);
+
+    let show_big_card = (x: number, y: number, card: ICard, genCard: GenCard
+    ) => {
+        return showBigCard(app.stage, x, y, card, app.ticker, genCard);
+    };
+
+    let hands_ui1 = await drawHands(hands1, app.ticker, card_image_loader, show_big_card);
+    let hands_ui2 = await drawHands(hands2, app.ticker, card_image_loader, show_big_card);
     hands_ui1.position.set((width-hands_ui1.width)/2, -hands_ui1.height*0.4);
     hands_ui2.position.set((width-hands_ui2.width)/2, height - hands_ui2.height*0.6);
 

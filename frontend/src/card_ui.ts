@@ -1,69 +1,54 @@
 import * as PIXI from "pixi.js";
 
-import { IKnownCard, ICard, TypeGaurd } from "../../game_core/interface";
-import { BadOperationError } from "../../game_core/errors";
+import { IKnownCard, ICard, TypeGaurd as TG } from "../../game_core/interface";
+import { ShowBigCard } from "./show_big_card";
 
 const H = 1000, W = 722;
 
-export abstract class CardUI {
-    public readonly container: PIXI.Container;
-    private hovering = false;
-    private _height: number;
-    public get height() { return this._height; };
-    private _width: number;
-    public get width() { return this._width; };
-    constructor(public readonly card: ICard, width: number, height: number,
-        ticker: PIXI.ticker.Ticker, protected readonly loader: PIXI.loaders.Loader
-    ) {
-        this.container = new PIXI.Container();
-        let ratio = Math.min(width / H, height / W);
-        this._width = W * ratio;
-        this._height = H * ratio;
-        this.setCardDisplay(() => {
-            let og_w = this.container.width;
-            let og_h = this.container.height;
-            let big_ratio = ratio * 1.1;
-            let cur_ratio = ratio;
-            this.container.scale.set(ratio * W / og_w, ratio * H / og_h);
-            this.container.interactive = true;
-            this.container.cursor = "pointer";
-            this.container.on("mouseover", () => {
-                this.hovering = true;
-            });
-            this.container.on("mouseout", () => {
-                this.hovering = false;
-            });
-            ticker.add(() => {
-                if(this.hovering && cur_ratio <= big_ratio) {
-                    cur_ratio += 0.002;
-                    this.container.scale.set(cur_ratio * W / og_w, cur_ratio * H / og_h);
-                } else if(!this.hovering && cur_ratio >= ratio) {
-                    cur_ratio -= 0.002;
-                    this.container.scale.set(cur_ratio * W / og_w, cur_ratio * H / og_h);
-                }
-            });
-            this.container.pivot.set(og_w/2, og_h/2);
+function setupUI(card: ICard, width: number, height: number,
+    loader: PIXI.loaders.Loader, container: PIXI.Container, showBigCard: ShowBigCard
+) {
+    container.interactive = true;
+    container.cursor = "pointer";
+    if(TG.isKnown(card)) {
+        let destroy_big_card: () => void = null;
+        container.on("mouseover", () => {
+            let genCard = (card: ICard, w: number, h: number) => createCardDisplay(card, w, h, loader);
+            destroy_big_card = showBigCard(container.worldTransform.tx,
+                container.worldTransform.ty+container.height*0.6, card, genCard);
+        });
+        container.on("mouseout", () => {
+            if(destroy_big_card) {
+                destroy_big_card();
+                destroy_big_card = null;
+            }
         });
     }
-    abstract setCardDisplay(callback: () => void);
+    return container;
 }
 
-export class UnknownCardUI extends CardUI {
-    setCardDisplay(callback: () => void) {
+function createCardDisplay(card: ICard, width: number, height: number, loader: PIXI.loaders.Loader) {
+    let container = new PIXI.Container;
+    if(TG.isKnown(card)) {
+        let card_image = new PIXI.Sprite(loader.resources[card.name].texture);
+        container.addChild(card_image);
+    } else {
         let back = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
-        this.container.addChild(back);
-        callback();
+        container.addChild(back);
     }
+    let ratio = Math.min(width / H, height / W);
+    let og_w = container.width;
+    let og_h = container.height;
+    let big_ratio = ratio * 1.1;
+    let cur_ratio = ratio;
+    container.scale.set(ratio * W / og_w, ratio * H / og_h);
+    //container.pivot.set(og_w / 2, og_h / 2);
+    return container;
 }
 
-export class CharacterUI extends CardUI {
-    setCardDisplay(callback: () => void) {
-        if(TypeGaurd.isCharacter(this.card)) {
-            let card_image = new PIXI.Sprite(this.loader.resources[this.card.name].texture);
-            this.container.addChild(card_image);
-            callback();
-        } else {
-            throw "??";
-        }
-    }
+export function createCardUI(card: ICard, width: number, height: number,
+    loader: PIXI.loaders.Loader, showBigCard?: ShowBigCard
+) {
+    let container = createCardDisplay(card, width, height, loader);
+    return setupUI(card, width, height, loader, container, showBigCard);
 }
