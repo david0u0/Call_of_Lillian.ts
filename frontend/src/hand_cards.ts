@@ -20,14 +20,14 @@ export function drawHands(hands: ICard[], ticker: PIXI.ticker.Ticker, loader: PI
             for(let card of hands) {
                 let card_ui: CardUI;
                 if(!TG.isKnown(card)) {
-                    card_ui = new UnknownCardUI(card, ew * 2.5, eh * 5, ticker, loader);
+                    card_ui = new UnknownCardUI(card, ew * 4, eh * 10, ticker, loader);
                 } else if(TG.isCharacter(card)) {
-                    card_ui = new CharacterUI(card, ew * 2.5, eh * 5, ticker, loader);
+                    card_ui = new CharacterUI(card, ew * 4, eh * 10, ticker, loader);
                 }
                 container.addChild(card_ui.container);
                 card_ui.container.position.set(cur_offset + card_ui.width / 2, card_ui.height / 2);
                 card_ui.container.rotation = 0.03;
-                cur_offset += card_ui.width * 0.9;
+                cur_offset += card_ui.width * 0.95;
             }
             if(hands.length > 8) {
                 container.scale.set(8 / hands.length);

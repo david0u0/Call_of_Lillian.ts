@@ -25,13 +25,14 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
     let symbol = new PIXI.Container();
     let add = new PIXI.Text("+", new PIXI.TextStyle({
         "fontSize": ew,
-        "fill": 0xffffff
+        "fill": 0xffffff,
+        "fontWeight": "bold"
     }));
     add.anchor.set(0.5, 0.5);
     symbol.addChild(add);
 
     let circle = new PIXI.Graphics();
-    circle.lineStyle(2, 0xffffff);
+    circle.lineStyle(4, 0xffffff);
     circle.drawCircle(0, 0, ew/2.2);
     symbol.addChild(circle);
 
@@ -46,12 +47,7 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
         hovering = false;
     });
 
-    let expanding = false;
-    let res = drawMoreMenu();
-    let menu = res.container;
-    let getHovering = res.getHovering;
-    symbol.addChild(menu);
-
+    let getHovering: () => boolean;
     let blur_handler = () => {
         if(!hovering && !getHovering()) {
             expanding = false;
@@ -60,6 +56,24 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
             window.removeEventListener("mousedown", blur_handler);
         }
     };
+
+    let expand = (close=false) => {
+        if(close) {
+            expanding = false;
+            menu.cursor = "normal";
+            symbol.cursor = "pointer";
+            window.removeEventListener("mousedown", blur_handler);
+        }
+        return expanding;
+    };
+
+    let expanding = false;
+    let res = drawMoreMenu(expand);
+    let menu = res.container;
+    menu.alpha = 0;
+    getHovering = res.getHovering;
+    symbol.addChild(menu);
+
     symbol.on("click", () => {
         if(!expanding) {
             expanding = true;
@@ -72,9 +86,11 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
         if(menu.alpha <= 0.8 && expanding) {
             menu.alpha += 0.1;
             symbol.alpha = 0;
+            menu.y -= 1;
         } else if(menu.alpha > 0 && !expanding) {
             menu.alpha -= 0.1;
             symbol.alpha += 0.1;
+            menu.y += 1;
         }
     });
 
@@ -84,11 +100,11 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
     return container;
 }
 
-function drawMoreMenu() {
+function drawMoreMenu(expand: (close?: boolean) => boolean) {
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
     rec.beginFill(0xFFFFFF, 1);
-    rec.drawRoundedRect(0, 0, eh*11.5, eh*2.5, 3);
+    rec.drawRoundedRect(0, 0, eh*11.5, eh*2.5, 5);
     rec.endFill();
     rec.position.set(-eh*3, -eh*3);
     container.addChild(rec);
@@ -102,18 +118,17 @@ function drawMoreMenu() {
         hovering = false;
     });
     let getHovering = () => hovering;
-    let getActive = () => container.alpha > 0.4;
 
-    container.addChild(drawIcon("incite", 0, getActive));
-    container.addChild(drawIcon("war", 1, getActive));
-    container.addChild(drawIcon("release", 2, getActive));
-    container.addChild(drawIcon("rest", 3, getActive));
+    container.addChild(drawIcon("incite", 0, expand));
+    container.addChild(drawIcon("war", 1, expand));
+    container.addChild(drawIcon("release", 2, expand));
+    container.addChild(drawIcon("rest", 3, expand));
 
 
     return { container, getHovering };
 }
 
-function drawIcon(name: string, index: number, getActive: () => boolean) {
+function drawIcon(name: string, index: number, expand: (close?: boolean) => boolean) {
     let icon = new PIXI.Sprite(PIXI.loader.resources[name].texture);
     icon.interactive = true;
     icon.scale.set(eh*2.5/icon.height);
@@ -126,7 +141,8 @@ function drawIcon(name: string, index: number, getActive: () => boolean) {
     });
     icon.position.set(-eh*3 + eh*3*index, -eh*3);
     icon.on("click", () => {
-        if(getActive()) {
+        if(expand()) {
+            expand(true);
             alert(name);
         }
     });

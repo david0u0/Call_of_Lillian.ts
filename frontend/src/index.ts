@@ -5,8 +5,8 @@ import { UnknownCard } from "../../game_core/cards";
 import { UnknownCardUI } from "./card_ui";
 import { Player } from "../../game_core/enums";
 import getEltSize from "./get_elemental_size";
-import { drawHands } from "./draw_hand_cards";
-import { drawPlayerArea } from "./draw_player_area";
+import { drawHands } from "./hand_cards";
+import { drawPlayerArea } from "./player_area";
 
 import C from "../../game_core/test/real_card/character/見習魔女";
 import C2 from "../../game_core/test/real_card/character/終末之民";
@@ -32,14 +32,15 @@ PIXI.loader
 
 
 async function setup() {
+    let { width, height } = getWinSize();
     let gm = new GameMaster();
     let card_image_loader = new PIXI.loaders.Loader();
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
     app.stage.addChild(bg);
-
-    let hands1 = Array(8).fill(0).map(() => {
+    
+    let hands1 = Array(5).fill(0).map(() => {
         return new UnknownCard(1, Player.Player2);
     });
     let hands2 = Array(8).fill(0).map(() => {
@@ -51,18 +52,18 @@ async function setup() {
     });
     let hands_ui1 = await drawHands(hands1, app.ticker, card_image_loader);
     let hands_ui2 = await drawHands(hands2, app.ticker, card_image_loader);
-    hands_ui2.position.set(0, getWinSize().height - hands_ui2.height);
+    hands_ui1.position.set((width-hands_ui1.width)/2, -hands_ui1.height*0.4);
+    hands_ui2.position.set((width-hands_ui2.width)/2, height - hands_ui2.height*0.6);
+
+    let area1 = drawPlayerArea(4*ew, 6*eh, app.ticker);
+    let area2 = drawPlayerArea(4*ew, 6*eh, app.ticker, true);
+    area1.container.position.set((width-area1.width)/2, hands_ui2.height*0.5);
+    area2.container.position.set((width-area2.width)/2, height - area2.height - hands_ui2.height*0.5);
+
+    app.stage.addChild(area1.container);
+    app.stage.addChild(area2.container);
     app.stage.addChild(hands_ui1);
     app.stage.addChild(hands_ui2);
-
-    let player_area1 = drawPlayerArea(4*ew, 6*eh, app.ticker).container;
-    let result = drawPlayerArea(4*ew, 6*eh, app.ticker, true);
-    let [player_area2, height] = [result.container, result.height];
-    player_area1.x = ew * 18;
-    app.stage.addChild(player_area1);
-    player_area2.position.set(ew*18, getWinSize().height - height);
-    app.stage.addChild(player_area1);
-    app.stage.addChild(player_area2);
 }
 
 document.body.appendChild(app.view);
