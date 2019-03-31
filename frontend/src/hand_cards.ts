@@ -5,8 +5,10 @@ import { TypeGaurd as TG, ICard } from "../../game_core/interface";
 import getEltSize from "./get_elemental_size";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
+import { my_loader } from "./card_loader";
 
 // FIXME: 當一張卡被 destroy 時，如果它的大圖還開著，會永遠關不了（因為沒有觸發 mouseout 事件）
+// FIXME: 要處理好幾張卡被加入/移除的效果
 
 const STEP = 9;
 
@@ -16,7 +18,7 @@ class HandUI {
     public readonly view: PIXI.Container;
 
     constructor(list: ICard[], private ticker: PIXI.ticker.Ticker,
-        private loader: PIXI.loaders.Loader, private showBigCard: ShowBigCard,
+        private showBigCard: ShowBigCard,
         private getOffset: (c: PIXI.Container) => { x: number, y: number }
     ) {
         this.list = [...list];
@@ -24,9 +26,9 @@ class HandUI {
         let { ew, eh } = getEltSize();
         let cur_offset = 0;
         for(let card of list) {
-            let card_ui = drawCard(card, ew * 3.5, eh * 10, loader);
+            let card_ui = drawCard(card, ew * 3.5, eh * 10);
             this.card_gap = card_ui.width * 0.95;
-            card_ui = setupHandCardUI(card, card_ui, ticker, loader, showBigCard);
+            card_ui = setupHandCardUI(card, card_ui, ticker, showBigCard);
             view.addChild(card_ui);
             card_ui.position.set(cur_offset, 0);
             card_ui.rotation = 0.03;
@@ -100,10 +102,10 @@ class HandUI {
     add(card: ICard) {
         // 檢查這張卡圖載進來了沒
         if(TG.isKnown(card)) {
-            if(this.loader.resources[card.name]) {
+            if(my_loader.resources[card.name]) {
                 this.addLoaded(card);
             } else {
-                this.loader.add(card.name, `/card_image/${card.name}.jpg`).load(() => {
+                my_loader.add(card.name).load(() => {
                     this.addLoaded(card);
                 });
             }
@@ -113,22 +115,24 @@ class HandUI {
     }
     private addLoaded(card: ICard) {
         let { ew, eh } = getEltSize();
-        let card_ui = drawCard(card, ew * 3.5, eh * 10, this.loader);
+        let card_ui = drawCard(card, ew * 3.5, eh * 10);
         let offset = this.list.length * this.card_gap;
-        card_ui = setupHandCardUI(card, card_ui, this.ticker, this.loader, this.showBigCard);
+        card_ui = setupHandCardUI(card, card_ui, this.ticker, this.showBigCard);
         card_ui.position.set(offset, 0);
         card_ui.rotation = 0.03;
         let index = this.list.length;
         this.list.push(card);
         this.resize();
-        this.move(this.view.children.slice(index), offset + this.card_gap, () => {
+        let children_to_move = this.view.children.slice(this.view.children.length-1);
+        let goal_x = children_to_move[0].x + this.card_gap;
+        this.move(children_to_move, goal_x, () => {
             this.view.addChildAt(card_ui, index);
         });
     }
 }
 
 function setupHandCardUI(card: ICard, container: PIXI.Container,
-    ticker: PIXI.ticker.Ticker, loader: PIXI.loaders.Loader, showBigCard: ShowBigCard
+    ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
 ) {
     container.interactive = true;
     container.cursor = "pointer";
@@ -136,7 +140,7 @@ function setupHandCardUI(card: ICard, container: PIXI.Container,
         let destroy_big_card: () => void = null;
         container.on("mouseover", () => {
             destroy_big_card = showBigCard(container.worldTransform.tx,
-                container.worldTransform.ty + container.height * 0.5, card, ticker, loader);
+                container.worldTransform.ty + container.height * 0.5, card, ticker);
         });
         container.on("mouseout", () => {
             if(destroy_big_card) {
@@ -150,17 +154,17 @@ function setupHandCardUI(card: ICard, container: PIXI.Container,
 
 
 export function constructHandUI(hands: ICard[], ticker: PIXI.ticker.Ticker,
-    loader: PIXI.loaders.Loader, showBigCard: ShowBigCard,
+    showBigCard: ShowBigCard,
     getOffset: (c: PIXI.Container) => { x: number, y: number }
 ): Promise<HandUI> {
     for(let card of hands) {
-        if(TG.isKnown(card) && !loader.resources[card.name]) {
-            loader.add(card.name, `/card_image/${card.name}.jpg`);
+        if(TG.isKnown(card) && !my_loader.resources[card.name]) {
+            my_loader.add(card.name);
         }
     }
     return new Promise<HandUI>((resolve, reject) => {
-        loader.load(() => {
-            resolve(new HandUI(hands, ticker, loader, showBigCard, getOffset));
+        my_loader.load(() => {
+            resolve(new HandUI(hands, ticker,  showBigCard, getOffset));
         });
     });
 }

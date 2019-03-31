@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 
 import { IKnownCard, ICard, TypeGaurd as TG } from "../../game_core/interface";
+import { my_loader } from "./card_loader";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -38,12 +39,10 @@ function scaleImage(img: PIXI.Sprite, width: number, height: number) {
     img.scale.set(ratio * W / og_w, ratio * H / og_h);
 }
 
-export function drawCard(card: ICard, width: number, height: number,
-    loader: PIXI.loaders.Loader, isbig=false
-) {
+export function drawCard(card: ICard, width: number, height: number, isbig=false) {
     let img: PIXI.Sprite;
     if(TG.isKnown(card)) {
-        img = new PIXI.Sprite(loader.resources[card.name].texture);
+        img = new PIXI.Sprite(my_loader.resources[card.name].texture);
     } else {
         img = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
     }

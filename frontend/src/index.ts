@@ -47,7 +47,7 @@ async function setup() {
     let hands1 = Array(5).fill(0).map((a, b) => {
         return new UnknownCard(b, Player.Player2);
     });
-    let hands2 = Array(9).fill(0).map(() => {
+    let hands2 = Array(7).fill(0).map(() => {
         let n = Math.random();
         let CurClass;
         if(n < 0.5) {
@@ -61,21 +61,20 @@ async function setup() {
     });
 
     let show_big_card: ShowBigCard = (x: number, y: number, card: ICard, 
-        ticker: PIXI.ticker.Ticker, loader: PIXI.loaders.Loader
+        ticker: PIXI.ticker.Ticker
     ) => {
-        return showBigCard(app.stage, x, y, card, ticker, loader);
+        return showBigCard(app.stage, x, y, card, ticker);
     };
 
-    let hands_ui1_obj = await constructHandUI(hands1, app.ticker, card_image_loader, show_big_card, c => {
+    let hands_ui1_obj = await constructHandUI(hands1, app.ticker, show_big_card, c => {
         return { x: (width - c.width) / 2, y: -c.height*0.4 };
     });
-    let hands_ui2_obj = await constructHandUI(hands2, app.ticker, card_image_loader, show_big_card, c => {
+    app.stage.addChild(hands_ui1_obj.view);
+    let hands_ui2_obj = await constructHandUI(hands2, app.ticker, show_big_card, c => {
         return { x: (width - c.width) / 2, y: height-c.height*0.6 };
     });
     let hands_ui1 = hands_ui1_obj.view;
     let hands_ui2 = hands_ui2_obj.view;
-    hands_ui1.position.set(hands_ui1.x, -hands_ui1.height * 0.4);
-    hands_ui2.position.set(hands_ui2.x, height - hands_ui2.height * 0.6);
 
     let area1 = drawPlayerArea(4*ew, 6*eh, app.ticker);
     let area2 = drawPlayerArea(4*ew, 6*eh, app.ticker, true);
@@ -88,29 +87,11 @@ async function setup() {
     app.stage.addChild(hands_ui2);
 
     setTimeout(() => {
-        hands_ui2_obj.remove(3);
+        let card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
+            return new C3(seq, owner, gm);
+        });
+        hands_ui2_obj.add(card);
     }, 1000);
-    setTimeout(() => {
-        hands_ui2_obj.remove(4);
-        hands_ui1_obj.remove(2);
-    }, 4000);
-    setTimeout(() => {
-        hands_ui1_obj.remove(4);
-        hands_ui2_obj.remove(7);
-    }, 2000);
-    setTimeout(() => {
-        let card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
-            return new C3(seq, owner, gm);
-        });
-        hands_ui2_obj.add(card);
-    }, 3000);
-    setTimeout(() => {
-        //hands_ui2_obj.remove(7);
-        let card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
-            return new C3(seq, owner, gm);
-        });
-        hands_ui2_obj.add(card);
-    }, 5000);
 }
 
 document.body.appendChild(app.view);
