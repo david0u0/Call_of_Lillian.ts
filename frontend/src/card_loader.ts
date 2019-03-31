@@ -1,5 +1,10 @@
 import * as PIXI from "pixi.js";
+import { IKnownCard } from "../../game_core/interface";
 
+/**
+ * 可以重複新增同一個資源，也可以在加載期間持續新增，或是加載過程中增添處理回調
+ * （加載期間新增的功能未經測試）
+ */
 class CardLoader {
     public resources: { [index: string]: PIXI.loaders.Resource } = {};
 
@@ -9,15 +14,19 @@ class CardLoader {
     private pending = new Array<() => void>();
     private loading = false;
 
-    add(name) {
-        if(!this.resources[name] && !this.added_table[name]) {
-            if(this.loading) {
-                this.added_table_backup[name] = true;
-            } else {
-                this.added_table[name] = true;
+    add(arg: string | IKnownCard): CardLoader {
+        if(typeof (arg) == "string") {
+            if(!this.resources[arg] && !this.added_table[arg]) {
+                if(this.loading) {
+                    this.added_table_backup[arg] = true;
+                } else {
+                    this.added_table[arg] = true;
+                }
             }
+            return this;
+        } else {
+            return this.add(arg.name);
         }
-        return this;
     }
     load(func: () => void) {
         if(this.loading) {
