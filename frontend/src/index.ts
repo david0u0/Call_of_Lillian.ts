@@ -9,6 +9,7 @@ import { drawPlayerArea } from "./player_area";
 
 import C from "../../game_core/test/real_card/character/見習魔女";
 import C2 from "../../game_core/test/real_card/character/終末之民";
+import C3 from "../../game_core/test/real_card/character/雨季的魔女．語霽";
 import { showBigCard, GenCard } from "./show_big_card";
 import { ICard } from "../../game_core/interface";
 
@@ -29,6 +30,7 @@ PIXI.loader
 .add("war", require("../assets/war.png"))
 .add("release", require("../assets/release.png"))
 .add("rest", require("../assets/rest.png"))
+.add("mana_pop", require("../assets/mana_pop.png"))
 .load(setup);
 
 
@@ -46,10 +48,13 @@ async function setup() {
         return new UnknownCard(1, Player.Player2);
     });
     let hands2 = Array(9).fill(0).map(() => {
-        if(Math.random() > 0.5) {
+        let n = Math.random();
+        if(n < 0.2) {
             return new C2(1, Player.Player1, gm);
-        } else {
+        } else if(n < 0.5) {
             return new C(1, Player.Player1, gm);
+        } else {
+            return new C3(1, Player.Player1, gm);
         }
     });
 
