@@ -10,11 +10,14 @@ import Rainy from "./real_card/character/雨季的魔女．語霽";
 import Violatioin from "./real_card/event/違停派對";
 import Emergency from "./real_card/event/緊急醫療";
 import Hospital from "./real_card/arena/M市立綜合醫院";
+import TestSelecter from "../test_selecter";
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;
-let gm = new GameMaster();
-let selecter = gm.selecter;
+
+let selecter = new TestSelecter();
+let gm = new GameMaster(selecter);
+
 let pm = gm.getMyMaster(p1);
 let enemy_master = gm.getEnemyMaster(p1);
 let char: ICharacter;
@@ -23,8 +26,8 @@ let event: IEvent;
 
 describe("測試事件卡功能", () => {
     beforeEach(() => {
-        gm = new GameMaster();
-        selecter = gm.selecter;
+        selecter = new TestSelecter();
+        gm = new GameMaster(selecter);
         pm = gm.getMyMaster(p1);
         enemy_master = gm.getEnemyMaster(p1);
         pm.addMana(1000);

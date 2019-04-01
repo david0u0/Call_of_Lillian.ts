@@ -1,12 +1,12 @@
-import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd } from "./interface";
-import { Player } from "./enums";
+import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter } from "./interface";
 import { BadOperationError } from "./errors";
 
-class UISelecter {
-}
+class TestSelecter implements ISelecter {
+    private card_table: { [index: number]: IKnownCard } = {};
+    public setCardTable(table: { [index: number]: IKnownCard }) {
+        this.card_table = table;
+    }
 
-class BackendSelecter {
-    constructor(private card_table: { [index: number]: IKnownCard }) { }
     private selected_args = new Array<Array<number>>();
     private top = 0;
     public setSelectedSeqs(seqs: Array<number> | number) {
@@ -90,4 +90,4 @@ class BackendSelecter {
     }
 }
 
-export default BackendSelecter;
+export default TestSelecter;

@@ -3,6 +3,8 @@ import * as PIXI from "pixi.js";
 import { GameMaster } from "../../game_core/game_master";
 import { UnknownCard, Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
+import TestSelecter from "../../game_core/test_selecter";
+
 import getEltSize from "./get_elemental_size";
 import { constructHandUI } from "./hand_cards";
 import { drawPlayerArea } from "./player_area";
@@ -38,7 +40,7 @@ PIXI.loader
 
 async function setup() {
     let { width, height } = getWinSize();
-    let gm = new GameMaster();
+    let gm = new GameMaster(new TestSelecter());
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);

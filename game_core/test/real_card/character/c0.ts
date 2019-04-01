@@ -1,6 +1,4 @@
 import { Character } from "../../../cards";
-import { BattleRole } from "../../../enums";
-import Selecter from "../../../selecter";
 import { IEvent, TypeGaurd } from "../../../interface";
 import { BadOperationError } from "../../../game_master";
 

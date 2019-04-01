@@ -2,12 +2,10 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat } from "./enums";
-import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "./interface";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter } from "./interface";
 import { EventChain, HookResult } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C } from "./general_rules";
-
-import Selecter from "./selecter";
 
 class PlayerMaster {
     private _mana = 0;
@@ -28,7 +26,7 @@ class PlayerMaster {
     public get events_ongoing() { return [...this._events_ongoing]; };
     public get events_finished() { return [...this._events_finished]; };
 
-    constructor(public readonly player: Player, private readonly selecter: Selecter) {
+    constructor(public readonly player: Player, private readonly selecter: ISelecter) {
         SR.checkPlay(this.card_play_chain);
         SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
         SR.onFail(this.fail_chain, () => this.mana,
@@ -254,7 +252,6 @@ class PlayerMaster {
 class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [index: number]: IKnownCard } = {};
-    public readonly selecter = new Selecter(this.card_table);
     getSeqNumber(): number {
         return this._cur_seq++;
     }
@@ -311,13 +308,14 @@ class GameMaster {
         }
     }
 
-    constructor() {
+    constructor(public readonly selecter: ISelecter) {
         SR.onGetEnterCost(this.get_enter_cost_chain);
         SR.checkEnter(this.enter_chain);
         SR.onEnter(this.enter_chain, (p, mana) => {
             this.getMyMaster(p).addMana(mana);
         });
         SR.checkExploit(this.exploit_chain);
+        selecter.setCardTable(this.card_table);
     }
 
     getEnterCost(char: ICharacter, arena: IArena): number {

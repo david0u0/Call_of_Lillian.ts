@@ -8,11 +8,12 @@ import { BadOperationError } from "../errors";
 import checkBadOperationError from "./check_bad_operation";
 import Hospital from "./real_card/arena/M市立綜合醫院";
 import Rainy from "./real_card/character/雨季的魔女．語霽";
+import TestSelecter from "../test_selecter";
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;
-let gm = new GameMaster();
-let selecter = gm.selecter;
+let selecter = new TestSelecter();
+let gm = new GameMaster(selecter);
 let pm = gm.getMyMaster(p1);
 let enemy_master = gm.getEnemyMaster(p1);
 

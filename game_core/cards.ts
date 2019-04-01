@@ -2,8 +2,6 @@ import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard } from "./interface";
 import { GameMaster, PlayerMaster } from "./game_master";
 import { EventChain, HookResult, HookFunc, Hook } from "./hook";
-import Selecter from "./selecter";
-import { BadOperationError } from "./errors";
 import { Constant as C } from "./general_rules";
 
 class UnknownCard implements ICard {

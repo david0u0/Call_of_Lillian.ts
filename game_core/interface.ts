@@ -184,6 +184,16 @@ const TypeGaurd = {
     }
 };
 
+interface ISelecter {
+    selectSingleCard<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+        check: (card: T) => boolean): T | null;
+    selectSingleCardInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+        check: (card: T) => boolean): T | null;
+    setCardTable(table: { [index: number]: IKnownCard }): void;
+}
+
 export {
-    ICard, IKeeper, IKnownCard, ICharacter, IUpgrade, IArena, IEvent, ISpell, TypeGaurd
+    ICard, IKeeper, IKnownCard, ICharacter,
+    IUpgrade, IArena, IEvent, ISpell, TypeGaurd,
+    ISelecter
 };

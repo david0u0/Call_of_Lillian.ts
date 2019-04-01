@@ -11,10 +11,11 @@ import C1 from "./real_card/character/見習魔女";
 import { C4 } from "./real_card/character/數據之海的水手";
 import { U1 } from "./real_card/upgrade/精靈炸彈";
 import { U_Test0 } from "./real_card/upgrade/u_test0";
+import TestSelecter from "../test_selecter";
 
 let p = Player.Player1;
-let gm = new GameMaster();
-let selecter = gm.selecter;
+let selecter = new TestSelecter();
+let gm = new GameMaster(selecter);
 let pm = gm.getMyMaster(p);
 let enemy_master = gm.getEnemyMaster(p);
 
