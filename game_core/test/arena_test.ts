@@ -5,7 +5,7 @@ import { Character, Arena } from "../cards";
 import { GameMaster } from "../game_master";
 import { BadOperationError } from "../errors";
 
-import checkBadOperationError from "./check_bad_operation";
+import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
 import Hospital from "./real_card/arena/M市立綜合醫院";
 import Rainy from "./real_card/character/雨季的魔女．語霽";
 import TestSelecter from "../test_selecter";
@@ -26,7 +26,7 @@ describe("測試最基礎的場所卡", () => {
     let rainy: Character;
     let rainy2: Character;
     let e_rainy3: Character;
-    before(() => {
+    before(async () => {
         let a_generater = (seq: number, owner: Player, gm: GameMaster) => {
             return new Hospital(seq, owner, gm);
         };
@@ -46,9 +46,9 @@ describe("測試最基礎的場所卡", () => {
         rainy = gm.genCardToHand(p1, c_generater) as Character;
         rainy2 = gm.genCardToHand(p1, c_generater) as Character;
         e_rainy3 = gm.genCardToHand(p2, c_generater) as Character;
-        pm.playCard(rainy);
-        pm.playCard(rainy2);
-        enemy_master.playCard(e_rainy3);
+        await pm.playCard(rainy);
+        await pm.playCard(rainy2);
+        await enemy_master.playCard(e_rainy3);
     });
     it("進入自己場所應該不用花費", () => {
         assert.equal(gm.getEnterCost(rainy, my_h), 0);
@@ -58,19 +58,19 @@ describe("測試最基礎的場所卡", () => {
     });
     describe("測試進入場所的功能", () => {
         it("選擇的場所如果不到一個應該要報錯", () => {
-            checkBadOperationError(() => {
-                gm.enterArena(rainy);
+            checkBadOperationErrorAsync(async () => {
+                await gm.enterArena(rainy);
             });
         });
         describe("讓角色實際進入場所", () => {
-            before(() => {
+            before(async () => {
                 selecter.setSelectedSeqs(my_h.seq);
-                gm.enterArena(rainy);
+                await gm.enterArena(rainy);
             });
             it("在場所中的角色欲進入場所應該報錯", () => {
-                checkBadOperationError(() => {
+                checkBadOperationErrorAsync(async () => {
                     selecter.setSelectedSeqs(enemy_h.seq);
-                    gm.enterArena(rainy);
+                    await gm.enterArena(rainy);
                 });
             });
             it("角色進入的場所應該是自己的醫院", () => {
@@ -80,12 +80,12 @@ describe("測試最基礎的場所卡", () => {
                 assert.equal(my_h.char_list.length, 1);
                 assert.equal(true, my_h.char_list[0].isEqual(rainy));
             });
-            it("進入時超過場所容納上限應該報錯", () => {
+            it("進入時超過場所容納上限應該報錯", async () => {
                 selecter.setSelectedSeqs(my_h.seq);
-                gm.enterArena(e_rainy3);
-                checkBadOperationError(() => {
+                await gm.enterArena(e_rainy3);
+                checkBadOperationErrorAsync(async () => {
                     selecter.setSelectedSeqs(my_h.seq);
-                    gm.enterArena(rainy2);
+                    await gm.enterArena(rainy2);
                 });
             });
             it("對手的角色進入我方的場所，其魔力應該為1000-4-1=995", () => {
@@ -99,8 +99,8 @@ describe("測試最基礎的場所卡", () => {
                 it("我方的魔力應該是1000-4-4+1=993", () => {
                     assert.equal(993, pm.mana);
                 });
-                it("使用後魔力應該變成993+2=995", () => {
-                    gm.exploit(my_h, rainy);
+                it("使用後魔力應該變成993+2=995", async () => {
+                    await gm.exploit(my_h, rainy);
                     assert.equal(995, pm.mana);
                 });
             });

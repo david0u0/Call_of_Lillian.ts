@@ -1,6 +1,5 @@
 import { CardType, CardSeries, BattleRole } from "../../../enums";
 import { Character, Upgrade, Arena } from "../../../cards";
-import { EventChain } from "../../../hook";
 
 let name = "意識下載界面";
 let description = `

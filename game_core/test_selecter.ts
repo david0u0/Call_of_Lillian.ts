@@ -73,19 +73,21 @@ class TestSelecter implements ISelecter {
      */
     public selectSingleCard<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
         checkCanSelect=(card: T) => true
-    ): T|null {
+    ): Promise<T|null> {
         let list = this._selectCards(guard, 1, 1, list => {
             return checkCanSelect(list[0]);
         });
-        if(list) {
-            return list[0];
-        } else {
-            return null;
-        }
+        return new Promise<T|null>((resolve) => {
+            if(list) {
+                resolve(list[0]);
+            } else {
+                resolve(null);
+            }
+        });
     }
     public selectSingleCardInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
-        checkCanSelect=(card: T) => true
-    ): T {
+        checkCanSelect = (card: T) => true
+    ): Promise<T | null> {
         throw "Not yet implemented";
     }
 }

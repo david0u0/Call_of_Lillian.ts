@@ -3,7 +3,7 @@ import { Character, Upgrade, Arena } from "../../../cards";
 import { IArena, ICharacter } from "../../../interface";
 
 let name = "M市立高級中學";
-let description = `2魔力 -> 招募一名*見習魔女*至待命區`;
+let description = "2魔力 -> 招募一名*見習魔女*至待命區";
 
 export default class A extends Arena implements IArena {
     name = name;

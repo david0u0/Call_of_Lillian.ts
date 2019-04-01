@@ -1,5 +1,5 @@
 import { IKnownCard, IUpgrade, TypeGaurd as TG, ICharacter, IArena, IEvent } from "./interface";
-import { EventChain } from "./hook";
+import { ActionChain, GetterChain } from "./hook";
 import { CardStat, CharStat, BattleRole, Player } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
@@ -15,7 +15,7 @@ export const Constant = {
  * 需注意的是，如果你要覆蓋的只是一部份規則，使用覆蓋機制時應該注意把需要的規則手動補回來。
  */
 export class SoftRule {
-    public static checkPlay(card_play_chain: EventChain<null, IKnownCard>) {
+    public static checkPlay(card_play_chain: ActionChain<IKnownCard>) {
         card_play_chain.appendCheck((can_play, card) => {
             if(can_play) {
                 if(TG.isUpgrade(card)) {
@@ -25,7 +25,7 @@ export class SoftRule {
         });
     }
     /** 計算戰鬥職位的通則 */
-    public static onGetBattleRole(get_battle_role_chain: EventChain<BattleRole, ICharacter>,
+    public static onGetBattleRole(get_battle_role_chain: GetterChain<BattleRole, ICharacter>,
         getStrength: (c: ICharacter) => number
     ) {
         get_battle_role_chain.append((role, char) => {
@@ -35,38 +35,38 @@ export class SoftRule {
         });
     }
     /** 進入對手的場所要支付代價 */
-    public static onGetEnterCost(get_enter_cost_chain: EventChain<number, { char: ICharacter, arena: IArena }>) {
+    public static onGetEnterCost(get_enter_cost_chain: GetterChain<number, { char: ICharacter, arena: IArena }>) {
         get_enter_cost_chain.append((cost, arg) => {
             if(arg.char.owner != arg.arena.owner) {
                 return { var_arg: cost + Constant.ENTER_ENEMY_COST };
             }
         });
     }
-    public static checkEnter(enter_chain: EventChain<null, { char: ICharacter, arena: IArena }>) {
+    public static checkEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>) {
         enter_chain.appendCheck((can_enter, { arena, char }) => {
             if(char.char_status != CharStat.StandBy) {
-                // 理論上，在場所中的角色不能移動
+                throwIfIsBackend("在場所中的角色不能移動");
                 return { var_arg: false };
             } else if(char.is_tired) {
-                // 理論上，疲勞中的角色不能移動
+                throwIfIsBackend("疲勞中的角色不能移動");
                 return { var_arg: false };
             } else if(arena.char_list.length + 1 > arena.max_capacity) {
-                // 理論上，場所中的角色不可超過上限
+                throwIfIsBackend("場所中的角色不可超過上限");
                 return { var_arg: false };
             }
         });
     }
     /** 進入對手的場所，對手可以拿錢 */
-    public static onEnter(enter_chain: EventChain<null, { char: ICharacter, arena: IArena }>,
+    public static onEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>,
         addMana: (player: Player, mana: number) => void
     ) {
-        enter_chain.append((t, arg) => {
-            if(arg.char.owner != arg.arena.owner) {
-                addMana(arg.arena.owner, Constant.ENTER_ENEMY_COST);
+        enter_chain.append(({ char, arena }) => {
+            if(char.owner != arena.owner) {
+                addMana(arena.owner, Constant.ENTER_ENEMY_COST);
             }
         });
     }
-    public static checkExploit(exploit_chain: EventChain<null, { arena: IArena, char: ICharacter | Player }>) {
+    public static checkExploit(exploit_chain: ActionChain<{ arena: IArena, char: ICharacter | Player }>) {
         exploit_chain.appendCheck((t, { arena, char }) => {
             if(TG.isCard(char)) {
                 if(!arena.isEqual(char.arena_entered)) {
@@ -76,7 +76,7 @@ export class SoftRule {
             }
         });
     }
-    public static checkPush(push_chain: EventChain<null, { char: ICharacter | null, event: IEvent }>) {
+    public static checkPush(push_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>) {
         push_chain.appendCheck((t, { char, event }) => {
             if(event.cur_time_count <= 0) {
                 // 不可推進倒數為0的事件
@@ -91,10 +91,10 @@ export class SoftRule {
         });
     }
     // 理論上，當任務失敗，應該扣掉等同基礎開銷的魔力，多出來的話一比一變成情緒傷害。
-    public static onFail(fail_chain: EventChain<null, IEvent>, getMana: () => number,
+    public static onFail(fail_chain: ActionChain<IEvent>, getMana: () => number,
         addMana: (mana: number) => void, addEmo: (emo: number) => void
     ) {
-        fail_chain.append((t, evt) => {
+        fail_chain.append(evt => {
             let mana_cost = Math.min(getMana(), evt.basic_mana_cost);
             let emo_cost = evt.basic_mana_cost - mana_cost;
             addMana(-mana_cost);
@@ -102,10 +102,10 @@ export class SoftRule {
         });
     }
     // 理論上，當任務成功，完成的角色應該退場
-    public static onFinish(finish_chain: EventChain<null, { char: ICharacter | null, event: IEvent }>,
+    public static onFinish(finish_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>,
         retireCard: (c: IKnownCard) => void
     ) {
-        finish_chain.append((t, { char, event }) => {
+        finish_chain.append(({ char, event }) => {
             if(TG.isCard(char)) {
                 retireCard(char);
             }
@@ -113,7 +113,7 @@ export class SoftRule {
     }
 
     public static onGetManaCost(
-        get_mana_cost_chain: EventChain<number, IKnownCard>, arenas: IArena[]
+        get_mana_cost_chain: GetterChain<number, IKnownCard>, arenas: IArena[]
     ) {
         get_mana_cost_chain.append((cost, card) => {
             // 改建的費用可以下降

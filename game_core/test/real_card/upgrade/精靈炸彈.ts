@@ -13,7 +13,7 @@ export class U1 extends Upgrade {
     onPlay() {
         if(this.character_equipped) {
             let role_chain = this.character_equipped.get_battle_role_chain;
-            this.appendChainWhileAlive(role_chain, (role) => {
+            this.addGetterWhileAlive(true, role_chain, (role) => {
                 return { var_arg: { ...role, can_be_blocked: false }};
             });
         }

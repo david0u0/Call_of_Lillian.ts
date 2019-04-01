@@ -24,17 +24,15 @@ export default class U extends Upgrade {
         this.g_master.era_end_chain.append(() => {
             this.modifier += 2;
         });
-        this.card_retire_chain.append(() => {
-            let new_char = this.g_master.selecter.selectSingleCardInteractive(TypeGaurd.isCharacter, char => {
+        this.card_retire_chain.append(async () => {
+            let new_char = await this.g_master.selecter.selectSingleCardInteractive(TypeGaurd.isCharacter, char => {
                 return char.owner == this.owner;
             });
             if(new_char) {
                 // 把自己附到別人身上，然後打斷這條退場鏈
                 this.character_equipped = new_char;
                 new_char.addUpgrade(this);
-                return {
-                    intercept_effect: t => { }
-                };
+                return { intercept_effect: true };
             }
         });
     }

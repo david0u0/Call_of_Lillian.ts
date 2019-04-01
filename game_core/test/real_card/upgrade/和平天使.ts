@@ -13,14 +13,14 @@ export default class U extends Upgrade {
     basic_strength = 0;
 
     onPlay() {
-        this.appendChainWhileAlive(this.g_master.conflict_chain, (t, arg) => {
+        this.addActionWhileAlive(true, this.g_master.conflict_chain, (arg) => {
             if(arg.def.isEqual(this) && !arg.is_blocked) {
                 this.g_master.getAll(TypeGaurd.isCharacter, c => {
                     return c.char_status == CharStat.InBattle;
                 }).forEach(char => {
                     this.g_master.repulse(char, null);
                 });
-                return { intercept_effect: () => {} };
+                return { intercept_effect: true };
             } else {
                 return { was_passed: true };
             }

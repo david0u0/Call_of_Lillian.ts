@@ -135,7 +135,7 @@ export class CharArea {
         });
 
         /*img.on("click", () => {
-            char.g_master.enterArena(char);
+            async char.g_master.enterArena(char);
         });*/
     }
 }

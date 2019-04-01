@@ -18,8 +18,8 @@ export class C2 extends Character {
         this.event_to_pay = null;
     }
 
-    initialize() {
-        let event = this.g_master.selecter.selectSingleCard(TypeGaurd.isEvent, evt => {
+    async initialize() {
+        let event = await this.g_master.selecter.selectSingleCard(TypeGaurd.isEvent, evt => {
             return evt.owner == this.owner;
         });
         this.event_to_pay = event;

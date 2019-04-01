@@ -4,7 +4,7 @@ import { Player, CardStat, BattleRole, CharStat } from "../enums";
 import { Character, Upgrade } from "../cards";
 import { GameMaster } from "../game_master";
 
-import checkBadOperationError from "./check_bad_operation";
+import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
 import C2 from "./real_card/character/終末之民";
 import { C_Test0 } from "./real_card/character/c_test0";
 import C1 from "./real_card/character/見習魔女";
@@ -45,27 +45,27 @@ let simple_upgrade4 = pm.draw() as Upgrade;
 gm.genCardToDeck(p, (seq, owner, _gm) => new C_Test0(seq, owner, _gm));
 let ultimate_0_test_char = pm.draw() as Character;
 
-pm.addMana(1000);
-enemy_master.addMana(1000);
 
 describe("測試最基礎的角色卡與升級卡的互動", () => {
     describe("測試各種錯誤", () => {
-        it("升級卡未設置欲安裝的角色應該噴錯誤", () => {
-            checkBadOperationError(() => {
-                pm.playCard(simple_upgrade1);
+        it("升級卡未設置欲安裝的角色應該噴錯誤", async () => {
+            await checkBadOperationErrorAsync(async () => {
+                await pm.playCard(simple_upgrade1);
             });
         });
-        it("升級卡欲安裝的角色還沒出場應該噴錯誤", () => {
+        it("升級卡欲安裝的角色還沒出場應該噴錯誤", async () => {
             selecter.setSelectedSeqs(simple_char.seq);
-            checkBadOperationError(() => {
-                pm.playCard(simple_upgrade1);
+            await checkBadOperationErrorAsync(async () => {
+                await pm.playCard(simple_upgrade1);
             });
         });
     });
     describe("打出最基礎的角色卡", () => {
-        before(() => {
-            pm.playCard(simple_char);
-            pm.playCard(cyber_char);
+        before(async () => {
+            await pm.addMana(1000);
+            await enemy_master.addMana(1000);
+            await pm.playCard(simple_char);
+            await pm.playCard(cyber_char);
         });
         it("角色的戰力應該是0", () => {
             assert.equal(0, pm.getStrength(simple_char));
@@ -76,37 +76,37 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
         it("在這個角色身上安裝升級卡的成本應該是基礎成本", () => {
             assert.equal(pm.getManaCost(simple_upgrade1), 1);
         });
-        it("一張角色重複打兩次應該噴錯誤", () => {
-            checkBadOperationError(() => pm.playCard(simple_char));
+        it("一張角色重複打兩次應該噴錯誤", async () => {
+            await checkBadOperationErrorAsync(async () => await pm.playCard(simple_char));
         });
-        it("升級卡欲安裝的角色不在待命區應該噴錯誤", () => {
+        it("升級卡欲安裝的角色不在待命區應該噴錯誤", async () => {
             simple_char.char_status = CharStat.InArena;
             selecter.setSelectedSeqs(simple_char.seq);
-            checkBadOperationError(() => {
-                pm.playCard(simple_upgrade1);
+            await checkBadOperationErrorAsync(async () => {
+                await pm.playCard(simple_upgrade1);
             });
         });
         it("有特殊能力的角色可以在場中裝備升級卡", () => {
             cyber_char.char_status = CharStat.InArena;
             selecter.setSelectedSeqs(cyber_char.seq);
-            assert.doesNotThrow(() => {
-                pm.playCard(simple_upgrade4);
+            assert.doesNotThrow(async () => {
+                await pm.playCard(simple_upgrade4);
             });
         });
-        it("但該角色還是不能違抗硬性規則，如：裝備敵人的卡", () => {
+        it("但該角色還是不能違抗硬性規則，如：裝備敵人的卡", async () => {
             cyber_char.char_status = CharStat.InArena;
             selecter.setSelectedSeqs(cyber_char.seq);
-            checkBadOperationError(() => {
-                pm.playCard(enemy_upgrade1);
+            await checkBadOperationErrorAsync(async () => {
+                await pm.playCard(enemy_upgrade1);
             });
         });
         describe("裝備兩張最基礎的升級卡", () => {
-            before(() => {
+            before(async () => {
                 simple_char.char_status = CharStat.StandBy;
                 selecter.setSelectedSeqs(simple_char.seq);
-                pm.playCard(simple_upgrade1);
+                await pm.playCard(simple_upgrade1);
                 selecter.setSelectedSeqs(simple_char.seq);
-                pm.playCard(simple_upgrade2);
+                await pm.playCard(simple_upgrade2);
             });
             it("角色的升級欄應該有兩個東西在裡面", () => {
                 assert.equal(2, simple_char.upgrade_list.length);
@@ -124,8 +124,8 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
                     is_melee: true
                 }, pm.getBattleRole(simple_char));
             });
-            it("一張裝備卡重複打兩次應該噴錯誤", () => {
-                checkBadOperationError(() => pm.playCard(simple_upgrade1));
+            it("一張裝備卡重複打兩次應該噴錯誤", async () => {
+                await checkBadOperationErrorAsync(async () => await pm.playCard(simple_upgrade1));
             });
             describe("拔掉其中一張升級卡", () => {
                 before(() => {
@@ -135,9 +135,9 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
                 it("拔掉後，角色的戰力應該是1", () => {
                     assert.equal(1, pm.getStrength(simple_char));
                 });
-                it("一張裝備卡重複拔兩次應該噴錯誤", () => {
-                    checkBadOperationError(() => {
-                        pm.retireCard(simple_upgrade1);
+                it("一張裝備卡重複拔兩次應該噴錯誤", async () => {
+                    await checkBadOperationErrorAsync(async () => {
+                        await pm.retireCard(simple_upgrade1);
                     });
                 });
             });
@@ -146,8 +146,8 @@ describe("測試最基礎的角色卡與升級卡的互動", () => {
 });
 
 describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予裝備者「狙擊」屬性", () => {
-    before(() => {
-        pm.playCard(waste_land_char);
+    before(async () => {
+        await pm.playCard(waste_land_char);
     });
     describe("測試角色卡", () => {
         it("角色的戰力應該是0", () => {
@@ -162,9 +162,9 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
         });
     });
     describe("加入升級卡", () => {
-        before(() => {
+        before(async () => {
             selecter.setSelectedSeqs(waste_land_char.seq);
-            pm.playCard(ferry_bomb_upgrade);
+            await pm.playCard(ferry_bomb_upgrade);
         });
         it("裝備後，角色的戰力應該是2", () => {
             assert.equal(2, pm.getStrength(waste_land_char));
@@ -185,10 +185,10 @@ describe("測試一張強得亂七八糟的角色卡", () => {
         });
     });
     describe("測試進階的能力", () => {
-        before(() => {
-            pm.playCard(simple_char2);
+        before(async () => {
+            await pm.playCard(simple_char2);
             selecter.setSelectedSeqs(simple_char2.seq);
-            pm.playCard(simple_upgrade3);
+            await pm.playCard(simple_upgrade3);
             pm.addMana(-pm.mana);
         });
         it("敵方的魔力本來應為1000", () => {
@@ -201,8 +201,8 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             assert.equal(pm.checkBeforePlay(ferry_bomb_upgrade2), false);
         });
         describe("角色入場", () => {
-            before(() => {
-                pm.playCard(ultimate_0_test_char);
+            before(async () => {
+                await pm.playCard(ultimate_0_test_char);
             });
             it("敵方的魔力應減10，變為990", () => {
                 assert.equal(990, enemy_master.mana);

@@ -12,8 +12,7 @@ export default class C extends Character {
 
     onPlay() {
         let master_chain = this.g_master.enter_chain;
-        this.dominantChainWhileAlive(master_chain, (t, arg) => {
-            let { char, arena } = arg;
+        this.addActionWhileAlive(true, master_chain, ({ char, arena }) => {
             if(!char.isEqual(this) && arena.isEqual(this.arena_entered)) {
                 this.g_master.getMyMaster(char).addEmo(1);
             }

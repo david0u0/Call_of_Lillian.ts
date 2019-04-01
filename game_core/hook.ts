@@ -1,162 +1,168 @@
 import { throwDevError } from "./errors";
+import { BadOperationError } from "./game_master";
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
-// TODO: 要不要把鏈分為需要檢查的（如取得戰力）和需要檢查的？
+// TODO: 要不要把鏈分為不需要檢查的（如取得戰力）和需要檢查的？
 
-type HookResult<T> = {
-    was_passed?: boolean,
-    break_chain?: boolean,
-    after_effect?: (arg: T) => void,
-    intercept_effect?: (arg: T) => void,
-    /** 可變的參數 */
-    var_arg?: T,
-};
-
-type TriggerResult<T> = {
-    intercept_effect?: (arg: T) => void,
-    after_effects: Array<(arg: T) => void>,
-    break_chain: boolean,
-    var_arg: T,
-};
-
-type HookFunc<T, U> = (var_arg: T, const_arg: U) => HookResult<T>|void;
-
-type Hook<T, U> = {
+type GetterFunc<T, U>
+    = (var_arg: T, const_arg: U) => { var_arg?: T, break_chain?: boolean, was_passed?: boolean }|void;
+type GetterHook<T, U> = {
     active_countdown: number, // 0代表無活性，-1代表永久
-    func: HookFunc<T, U>
+    func: GetterFunc<T, U>
 };
 
-/** NOTE: 所有這些 hook 都是在動作開始前執行，所以是有可能修改動作本身的。 */
-class HookChain<T, U> {
-    private list: Hook<T, U>[] = [];
-    public trigger(var_arg: T, const_arg: U): TriggerResult<T> {
-        let intercept_effect = undefined;
-        let break_chain = false;
-        let after_effects = new Array<(arg: T) => void>();
-        for(let h of this.list) {
-            if(h.active_countdown != 0) {
-                let result = h.func(var_arg, const_arg);
-                if(result && !result.was_passed) {
-                    if(h.active_countdown > 0) {
-                        h.active_countdown--;
-                    }
-                    if(typeof result.var_arg != "undefined") {
-                        var_arg = result.var_arg;
-                    }
-                    if(result.after_effect) {
-                        after_effects.push(result.after_effect);
-                    }
-
-                    if(result.intercept_effect) {
-                        intercept_effect = result.intercept_effect;
-                        break;
-                    } else if(result.break_chain) {
-                        break_chain = true;
-                        break;
-                    }
-                }
-            }
-        }
-        return { intercept_effect, break_chain, after_effects, var_arg };
-    }
-    public append(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
+class GetterChain<T, U> {
+    private list = new Array<GetterHook<T, U>>();
+    public append(func: GetterFunc<T, U>, active_countdown=-1) {
         let h = { active_countdown, func };
         this.list.push(h);
         return h;
     }
-    public dominant(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
+    public dominant(func: GetterFunc<T, U>, active_countdown=-1) {
         let h = { active_countdown, func };
         this.list = [h, ...this.list];
         return h;
     }
-}
-/**
- * checkCanTrigger() 回傳假，代表不會執行 trigger，自然也不會發生任何副作用，在UI層級就該擋下來。
- * tigger() 被攔截效果，代表一連串副作用已然執行，而最後的 callback 卻無法執行。
- */
-class EventChain<T, U> {
-    private real_chain = new HookChain<T, U>();
-    private check_chain = new HookChain<boolean, U>();
-    /**
-     * 把一個規則接到鏈的尾端，預設為永久規則。
-     * @param func 欲接上的規則
-     * @param active_countdown 預設為-1，代表永久執行。
-     */
-    public append(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
-        return this.real_chain.append(func, active_countdown);
-    }
-    /**
-     * 把一個規則接到鏈的開頭，預設為永久規則。
-     * @param func 欲接上的規則
-     * @param active_countdown 預設為-1，代表永久執行。
-     */
-    public dominant(func: HookFunc<T, U>, active_countdown=-1): Hook<T, U> {
-        return this.real_chain.dominant(func, active_countdown);
-    }
-    /**
-     * 把一個規則接到驗證鏈的尾端，預設為永久規則。
-     * @param func 欲接上的規則
-     * @param active_countdown 預設為-1，代表永久執行-1。
-     */
-    public appendCheck(func: HookFunc<boolean, U>, active_countdown=-1): Hook<boolean, U> {
-        return this.check_chain.append(func);
-    }
-    /**
-     * 把一個規則接到驗證鏈的開頭，預設為永久規則。
-     * @param func 欲接上的規則
-     * @param active_countdown 預設為-1，代表永久執行。
-     */
-    public dominantCheck(func: HookFunc<boolean, U>, active_countdown=-1): Hook<boolean, U> {
-        return this.check_chain.dominant(func);
-    }
-
-    /** 只執行驗證鏈 */
-    public checkCanTrigger(const_arg: U): boolean {
-        let result = this.check_chain.trigger(true, const_arg);
-        if(result.intercept_effect) {
-            throwDevError("驗證鏈竟然有 intercept_effect ？");
-        } else if(result.after_effects.length != 0) {
-            throwDevError("驗證鏈中竟然有 after_effects ？");
-        }
-        return result.var_arg;
-    }
-    /** 只執行真正的事件鏈 
-     * @param callback 如果沒有被欄截效果就會執行它
-     * @param recover 如果效果被攔結就會執行它
-    */
-    public trigger(var_arg: T, const_arg: U,
-        callback=(arg: T) => {}, recover=() => {}
-    ): T {
-        let result = this.real_chain.trigger(var_arg, const_arg);
-        if(result.intercept_effect) {
-            result.intercept_effect(result.var_arg);
-            recover();
-        } else {
-            callback(result.var_arg);
-            for(let effect of result.after_effects) {
-                effect(result.var_arg);
+    public triggerFullResult(var_arg: T, const_arg: U) {
+        for(let hook of this.list) {
+            if(hook.active_countdown != 0) {
+                let result = hook.func(var_arg, const_arg);
+                if(result && !result.was_passed) {
+                    if(hook.active_countdown > 0) {
+                        hook.active_countdown--;
+                    }
+                    if(typeof result.var_arg != "undefined") {
+                        var_arg = result.var_arg;
+                    }
+                    if(result.break_chain) {
+                        return { var_arg, break_chain: true };
+                    }
+                }
             }
         }
-        return result.var_arg;
+        return { var_arg };
     }
-    
-    public chain<V>(next_chain: EventChain<T, V>, next_const_arg: V): EventChain<T, U> {
-        let combined_chain = new EventChain<T, U>();
-        combined_chain.append((var_arg, const_arg) => {
-            return this.real_chain.trigger(var_arg, const_arg);
+    public trigger(var_arg: T, const_arg: U) {
+        return this.triggerFullResult(var_arg, const_arg).var_arg;
+    }
+    public chain<V>(next_chain: GetterChain<T, V>, next_arg: V) {
+        let new_chain = new GetterChain<T, U>();
+        new_chain.append((var_arg, const_arg) => {
+            return this.triggerFullResult(var_arg, const_arg);
         });
-        combined_chain.append((var_arg, const_arg) => {
-            return next_chain.real_chain.trigger(var_arg, next_const_arg);
+        new_chain.append((var_arg, const_arg) => {
+            return next_chain.triggerFullResult(var_arg, next_arg);
         });
-        combined_chain.appendCheck((can_trigger, const_arg) => {
-            return this.check_chain.trigger(can_trigger, const_arg);
-        });
-        combined_chain.appendCheck((can_trigger, const_arg) => {
-            return next_chain.check_chain.trigger(can_trigger, next_const_arg);
-        });
-        return combined_chain;
+        return new_chain;
     }
 }
 
-export { EventChain, HookResult, HookFunc, Hook };
+type CallBack = (() => void)|(() => Promise<void>);
+type ActionResult = {
+    intercept_effect?: boolean
+    after_effect?: (() => void)|Array<() => void>,
+    break_chain?: boolean,
+    was_passed?: boolean
+} | void;
+type ActionFunc<U>
+    = (const_arg: U) => ActionResult | Promise<ActionResult>
+type ActionHook<U> = {
+    active_countdown: number, // 0代表無活性，-1代表永久
+    func: ActionFunc<U>
+};
+
+class ActionChain<U> {
+    private action_list = new Array<ActionHook<U>>();
+    private check_chain = new GetterChain<boolean, U>();
+
+    public append(func: ActionFunc<U>, active_countdown=-1) {
+        let h = { func, active_countdown };
+        this.action_list.push(h);
+        return h;
+    }
+    public dominant(func: ActionFunc<U>, active_countdown=-1) {
+        let h = { func, active_countdown };
+        this.action_list = [h, ...this.action_list];
+        return h;
+    }
+    public appendCheck(func: GetterFunc<boolean, U>, active_countdown=-1) {
+        return this.check_chain.append(func, active_countdown);
+    }
+    public dominantCheck(func: GetterFunc<boolean, U>, active_countdown=-1) {
+        return this.check_chain.dominant(func, active_countdown);
+    }
+    private async triggerFullActionResult(const_arg: U) {
+        let after_effect = new Array<() => void>();
+        let break_chain = false;
+        let intercept_effect = false;
+        for(let hook of this.action_list) {
+            if(hook.active_countdown != 0) {
+                let _result = hook.func(const_arg);
+                if(_result) {
+                    let result = await Promise.resolve(_result);
+                    if(result && !result.was_passed) {
+                        if(hook.active_countdown > 0) {
+                            hook.active_countdown--;
+                        }
+                        if(result.after_effect) {
+                            if(result.after_effect instanceof Array) {
+                                after_effect = [...after_effect, ...result.after_effect];
+                            } else {
+                                after_effect.push(result.after_effect);
+                            }
+                        }
+                        if(result.break_chain) {
+                            break_chain = true;
+                            break;
+                        } else if(result.intercept_effect) {
+                            intercept_effect = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return { intercept_effect, break_chain, after_effect };
+    }
+    public checkCanTrigger(const_arg: U) {
+        return this.check_chain.trigger(true, const_arg);
+    }
+    /**
+     * 注意！！
+     * 現在觸發行動前不會打包在一起檢查了，記得要手動檢查。
+     * 為什麼不打包在一起？例如：我推進事件時會檢查角色有沒有疲勞，但實際推進時角色已經疲勞了。
+     * 為什麼不先推進完再使角色疲勞？因為我希望 after_effect 是整個事件中最後執行的東西。
+     */
+    public async trigger(const_arg: U, callback?: CallBack, cleanup?: CallBack) {
+        let res = await (this.triggerFullActionResult(const_arg));
+        if(res.intercept_effect) {
+            if(cleanup) {
+                await Promise.resolve(cleanup());
+            }
+        } else {
+            // TODO: 還沒處理 after_effect
+            if(callback) {
+                await Promise.resolve(callback());
+            }
+        }
+    }
+    public chain<V>(next_chain: ActionChain<V>, next_arg: V): ActionChain<U> {
+        let new_chain = new ActionChain<U>();
+        new_chain.appendCheck((var_arg, const_arg) => {
+            return this.check_chain.triggerFullResult(var_arg, const_arg);
+        });
+        new_chain.appendCheck((var_arg, const_arg) => {
+            return next_chain.check_chain.triggerFullResult(var_arg, next_arg);
+        });
+        new_chain.append(const_arg => {
+            return this.triggerFullActionResult(const_arg);
+        });
+        new_chain.append(const_arg => {
+            return next_chain.triggerFullActionResult(next_arg);
+        });
+        return new_chain;
+    }
+}
+
+export { ActionChain, GetterChain, GetterFunc, ActionFunc };

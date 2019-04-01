@@ -15,7 +15,7 @@ export  default class C extends Character implements ICharacter {
 
     onPlay() {
         let master_role_chain = this.my_master.get_battle_role_chain;
-        this.appendChainWhileAlive(master_role_chain, (role, char) => {
+        this.addGetterWhileAlive(true, master_role_chain, (role, char) => {
             if(char.isEqual(this)) {
                 return { var_arg: { ...role, can_attack: true, can_block: true }};
             }

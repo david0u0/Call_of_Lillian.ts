@@ -1,7 +1,7 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard } from "./interface";
 import { GameMaster, PlayerMaster } from "./game_master";
-import { EventChain, HookResult, HookFunc, Hook } from "./hook";
+import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 
 class UnknownCard implements ICard {
@@ -19,16 +19,16 @@ abstract class KnownCard implements IKnownCard {
 
     public card_status = CardStat.Deck;
 
-    public readonly check_before_play_chain = new EventChain<boolean, null>();
-    public readonly get_mana_cost_chain = new EventChain<number, null>();
-    public readonly card_play_chain = new EventChain<null, null>();
-    public readonly card_leave_chain = new EventChain<null, null>();
-    public readonly card_retire_chain = new EventChain<null, null>();
+    public readonly check_before_play_chain = new GetterChain<boolean, null>();
+    public readonly get_mana_cost_chain = new GetterChain<number, null>();
+    public readonly card_play_chain = new ActionChain<null>();
+    public readonly card_leave_chain = new ActionChain<null>();
+    public readonly card_retire_chain = new ActionChain<null>();
 
     protected readonly my_master: PlayerMaster;
     protected readonly enemy_master: PlayerMaster;
 
-    public initialize() { return true; }
+    public async initialize() { return true; }
     public onPlay() { }
     public onRetrieve() { }
 
@@ -50,57 +50,61 @@ abstract class KnownCard implements IKnownCard {
     public recoverFields() { }
 
 
-    appendChainWhileAlive<T, U>(
-        chain: EventChain<T, U>[]|EventChain<T, U>, func: HookFunc<T, U>
+    addGetterWhileAlive<T, U>(append: boolean,
+        chain: GetterChain<T, U>[]|GetterChain<T, U>, func: GetterFunc<T, U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.appendChainWhileAlive(c, func);
+                this.addGetterWhileAlive(append, c, func);
             }
         } else {
-            let hook = chain.append(func);
+            let hook = (() => {
+                if(append) {
+                    return chain.append(func);
+                } else {
+                    return chain.dominant(func);
+                }
+            })();
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });
         }
     }
-    dominantChainWhileAlive<T, U>(
-        chain: EventChain<T, U>[]|EventChain<T, U>, func: HookFunc<T, U>
+    addCheckWhileAlive<U>(append: boolean,
+        chain: ActionChain<U>[]|ActionChain<U>, func: GetterFunc<boolean, U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.dominantChainWhileAlive(c, func);
+                this.addCheckWhileAlive(append, c, func);
             }
         } else {
-            let hook = chain.dominant(func);
+            let hook = (() => {
+                if(append) {
+                    return chain.appendCheck(func);
+                } else {
+                    return chain.dominantCheck(func);
+                }
+            })();
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });
         }
     }
-    appendCheckWhileAlive<T, U>(
-        chain: EventChain<T, U>[]|EventChain<T, U>, func: HookFunc<boolean, U>
+    addActionWhileAlive<U>(append: boolean,
+        chain: ActionChain<U>[]|ActionChain<U>, func: ActionFunc<U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.appendCheckWhileAlive(c, func);
+                this.addActionWhileAlive(append, c, func);
             }
         } else {
-            let hook = chain.appendCheck(func);
-            this.card_leave_chain.append(() => {
-                hook.active_countdown = 0;
-            });
-        }
-    }
-    dominantCheckWhileAlive<T, U>(
-        chain: EventChain<T, U>[]|EventChain<T, U>, func: HookFunc<boolean, U>
-    ) {
-        if(chain instanceof Array) {
-            for(let c of chain) {
-                this.dominantCheckWhileAlive(c, func);
-            }
-        } else {
-            let hook = chain.dominantCheck(func);
+            let hook = (() => {
+                if(append) {
+                    return chain.append(func);
+                } else {
+                    return chain.dominant(func);
+                }
+            })();
             this.card_leave_chain.append(() => {
                 hook.active_countdown = 0;
             });
@@ -114,8 +118,8 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public character_equipped: ICharacter | null = null;
     private mem_character_equipped: ICharacter | null = this.character_equipped;
 
-    public initialize() {
-        let char = this.g_master.selecter.selectSingleCard(TypeGaurd.isCharacter, char => {
+    public async initialize() {
+        let char = await this.g_master.selecter.selectSingleCard(TypeGaurd.isCharacter, char => {
             this.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
             return can_play;
@@ -152,23 +156,23 @@ abstract class Character extends KnownCard implements ICharacter {
     public has_char_action = false;
     public charAction() { }
 
-    public readonly change_char_tired_chain = new EventChain<boolean, null>();
-    public readonly get_strength_chain = new EventChain<number, null>();
+    public readonly change_char_tired_chain = new ActionChain<boolean>();
+    public readonly get_strength_chain = new GetterChain<number, null>();
     public readonly get_inconflict_strength_chain
-        = new EventChain<number, ICharacter>();
-    public readonly get_battle_role_chain = new EventChain<BattleRole, null>();
-    public readonly enter_arena_chain = new EventChain<null, IArena>();
-    public readonly attack_chain = new EventChain<null, ICharacter>();
+        = new GetterChain<number, ICharacter>();
+    public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
+    public readonly enter_arena_chain = new ActionChain<IArena>();
+    public readonly attack_chain = new ActionChain<ICharacter>();
 
-    public readonly exploit_chain = new EventChain<null, IArena>();
-    public readonly enter_chain = new EventChain<null, IArena>();
-    public readonly get_exploit_cost_chain = new EventChain<number, IArena>();
-    public readonly get_enter_cost_chain = new EventChain<number, IArena>();
+    public readonly exploit_chain = new ActionChain<IArena>();
+    public readonly enter_chain = new ActionChain<IArena>();
+    public readonly get_exploit_cost_chain = new GetterChain<number, IArena>();
+    public readonly get_enter_cost_chain = new GetterChain<number, IArena>();
     // TODO: 加入某種角色內部的升級鏈（因為裝備升級未必是出牌）
 
-    public readonly get_push_cost_chain = new EventChain<number, IEvent>();
-    public readonly push_chain = new EventChain<null, IEvent>();
-    public readonly finish_chain = new EventChain<null, IEvent>();
+    public readonly get_push_cost_chain = new GetterChain<number, IEvent>();
+    public readonly push_chain = new ActionChain<IEvent>();
+    public readonly finish_chain = new ActionChain<IEvent>();
 
     addUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
@@ -205,17 +209,17 @@ abstract class Arena extends KnownCard implements IArena {
     public get char_list() { return [...this._char_list]; };
     public readonly max_capacity = C.ARENA_CAPACITY;
 
-    public readonly exploit_chain = new EventChain<null, ICharacter|Player>();
-    public readonly enter_chain = new EventChain<null, ICharacter>();
-    public readonly get_exploit_cost_chain = new EventChain<number, ICharacter|Player>();
-    public readonly get_enter_cost_chain = new EventChain<number, ICharacter>();
+    public readonly exploit_chain = new ActionChain<ICharacter|Player>();
+    public readonly enter_chain = new ActionChain<ICharacter>();
+    public readonly get_exploit_cost_chain = new GetterChain<number, ICharacter|Player>();
+    public readonly get_enter_cost_chain = new GetterChain<number, ICharacter>();
 
     enter(char: ICharacter) {
         this._char_list.push(char);
     }
     abstract onExploit(char: ICharacter|Player): number|void;
 
-    public initialize() {
+    public async initialize() {
         return true;
         /*let char = this.g_master.selecter.selectChars(1, 1, pos => {
         });
@@ -237,14 +241,14 @@ abstract class Event extends KnownCard implements IEvent {
 
     public readonly push_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
-        let chain = new EventChain<null, ICharacter|null>();
+        let chain = new ActionChain<ICharacter|null>();
         chain.appendCheck((t, char) => {
             return { var_arg: this.checkCanPush(char) };
         });
         return chain;
     })();
     
-    public readonly get_push_cost_chain = new EventChain<number, ICharacter|null>();
+    public readonly get_push_cost_chain = new GetterChain<number, ICharacter|null>();
 
     public abstract checkCanPush(char: ICharacter|null): boolean;
     public abstract onPush(char: ICharacter|null): void;

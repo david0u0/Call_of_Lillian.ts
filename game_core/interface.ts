@@ -1,4 +1,4 @@
-import { EventChain, HookResult, HookFunc } from "./hook";
+import { ActionChain, GetterChain, GetterFunc, ActionFunc } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat } from "./enums";
 
 interface IKeeper { };
@@ -14,13 +14,13 @@ interface IKnownCard extends ICard {
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
 
-    readonly check_before_play_chain: EventChain<boolean, null>;
-    readonly get_mana_cost_chain: EventChain<number, null>;
-    readonly card_play_chain: EventChain<null, null>;
+    readonly check_before_play_chain: GetterChain<boolean, null>;
+    readonly get_mana_cost_chain: GetterChain<number, null>;
+    readonly card_play_chain: ActionChain<null>;
     /** 只要從場上離開，不論退場還是消滅都會觸發這條 */
-    readonly card_leave_chain: EventChain<null, null>;
+    readonly card_leave_chain: ActionChain<null>;
     /** 只有退場會觸發這條效果 */
-    readonly card_retire_chain: EventChain<null, null>;
+    readonly card_retire_chain: ActionChain<null>;
 
     isEqual(card: IKnownCard|null): boolean;
 
@@ -30,35 +30,31 @@ interface IKnownCard extends ICard {
      * 例如：施放咒語前指定任意角色，使他們疲勞，每指定一個角色降一費。
      * @returns 如果被取消就會回傳 false
      */
-    initialize(): boolean;
+    initialize(): Promise<boolean>|boolean;
     /** 入場曲或咒語效果的概念 */
-    onPlay(): void;
+    onPlay(): Promise<void>|void;
     /** 退場曲的概念 */
-    onRetrieve(): void;
+    onRetrieve(): Promise<void>|void;
 
     /** 記憶與恢復變數，理論上只有前端會用到（因為後端檢查沒過會直接爆錯） */
     rememberFields(): void;
     recoverFields(): void;
 
     /**
-     * 創造一個新的規則，接上某條規則鏈的尾巴。當 this 這張卡牌死亡時，該規則也會失效。
+     * 創造一個新的規則，接上某條規則鏈。當 this 這張卡牌死亡時，該規則也會失效。
+     * @param append 若為真就接在尾巴，為否就接在開頭
      * @param chain 欲接上的那條規則鏈
      * @param func 欲接上的規則
      */
-    appendChainWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
-        func: HookFunc<T, U>): void ;
-    /**
-     * 創造一個新的規則，接上某條規則鏈的開頭。當 this 這張卡牌死亡時，該規則也會失效。
-     * @param chain 欲接上的那條規則鏈
-     * @param func 欲接上的規則
-     */
-    dominantChainWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
-        func: HookFunc<T, U>): void;
+    addGetterWhileAlive<T, U>(append: boolean, chain: GetterChain<T, U>[]|GetterChain<T, U>,
+        func: GetterFunc<T, U>): void;
 
-    appendCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
-        func: HookFunc<boolean, U>): void
-    dominantCheckWhileAlive<T, U>(chain: EventChain<T, U>[]|EventChain<T, U>,
-        func: HookFunc<boolean, U>): void
+    addCheckWhileAlive<U>(append: boolean, chain: ActionChain<U>[]|ActionChain<U>,
+        func: GetterFunc<boolean, U>): void
+
+    addActionWhileAlive<U>(append: boolean, chain: ActionChain<U>[]|ActionChain<U>,
+        func: ActionFunc<U>): void
+
 }
 interface ICharacter extends IKnownCard { };
 interface IUpgrade extends IKnownCard { };
@@ -86,22 +82,22 @@ interface ICharacter extends IKnownCard {
     readonly has_char_action: boolean;
     charAction(): void;
 
-    readonly change_char_tired_chain: EventChain<boolean, null>;
-    readonly get_strength_chain: EventChain<number, null>;
-    readonly enter_arena_chain: EventChain<null, IArena>;
-    readonly attack_chain: EventChain<null, ICharacter>;
-    readonly get_battle_role_chain: EventChain<BattleRole, null>;
+    readonly change_char_tired_chain: ActionChain<boolean>;
+    readonly get_strength_chain: GetterChain<number, null>;
+    readonly enter_arena_chain: ActionChain<IArena>;
+    readonly attack_chain: ActionChain<ICharacter>;
+    readonly get_battle_role_chain: GetterChain<BattleRole, null>;
     readonly get_inconflict_strength_chain
-        : EventChain<number, ICharacter>;
+        : GetterChain<number, ICharacter>;
 
-    readonly exploit_chain: EventChain<null, IArena>;
-    readonly enter_chain: EventChain<null, IArena>;
-    readonly get_exploit_cost_chain: EventChain<number, IArena>;
-    readonly get_enter_cost_chain: EventChain<number, IArena>;
+    readonly exploit_chain: ActionChain<IArena>;
+    readonly enter_chain: ActionChain<IArena>;
+    readonly get_exploit_cost_chain: GetterChain<number, IArena>;
+    readonly get_enter_cost_chain: GetterChain<number, IArena>;
 
-    readonly get_push_cost_chain: EventChain<number, IEvent>;
-    readonly push_chain: EventChain<null, IEvent>;
-    readonly finish_chain: EventChain<null, IEvent>;
+    readonly get_push_cost_chain: GetterChain<number, IEvent>;
+    readonly push_chain: ActionChain<IEvent>;
+    readonly finish_chain: ActionChain<IEvent>;
 
     /** 不可覆寫！ */
     addUpgrade(upgrade: IUpgrade): void;
@@ -114,16 +110,16 @@ interface IArena extends IKnownCard {
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
 
-    readonly exploit_chain: EventChain<null, ICharacter|Player>;
-    readonly enter_chain: EventChain<null, ICharacter>;
-    readonly get_exploit_cost_chain: EventChain<number, ICharacter|Player>;
-    readonly get_enter_cost_chain: EventChain<number, ICharacter>;
+    readonly exploit_chain: ActionChain<ICharacter|Player>;
+    readonly enter_chain: ActionChain<ICharacter>;
+    readonly get_exploit_cost_chain: GetterChain<number, ICharacter|Player>;
+    readonly get_enter_cost_chain: GetterChain<number, ICharacter>;
 
     /**
      * @param char 如果是玩家，代表是利用某些效果不靠角色就使用場所
      * @returns 回傳值如果是數字，代表的是魔力收入 
      */
-    onExploit(char: ICharacter|Player): void|number;
+    onExploit(char: ICharacter|Player): Promise<void|number>|void|number;
     /** 不可覆寫！ */
     enter(char: ICharacter): void;
 }
@@ -136,12 +132,12 @@ interface IEvent extends IKnownCard {
     readonly score: number;
     readonly is_ending: boolean;
 
-    readonly get_push_cost_chain: EventChain<number, ICharacter|null>
-    readonly push_chain: EventChain<null, ICharacter|null>
+    readonly get_push_cost_chain:  GetterChain<number, ICharacter|null>
+    readonly push_chain: ActionChain<ICharacter|null>
 
-    onPush(char: ICharacter|null): void;
-    onFinish(char: ICharacter|null): void;
-    onFail(): void;
+    onPush(char: ICharacter|null): Promise<void>|void;
+    onFinish(char: ICharacter|null): Promise<void>|void;
+    onFail(): Promise<void>|void;
 
     /** 不可覆寫！ */
     push(): void;
@@ -186,9 +182,9 @@ const TypeGaurd = {
 
 interface ISelecter {
     selectSingleCard<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
-        check: (card: T) => boolean): T | null;
+        check: (card: T) => boolean): Promise<T | null>;
     selectSingleCardInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
-        check: (card: T) => boolean): T | null;
+        check: (card: T) => boolean): Promise<T | null>;
     setCardTable(table: { [index: number]: IKnownCard }): void;
 }
 

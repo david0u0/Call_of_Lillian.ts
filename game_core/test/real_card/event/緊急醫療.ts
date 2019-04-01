@@ -37,7 +37,7 @@ export default class E extends Event implements IEvent {
     }
 
     onFinish() {
-        this.appendChainWhileAlive(this.g_master.main_phase_end_chain, () => {
+        this.addActionWhileAlive(true, this.g_master.main_phase_end_chain, () => {
             this.my_master.addMana(2);
         });
     }
