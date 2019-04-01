@@ -100,17 +100,21 @@ async function setup() {
     app.stage.addChild(hands_ui1);
     app.stage.addChild(hands_ui2);
 
+    let card: Character;
     setTimeout(() => {
-        let card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
-            return new C(seq, owner, gm);
-        }) as ICharacter;
-        hands_ui2_obj.add(card);
-        char_area.addChar(card, 0);
-        char_area.addChar(card, 1);
-        char_area.addChar(card, 2);
-        char_area.addChar(card, 3);
-        char_area.addChar(card, 4);
+        for(let i = 0; i < 9; i++) {
+            card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
+                return new C(seq, owner, gm);
+            }) as Character;
+            char_area.addChar(card, i);
+        }
     }, 10);
+    setTimeout(() => {
+        gm.getMyMaster(Player.Player1).changeCharTired(card, true);
+    }, 1000);
+    setTimeout(() => {
+        gm.getMyMaster(Player.Player1).changeCharTired(card, false);
+    }, 1300);
 }
 
 document.body.appendChild(app.view);

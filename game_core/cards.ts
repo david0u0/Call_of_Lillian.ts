@@ -35,7 +35,7 @@ abstract class KnownCard implements IKnownCard {
     public onRetrieve() { }
 
     constructor(public readonly seq: number, public readonly owner: Player,
-        protected readonly g_master: GameMaster
+        public readonly g_master: GameMaster
     ) {
         this.my_master = g_master.getMyMaster(owner);
         this.enemy_master = g_master.getEnemyMaster(owner);
