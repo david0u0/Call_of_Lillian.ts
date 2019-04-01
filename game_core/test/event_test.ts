@@ -60,7 +60,7 @@ describe("測試事件卡功能", () => {
             assert.equal(char.is_tired, true);
         });
         it("陷入疲勞的角色應該無法推進", () => {
-            char.is_tired = true;
+            pm.changeCharTired(char, true);
             selecter.setSelectedSeqs(event.seq);
             checkBadOperationError(() => {
                 pm.pushEvent(char);

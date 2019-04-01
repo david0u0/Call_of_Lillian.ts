@@ -1,31 +1,47 @@
-import { ICharacter } from "../../game_core/interface";
+import { ICharacter, IArena } from "../../game_core/interface";
 import * as PIXI from "pixi.js";
 import getEltSize from "./get_elemental_size";
 import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
+import { BadOperationError } from "../../game_core/errors";
 
-const H = 50, W = 50;
+const H = 50, W = 40, MAX_CHAR = 9;
 
 export class CharArea {
-    private list: ICharacter[] = [];
+    private list: ICharacter[] = new Array(MAX_CHAR).fill(null);
     public view = new PIXI.Container();
 
     constructor(private showBIgCard: ShowBigCard, private ticker: PIXI.ticker.Ticker) { }
 
-    async addChar(char: ICharacter, index: number) {
-        let { ew, eh } = getEltSize();
-        let img = await this.drawChar(char, ew*3, eh*6, (0.5 + index*3.5) * ew);
-        this.view.addChild(img);
-        img.alpha = 0;
-        let fade_in = () => {
-            if(img.alpha < 1) {
-                img.alpha += 0.1;
-            } else {
-                img.alpha = 1;
-                this.ticker.remove(fade_in);
+    async addChar(char: ICharacter, index?: number) {
+        if(typeof index == "number") {
+            if(this.list[index]) {
+                throw new BadOperationError("嘗試將角色加入至有人的位置！");
+            } else if(index >= MAX_CHAR) {
+                throw new BadOperationError("嘗試加入超過上限的角色！");
             }
-        };
-        this.ticker.add(fade_in);
+            let { ew, eh } = getEltSize();
+            let offset = (() => {
+                if(index % 2 == 0) {
+                    let n = (8 - index) / 2;
+                    return (1.5 + n * 3.5) * ew;
+                } else {
+                    let n = (index-1)/2;
+                    return (23.5 + n*3) * ew;
+                }
+            })();
+            let img = await this.drawChar(char, ew * 2.5, eh * 6, offset);
+            this.setupCharUI(char, img);
+            this.view.addChildAt(img, index);
+        } else {
+            let i = 0;
+            for(i = 0; i < MAX_CHAR; i++) {
+                if(!this.list[i]) {
+                    break;
+                }
+            }
+            this.addChar(char, i);
+        }
     }
     private drawChar(char: ICharacter, width: number, height: number, offset: number) {
         let ratio = Math.min(width / W, height / H);
@@ -54,5 +70,20 @@ export class CharArea {
                 resolve(img);
             });
         });
+    }
+
+    private setupCharUI(char: ICharacter, img: PIXI.Sprite) {
+        // 大圖
+        img.alpha = 0;
+        let fade_in = () => {
+            if(img.alpha < 1) {
+                img.alpha += 0.1;
+            } else {
+                img.alpha = 1;
+                this.ticker.remove(fade_in);
+            }
+        };
+        this.ticker.add(fade_in);
+        // 角色疲勞
     }
 }

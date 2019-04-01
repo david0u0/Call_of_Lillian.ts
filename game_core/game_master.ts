@@ -44,7 +44,9 @@ class PlayerMaster {
      * 那麼她應該修改全域的的 check_before_play_chain 使這些咒語不會被介面擋下來，可以進入到選擇施放者的步驟。
      * （然而如果最終不是由該角色施放，還是會被 card_play_chain 擋下來）
      */
-    public check_before_play_chain: EventChain<boolean, IKnownCard> = new EventChain();
+    public check_before_play_chain = new EventChain<boolean, IKnownCard>();
+
+    public change_char_tired_chain = new EventChain<boolean, ICharacter>();
 
     public card_play_chain: EventChain<null, IKnownCard> = new EventChain();
     public card_retire_chain: EventChain<null, IKnownCard> = new EventChain();
@@ -152,6 +154,14 @@ class PlayerMaster {
             card.recoverFields();
         });
     }
+
+    changeCharTired(char: ICharacter, tired: boolean) {
+        char.change_char_tired_chain.chain(this.change_char_tired_chain, char)
+        .trigger(tired, null, _tired => {
+            char.is_tired = _tired;
+        });
+    }
+
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private _leaveCard(card: IKnownCard) {
         card.card_leave_chain.trigger(null, null);
@@ -227,7 +237,7 @@ class PlayerMaster {
             let event = _event;
             this.addMana(-cost);
             if(char) {
-                char.is_tired = true;
+                this.changeCharTired(char, true);
             }
             push_chain.trigger(null, char, () => {
                 HR.onPushEvent(event);
@@ -331,7 +341,7 @@ class GameMaster {
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
             .chain(this.enter_chain, { char, arena });
             p_master.addMana(-this.getEnterCost(char, arena));
-            char.is_tired = true; // 使角色疲勞
+            p_master.changeCharTired(char, true);
             enter_chain.trigger(null, char, () => {
                 HR.onEnter(char, arena);
             });

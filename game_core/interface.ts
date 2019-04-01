@@ -86,6 +86,7 @@ interface ICharacter extends IKnownCard {
     readonly has_char_action: boolean;
     charAction(): void;
 
+    readonly change_char_tired_chain: EventChain<boolean, null>;
     readonly get_strength_chain: EventChain<number, null>;
     readonly enter_arena_chain: EventChain<null, IArena>;
     readonly attack_chain: EventChain<null, ICharacter>;

@@ -154,6 +154,7 @@ abstract class Character extends KnownCard implements ICharacter {
     public has_char_action = false;
     public charAction() { }
 
+    public readonly change_char_tired_chain = new EventChain<boolean, null>();
     public readonly get_strength_chain = new EventChain<number, null>();
     public readonly get_inconflict_strength_chain
         = new EventChain<number, ICharacter>();
