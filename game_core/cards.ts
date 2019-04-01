@@ -21,6 +21,7 @@ abstract class KnownCard implements IKnownCard {
 
     public card_status = CardStat.Deck;
 
+    public readonly check_before_play_chain = new EventChain<boolean, null>();
     public readonly get_mana_cost_chain = new EventChain<number, null>();
     public readonly card_play_chain = new EventChain<null, null>();
     public readonly card_leave_chain = new EventChain<null, null>();

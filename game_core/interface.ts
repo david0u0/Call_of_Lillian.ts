@@ -14,7 +14,7 @@ interface IKnownCard extends ICard {
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
 
-
+    readonly check_before_play_chain: EventChain<boolean, null>;
     readonly get_mana_cost_chain: EventChain<number, null>;
     readonly card_play_chain: EventChain<null, null>;
     /** 只要從場上離開，不論退場還是消滅都會觸發這條 */

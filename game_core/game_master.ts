@@ -14,7 +14,7 @@ class PlayerMaster {
     private _emo = 0;
     private _deck = new Array<ICard>();
     private _hand = new Array<ICard>();
-    private _gravyard = new Array<IKnownCard>();
+    // private _gravyard = new Array<IKnownCard>();
     private _characters = new Array<ICharacter>();
     private _arenas = new Array<IArena>(C.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
@@ -38,6 +38,14 @@ class PlayerMaster {
         SR.onGetManaCost(this.get_mana_cost_chain, this.arenas);
     }
     
+    /** 
+     * 做打卡前的判斷，主要用來檢查前端界面
+     * 舉例而言，有張角色的功能是施放咒語可降費
+     * 那麼她應該修改全域的的 check_before_play_chain 使這些咒語不會被介面擋下來，可以進入到選擇施放者的步驟。
+     * （然而如果最終不是由該角色施放，還是會被 card_play_chain 擋下來）
+     */
+    public check_before_play_chain: EventChain<boolean, IKnownCard> = new EventChain();
+
     public card_play_chain: EventChain<null, IKnownCard> = new EventChain();
     public card_retire_chain: EventChain<null, IKnownCard> = new EventChain();
 
@@ -113,7 +121,11 @@ class PlayerMaster {
         return char.get_battle_role_chain.chain(this.get_battle_role_chain, char)
         .trigger(char.basic_battle_role, null);
     }
-
+    checkBeforePlay(card: IKnownCard): boolean {
+        let can_play = this.mana > this.getManaCost(card);
+        return card.check_before_play_chain.chain(this.check_before_play_chain, card)
+        .trigger(can_play, null);
+    }
     checkCanPlay(card: IKnownCard): boolean {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
             return card.card_play_chain.chain(this.card_play_chain, card)

@@ -17,8 +17,10 @@ export const Constant = {
 export class SoftRule {
     public static checkPlay(card_play_chain: EventChain<null, IKnownCard>) {
         card_play_chain.appendCheck((can_play, card) => {
-            if(TG.isUpgrade(card)) {
-                return { var_arg: SoftRule.checkPlayUpgrade(card) };
+            if(can_play) {
+                if(TG.isUpgrade(card)) {
+                    return { var_arg: SoftRule.checkPlayUpgrade(card) };
+                }
             }
         });
     }

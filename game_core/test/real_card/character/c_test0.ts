@@ -14,7 +14,7 @@ export class C_Test0 extends Character {
     name = name;
     description = description;
     series = [ CardSeries.Testing ];
-    basic_mana_cost = 1;
+    basic_mana_cost = 0;
     basic_strength = 10;
 
     onPlay() {
@@ -44,6 +44,13 @@ export class C_Test0 extends Character {
                 if(this.isEqual(card.character_equipped)) {
                     return { var_arg: 0 };
                 }
+            }
+        });
+
+        // NOTE: 讓裝備知道自己可以被施放，不會被介面擋掉
+        this.appendChainWhileAlive(my_master.check_before_play_chain, (t, card) => {
+            if(TypeGaurd.isUpgrade) {
+                return { var_arg: true };
             }
         });
 

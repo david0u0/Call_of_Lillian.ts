@@ -177,7 +177,7 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
 describe("測試一張強得亂七八糟的角色卡", () => {
     describe("測試其基礎數值", () => {
         it("角色的魔力成本應該是1", () => {
-            assert.equal(1, pm.getManaCost(ultimate_0_test_char));
+            assert.equal(0, pm.getManaCost(ultimate_0_test_char));
         });
         it("角色的戰力應該是10", () => {
             assert.equal(10, pm.getStrength(ultimate_0_test_char));
@@ -188,12 +188,16 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             pm.playCard(simple_char2);
             selecter.setSelectedSeqs(simple_char2.seq);
             pm.playCard(simple_upgrade3);
+            pm.addMana(-pm.mana);
         });
         it("敵方的魔力本來應為1000", () => {
             assert.equal(1000, enemy_master.mana);
         });
         it("我方見習魔女的戰力本來為1", () => {
             assert.equal(1, pm.getStrength(simple_char2));
+        });
+        it("由於魔力不夠，應該無法打出升級卡", () => {
+            assert.equal(pm.checkBeforePlay(ferry_bomb_upgrade2), false);
         });
         describe("角色入場", () => {
             before(() => {
@@ -207,6 +211,9 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             });
             it("某件升級的費用本來應為1", () => {
                 assert.equal(1, pm.getManaCost(ferry_bomb_upgrade2));
+            });
+            it("即使魔力不夠，UI還是允許打出升級卡", () => {
+                assert.equal(pm.checkBeforePlay(ferry_bomb_upgrade2), true);
             });
             it("所有安裝在這個角色身上的升級費用應為零", () => {
                 selecter.setSelectedSeqs(ultimate_0_test_char.seq);
