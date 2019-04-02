@@ -9,7 +9,7 @@ import { Player } from "../../game_core/enums";
 import { drawStrength } from "./draw_card";
 import FrontendSelecter from "./frontend_selecter";
 
-const H = 50, W = 50, MAX_CHAR = 9;
+const H = 70, W = 50, MAX_CHAR = 9;
 
 export class CharArea {
     public view = new PIXI.Container();
@@ -22,12 +22,12 @@ export class CharArea {
 
 
     constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
-        private showBIgCard: ShowBigCard, private ticker: PIXI.ticker.Ticker
+        private showBigCard: ShowBigCard, private ticker: PIXI.ticker.Ticker
     ) {
         let { ew, eh } = getEltSize();
         this.view.addChild(this.chars_view);
         this.view.addChild(this.tired_mask_view);
-        let ratio = Math.min(ew * 2.5 / W, eh * 5.5 / H);
+        let ratio = Math.min(ew * 2.5 / W, eh * 6 / H);
         this.c_width = ratio * W;
         this.c_height = ratio * H;
 
@@ -114,8 +114,8 @@ export class CharArea {
         view.cursor = "pointer";
         let destroy_big: () => void = null;
         view.on("mouseover", () => {
-            destroy_big = this.showBIgCard(
-                view.worldTransform.tx+view.width/2, view.worldTransform.ty + view.height/2,
+            destroy_big = this.showBigCard(
+                view.worldTransform.tx + view.width/2, view.worldTransform.ty + view.height/2,
                 char, this.ticker);
         });
         view.on("mouseout", () => {
@@ -164,6 +164,8 @@ export class CharArea {
                         destroy_big = null;
                     }
                     // 移除UI
+                    view.visible = false;
+                    tired_mask.visible = false;
                 }
             }
         });

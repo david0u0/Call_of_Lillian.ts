@@ -49,6 +49,9 @@ export default class FrontendSelecter implements ISelecter {
             this.line.moveTo(this.mouse_init_pos.x, this.mouse_init_pos.y);
             this.line.lineTo(evt.data.global.x, evt.data.global.y);
         });
+        this.view.on("click", evt => {
+            // TODO: 想辦法做到點其它地方就取消
+        });
         return new Promise<T|null>(resolve => {
             this.resolve_card = resolve;
         });
@@ -65,13 +68,14 @@ export default class FrontendSelecter implements ISelecter {
      */
     onCardClicked(card: IKnownCard): boolean {
         if(this.resolve_card && this.selecting) {
+            this.view.removeAllListeners();
+            this._selecting = false;
+            this.line.destroy();
             if(this.filter_func(card)) {
-                this.view.removeAllListeners();
-                this._selecting = false;
-                this.line.destroy();
                 this.resolve_card(card);
                 return true;
             } else {
+                this.resolve_card(null);
                 return false;
             }
         } else {

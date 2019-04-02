@@ -105,7 +105,7 @@ interface ICharacter extends IKnownCard {
 }
 
 interface IArena extends IKnownCard {
-    readonly position: number;
+    position: number;
     readonly char_list: ICharacter[];
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;

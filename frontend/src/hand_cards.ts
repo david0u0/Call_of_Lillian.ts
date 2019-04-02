@@ -2,10 +2,11 @@ import * as PIXI from "pixi.js";
 
 import { BadOperationError, GameMaster } from "../../game_core/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
-import { getEltSize } from "./get_screen_size";
+import { getEltSize, getWinSize } from "./get_screen_size";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";
+import FrontendSelecter from "./frontend_selecter";
 
 // FIXME: 當一張卡被 destroy 時，如果它的大圖還開著，會永遠關不了（因為沒有觸發 mouseout 事件）
 // FIXME: 要處理好幾張卡被加入/移除的效果
@@ -17,10 +18,11 @@ class HandUI {
     private readonly card_gap: number;
     public readonly view: PIXI.Container;
 
-    constructor(private gm: GameMaster, list: ICard[],
+    constructor(private selecter: FrontendSelecter, private gm: GameMaster, list: ICard[],
         private ticker: PIXI.ticker.Ticker, private showBigCard: ShowBigCard,
         private getOffset: (c: PIXI.Container) => { x: number, y: number }
     ) {
+        console.log(list)
         this.list = [...list];
         let view = new PIXI.Container();
         let { ew, eh } = getEltSize();
@@ -136,7 +138,7 @@ class HandUI {
             let destroy_big_card: () => void = null;
             card_ui.on("mouseover", () => {
                 destroy_big_card = this.showBigCard(card_ui.worldTransform.tx,
-                    card_ui.worldTransform.ty +card_ui.height * 0.5, card, this.ticker);
+                    getWinSize().height, card, this.ticker);
             });
             card_ui.on("mouseout", () => {
                 if(destroy_big_card) {
@@ -145,13 +147,17 @@ class HandUI {
                 }
             });
             card_ui.on("click", async () => {
-                let pm = this.gm.getMyMaster(card);
-                if(await pm.playCard(card)) {
-                    if(destroy_big_card) {
-                        destroy_big_card();
-                        destroy_big_card = null;
+                if(this.selecter.selecting) {
+                    this.selecter.onCardClicked(card);
+                } else {
+                    let pm = this.gm.getMyMaster(card);
+                    if(await pm.playCard(card)) {
+                        if(destroy_big_card) {
+                            destroy_big_card();
+                            destroy_big_card = null;
+                        }
+                        this.remove(card);
                     }
-                    this.remove(card);
                 }
             });
         }
@@ -159,7 +165,7 @@ class HandUI {
     }
 }
 
-export function constructHandUI(pm: GameMaster, hands: ICard[],
+export function constructHandUI(selecter: FrontendSelecter, gm: GameMaster, hands: ICard[],
     ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard,
     getOffset: (c: PIXI.Container) => { x: number, y: number }
 ): Promise<HandUI> {
@@ -170,7 +176,7 @@ export function constructHandUI(pm: GameMaster, hands: ICard[],
     }
     return new Promise<HandUI>((resolve, reject) => {
         my_loader.load(() => {
-            resolve(new HandUI(pm, hands, ticker, showBigCard, getOffset));
+            resolve(new HandUI(selecter, gm, hands, ticker, showBigCard, getOffset));
         });
     });
 }

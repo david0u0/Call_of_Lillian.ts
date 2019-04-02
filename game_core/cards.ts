@@ -201,8 +201,7 @@ abstract class Character extends KnownCard implements ICharacter {
 
 abstract class Arena extends KnownCard implements IArena {
     public readonly card_type = CardType.Arena;
-    private _position = -1;
-    public get position() { return this._position; };
+    public position = -1;
     public readonly abstract basic_exploit_cost: number;
 
     private _char_list = new Array<ICharacter>();

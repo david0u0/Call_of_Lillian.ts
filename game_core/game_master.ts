@@ -285,6 +285,7 @@ class GameMaster {
         let arena = this.genCard(owner, card_constructor) as IArena;
         arena.card_status = CardStat.Onboard;
         this.getMyMaster(owner).arenas[pos] = arena;
+        arena.position = pos;
         return arena;
     }
 

@@ -68,13 +68,13 @@ async function setup() {
         return showBigCard(app.stage, x, y, card, ticker);
     };
 
-    let hands_ui1_obj = await constructHandUI(gm, hands1, app.ticker,
+    let hands_ui1_obj = await constructHandUI(selecter, gm, hands1, app.ticker,
         show_big_card, c => {
             return { x: (width - c.width) / 2, y: -c.height * 0.5 };
         }
     );
     app.stage.addChild(hands_ui1_obj.view);
-    let hands_ui2_obj = await constructHandUI(gm, hands2, app.ticker,
+    let hands_ui2_obj = await constructHandUI(selecter, gm, hands2, app.ticker,
         show_big_card, c => {
             return { x: (width - c.width) / 2, y: height - c.height * 0.5 };
         }
@@ -90,14 +90,22 @@ async function setup() {
     let char_area = new CharArea(me, gm, selecter, show_big_card, app.ticker);
     char_area.view.position.set(0, 29*eh);
 
-    let arena_area1 = new ArenaArea(selecter);
-    let arena_area2 = new ArenaArea(selecter);
+    let arena_area1 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card);
+    let arena_area2 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
     arena_area1.view.position.set(0, 21.75*eh);
     arena_area2.view.position.set(0, 20.25*eh - arena_area2.view.height);
-    let card = gm.genArenaToBoard(me, 2, (seq, owner, gm) => {
-        return new H(seq, owner, gm);
-    });
-    arena_area1.addArena(2, card);
+
+    gm.getMyMaster(me).addMana(100);
+    for(let i = 0; i < 5; i++) {
+        let card = gm.genArenaToBoard(me, i, (seq, owner, gm) => {
+            return new H(seq, owner, gm);
+        });
+        arena_area1.addArena(i, card);
+        card = gm.genArenaToBoard(1-me, i, (seq, owner, gm) => {
+            return new H(seq, owner, gm);
+        });
+        arena_area2.addArena(i, card);
+    }
 
     app.stage.addChild(char_area.view);
 
