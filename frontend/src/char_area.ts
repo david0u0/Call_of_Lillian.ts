@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import getEltSize from "./get_elemental_size";
+import { getEltSize } from "./get_screen_size";
 import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";
@@ -7,8 +7,9 @@ import { TypeGaurd, ICharacter } from "../../game_core/interface";
 import { GameMaster } from "../../game_core/game_master";
 import { Player } from "../../game_core/enums";
 import { drawStrength } from "./draw_card";
+import FrontendSelecter from "./frontend_selecter";
 
-const H = 50, W = 40, MAX_CHAR = 9;
+const H = 50, W = 50, MAX_CHAR = 9;
 
 export class CharArea {
     public view = new PIXI.Container();
@@ -20,7 +21,7 @@ export class CharArea {
     private readonly c_height: number;
 
 
-    constructor(private player: Player, private gm: GameMaster,
+    constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
         private showBIgCard: ShowBigCard, private ticker: PIXI.ticker.Ticker
     ) {
         let { ew, eh } = getEltSize();
@@ -51,10 +52,10 @@ export class CharArea {
         let { ew, eh } = getEltSize();
         if(index % 2 == 0) {
             let n = (8 - index) / 2;
-            return (1.5 + n * 3.5) * ew;
+            return (2 + n * 3) * ew;
         } else {
             let n = (index - 1) / 2;
-            return (23.5 + n * 3) * ew;
+            return (25 + n * 3) * ew;
         }
     }
 
@@ -149,14 +150,21 @@ export class CharArea {
             }
         });
         // 角色進入場所
-        view.on("click", async () => {
-            let result = await this.gm.enterArena(char);
-            if(result) {
-                if(destroy_big) {
-                    destroy_big();
-                    destroy_big = null;
+        view.on("click", async evt => {
+            if(this.selecter.selecting) {
+                this.selecter.onCardClicked(char);
+            } else {
+                let x = evt.data.global.x;
+                let y = evt.data.global.y;
+                this.selecter.setMousePosition(x, y);
+                let result = await this.gm.enterArena(char);
+                if(result) {
+                    if(destroy_big) {
+                        destroy_big();
+                        destroy_big = null;
+                    }
+                    // 移除UI
                 }
-                // 移除UI
             }
         });
     }

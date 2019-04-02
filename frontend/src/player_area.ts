@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
-import getEltSize from "./get_elemental_size";
+import { getEltSize } from "./get_screen_size";
 
-let W = 100, H = 100;
+let W = 40, H = 50;
 let { ew, eh } = getEltSize();
 
 export function drawPlayerArea(width: number, height: number, ticker: PIXI.ticker.Ticker, menu=false) {
@@ -82,7 +82,9 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
             window.addEventListener("mousedown", blur_handler);
         }
     });
-    ticker.add(() => {
+
+    // FIXME: 這邊的 ticker 永遠不會停！
+    let fade_in_out = () => {
         if(menu.alpha <= 0.8 && expanding) {
             menu.alpha += 0.1;
             symbol.alpha = 0;
@@ -92,7 +94,8 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
             symbol.alpha += 0.1;
             menu.y += 1;
         }
-    });
+    };
+    ticker.add(fade_in_out);
 
     let container = new PIXI.Container();
     container.addChild(symbol);

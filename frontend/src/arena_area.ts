@@ -1,12 +1,13 @@
 import { IArena } from "../../game_core/interface";
 import * as PIXI from "pixi.js";
-import getEltSize from "./get_elemental_size";
+import { getEltSize } from "./get_screen_size";
 import { drawCardFace, getCardSize } from "./draw_card";
 
 import H from "../../game_core/test/real_card/arena/M市立綜合醫院";
 import { Player } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/game_master";
 import { my_loader } from "./card_loader";
+import FrontendSelecter from "./frontend_selecter";
 
 export class ArenaArea {
     public view = new PIXI.Container();
@@ -16,7 +17,7 @@ export class ArenaArea {
     private readonly card_w: number;
     private readonly card_h: number;
 
-    constructor() {
+    constructor(private selecter: FrontendSelecter) {
         let { ew, eh } = getEltSize();
         let res = getCardSize(ew*4, eh*4, true);
         this.card_w = res.width;
@@ -41,6 +42,15 @@ export class ArenaArea {
                 let card_face = drawCardFace(card, this.card_w, this.card_h, true);
                 card_face.position.set(offset, 0);
                 this.view.addChild(card_face);
+
+                card_face.interactive = true;
+                card_face.on("click", () => {
+                    if(this.selecter.selecting) {
+                        this.selecter.onCardClicked(card);
+                    } else {
+                        // NOTE: 沒事應該不會去點場地卡 吧？
+                    }
+                });
             });
         }
     }

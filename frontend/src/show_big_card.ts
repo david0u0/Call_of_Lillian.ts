@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { ICard } from "../../game_core/interface";
-import getEltSize from "./get_elemental_size";
+import { getEltSize } from "./get_screen_size";
 import { drawCard } from "./draw_card";
 
 export type ShowBigCard = (x: number, y: number, card: ICard,
