@@ -47,8 +47,8 @@ class HandUI {
         this.view.position.set(x, y);
     }
     private resize() {
-        if(this.list.length > 7) {
-            this.view.scale.set(7 / this.list.length);
+        if(this.list.length > 8) {
+            this.view.scale.set(8 / this.list.length);
         } else {
             this.view.scale.set(1);
         }

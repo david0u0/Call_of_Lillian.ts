@@ -99,11 +99,21 @@ export class ArenaArea {
         }
 
         view.interactive = true;
+        let destroy_big: () => void = null;
         view.on("mouseover", () => {
             this.hovering_char = true;
+            destroy_big = this.showBigCard(view.worldTransform.tx, view.worldTransform.ty, char, this.ticker);
         });
         view.on("mouseout", () => {
             this.hovering_char = false;
+            if(destroy_big) {
+                destroy_big();
+            }
+        });
+        view.on("click", () => {
+            if(this.selecter.selecting) {
+                this.selecter.onCardClicked(char);
+            }
         });
 
         this.view.addChild(view);

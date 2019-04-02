@@ -1,22 +1,77 @@
 import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_screen_size";
+import { PlayerMaster } from "../../game_core/game_master";
 
-let W = 40, H = 50;
+let W = 60, H = 50;
 let { ew, eh } = getEltSize();
 
-export function drawPlayerArea(width: number, height: number, ticker: PIXI.ticker.Ticker, menu=false) {
+function numericStyle(size: number) {
+    return new PIXI.TextStyle({
+        fontSize: size,
+        fontWeight: "bold",
+        fill: 0xebade6,
+        strokeThickness: 2
+    });
+}
+function labelStyle(size: number) {
+    return new PIXI.TextStyle({
+        fontSize: size*0.8,
+        fontWeight: "bold",
+        fontFamily: "微軟正黑體",
+        fill: 0xebade6,
+        strokeThickness: 2
+    });
+}
+
+export function drawPlayerArea(pm: PlayerMaster, width: number, height: number, ticker: PIXI.ticker.Ticker, menu=false) {
     let container = new PIXI.Container();
     let avatar = new PIXI.Sprite(PIXI.loader.resources["avatar"].texture);
     let og_w = avatar.width, og_h = avatar.height;
     let ratio = Math.min(width / W, height / H);
     [width, height] = [ratio * W, ratio * H];
-    avatar.scale.set(ratio * W / og_w, ratio * H / og_h);
+    avatar.scale.set(ratio * W / og_w * 0.6, ratio * H / og_h);
+    avatar.x = 0.2*width;
     container.addChild(avatar);
 
     if(menu) {
         let add_symbol = drawAddSymbol(ticker);
+        add_symbol.x = 0.2*width;
         container.addChild(add_symbol);
     }
+
+    let mana_label_txt = new PIXI.Text("魔力", labelStyle(0.2*width));
+    let mana_txt = new PIXI.Text(pm.mana.toString(), numericStyle(0.2*width));
+    pm.set_mana_chain.append(() => {
+        return {
+            after_effect: () => {
+                mana_txt.text = pm.mana.toString();
+                mana_txt.anchor.set(0.5, 0.5);
+            }
+        };
+    });
+    mana_txt.anchor.set(0.5, 0.5);
+    mana_label_txt.anchor.set(0.5, 0.5);
+    mana_label_txt.position.set(0.2*width, ew*1.2);
+    mana_txt.position.set(0.2*width, ew*1.2 + mana_label_txt.height);
+    container.addChild(mana_label_txt);
+    container.addChild(mana_txt);
+
+    let emo_label_txt = new PIXI.Text("情緒", labelStyle(0.2*width));
+    let emo_txt = new PIXI.Text(pm.emo.toString(), numericStyle(0.2*width));
+    pm.set_emo_chain.append(() => {
+        return {
+            after_effect: () => {
+                emo_txt.text = pm.emo.toString();
+                emo_txt.anchor.set(0.5, 0.5);
+            }
+        };
+    });
+    emo_txt.anchor.set(0.5, 0.5);
+    emo_label_txt.anchor.set(0.5, 0.5);
+    emo_label_txt.position.set(0.8*width, ew*1.2);
+    emo_txt.position.set(0.8*width, ew*1.2 + mana_label_txt.height);
+    container.addChild(emo_label_txt);
+    container.addChild(emo_txt);
 
     return { container, width, height };
 }
