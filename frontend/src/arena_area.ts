@@ -36,12 +36,12 @@ export class ArenaArea {
             rec.drawRoundedRect(offset, 0, this.card_w, this.card_h, 5);
             rec.endFill();
             this.view.addChild(rec);
+        } else {
+            my_loader.add(card.name).load(() => {
+                let card_face = drawCardFace(card, this.card_w, this.card_h, true);
+                card_face.position.set(offset, 0);
+                this.view.addChild(card_face);
+            });
         }
-        /*let card = new H(1, Player.Player1, new GameMaster());
-        my_loader.add(card.name).load(() => {
-            let card_face = drawCardFace(card, this.card_w, this.card_h, true);
-            card_face.position.set(offset, 0);
-            this.view.addChild(card_face);
-        });*/
     }
 }

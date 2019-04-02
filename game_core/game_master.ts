@@ -138,7 +138,7 @@ class PlayerMaster {
         card.rememberFields();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
             card.recoverFields();
-            return;
+            return false;
         }
         await this.addMana(-this.getManaCost(card));
         await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
@@ -151,6 +151,7 @@ class PlayerMaster {
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
             card.recoverFields();
         });
+        return true;
     }
 
     async changeCharTired(char: ICharacter, is_tired: boolean) {
@@ -343,8 +344,10 @@ class GameMaster {
             });
             await p_master.addMana(-this.getEnterCost(char, arena));
             await p_master.changeCharTired(char, true);
+            return true;
         } else {
             throwIfIsBackend("進入程序取消");
+            return false;
         }
     }
     getExploitCost(arena: IArena, char: ICharacter|Player) {

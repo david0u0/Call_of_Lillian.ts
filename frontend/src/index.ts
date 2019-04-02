@@ -12,10 +12,13 @@ import { drawPlayerArea } from "./player_area";
 import C from "../../game_core/test/real_card/character/見習魔女";
 import C2 from "../../game_core/test/real_card/character/終末之民";
 import C3 from "../../game_core/test/real_card/character/雨季的魔女．語霽";
+import H from "../../game_core/test/real_card/arena/M市立綜合醫院";
+
 import { showBigCard, ShowBigCard } from "./show_big_card";
 import { ICard, ICharacter } from "../../game_core/interface";
 import { CharArea } from "./char_area";
 import { ArenaArea } from "./arena_area";
+import FrontendSelecter from "./frontend_selecter";
 
 function getWinSize() {
     let width = window.innerWidth;
@@ -39,8 +42,10 @@ PIXI.loader
 
 
 async function setup() {
+    let me = Player.Player1;
     let { width, height } = getWinSize();
-    let gm = new GameMaster(new TestSelecter());
+    let selecter = new FrontendSelecter();
+    let gm = new GameMaster(selecter);
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
@@ -69,13 +74,17 @@ async function setup() {
         return showBigCard(app.stage, x, y, card, ticker);
     };
 
-    let hands_ui1_obj = await constructHandUI(hands1, app.ticker, show_big_card, c => {
-        return { x: (width - c.width) / 2, y: -c.height*0.5 };
-    });
+    let hands_ui1_obj = await constructHandUI(gm, hands1, app.ticker,
+        show_big_card, c => {
+            return { x: (width - c.width) / 2, y: -c.height * 0.5 };
+        }
+    );
     app.stage.addChild(hands_ui1_obj.view);
-    let hands_ui2_obj = await constructHandUI(hands2, app.ticker, show_big_card, c => {
-        return { x: (width - c.width) / 2, y: height-c.height*0.5 };
-    });
+    let hands_ui2_obj = await constructHandUI(gm, hands2, app.ticker,
+        show_big_card, c => {
+            return { x: (width - c.width) / 2, y: height - c.height * 0.5 };
+        }
+    );
     let hands_ui1 = hands_ui1_obj.view;
     let hands_ui2 = hands_ui2_obj.view;
 
@@ -84,13 +93,17 @@ async function setup() {
     p_area1.container.position.set((width-p_area1.width)/2, hands_ui2.height*0.2);
     p_area2.container.position.set((width-p_area2.width)/2, height - p_area2.height - hands_ui2.height*0.2);
 
-    let char_area = new CharArea(show_big_card, app.ticker);
+    let char_area = new CharArea(me, gm, show_big_card, app.ticker);
     char_area.view.position.set(0, 30*eh);
 
     let arena_area1 = new ArenaArea();
     let arena_area2 = new ArenaArea();
     arena_area1.view.position.set(0, 21.75*eh);
     arena_area2.view.position.set(0, 20.25*eh - arena_area2.view.height);
+    let card = gm.genArenaToBoard(me, 2, (seq, owner, gm) => {
+        return new H(seq, owner, gm);
+    });
+    arena_area1.addArena(2, card);
 
     app.stage.addChild(char_area.view);
 
@@ -101,22 +114,6 @@ async function setup() {
     app.stage.addChild(p_area2.container);
     app.stage.addChild(hands_ui1);
     app.stage.addChild(hands_ui2);
-
-    let card: Character;
-    setTimeout(() => {
-        for(let i = 0; i < 9; i++) {
-            card = gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
-                return new C(seq, owner, gm);
-            }) as Character;
-            char_area.addChar(card, i);
-        }
-    }, 10);
-    setTimeout(() => {
-        gm.getMyMaster(Player.Player1).changeCharTired(card, true);
-    }, 1000);
-    setTimeout(() => {
-        gm.getMyMaster(Player.Player1).changeCharTired(card, false);
-    }, 1300);
 }
 
 document.body.appendChild(app.view);

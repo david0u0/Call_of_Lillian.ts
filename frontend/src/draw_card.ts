@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { IKnownCard, ICard, TypeGaurd as TG } from "../../game_core/interface";
+import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
 
 const H = 1000, W = 722;
@@ -56,6 +56,28 @@ export function drawCardFace(card: ICard, width: number, height: number, landsca
     return img;
 }
 
+export function drawStrength(card: ICharacter|IUpgrade, s_width: number) {
+    let s_height = s_width * 0.4 ;
+
+    let s_area = new PIXI.Graphics();
+    s_area.lineStyle(2, 0x48e0cf);
+    s_area.beginFill(0xdefdf9, 2);
+    s_area.drawRoundedRect(0, 0, s_width, s_height, s_height);
+    //s_area.drawEllipse(s_width/2, s_height/2, s_width/2, s_height/2);
+    s_area.endFill();
+
+    let s_txt = new PIXI.Text(card.basic_strength.toString(), new PIXI.TextStyle({
+        fontSize: s_height*0.7,
+    }));
+    s_txt.anchor.set(0.5, 0.5);
+    s_txt.position.set(s_width/2, s_height/2);
+
+    let view = new PIXI.Container();
+    view.addChild(s_area);
+    view.addChild(s_txt);
+    return view;
+}
+
 export function drawCard(card: ICard, width: number, height: number, isbig = false) {
     let img = drawCardFace(card, width, height);
     let container = new PIXI.Container();
@@ -103,7 +125,11 @@ export function drawCard(card: ICard, width: number, height: number, isbig = fal
             if(TG.isSpell(card)) {
 
             } else if(TG.isCharacter(card) || TG.isUpgrade(card)) {
-
+                if(isbig) {
+                    let s_area = drawStrength(card, width*0.4);
+                    container.addChild(s_area);
+                    s_area.position.set(width*0.3, height - s_area.height/2);
+                }
             }
         }
     }

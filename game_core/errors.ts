@@ -21,7 +21,7 @@ export function throwDevError(msg: string, obj_with_name?: any) {
 
 /** 如果是後端就噴錯誤，如果是前端就只是擋下UI */
 export function throwIfIsBackend(msg: string, obj_with_name?: any) {
-    if(ENV == "backend") {
+    if(typeof window == "undefined") {
         throw new BadOperationError(msg, obj_with_name);
     } else {
         console.log(msg);

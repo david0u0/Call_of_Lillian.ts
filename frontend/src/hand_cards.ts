@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { BadOperationError } from "../../game_core/game_master";
+import { BadOperationError, GameMaster } from "../../game_core/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
 import getEltSize from "./get_elemental_size";
 import { ShowBigCard } from "./show_big_card";
@@ -17,8 +17,8 @@ class HandUI {
     private readonly card_gap: number;
     public readonly view: PIXI.Container;
 
-    constructor(list: ICard[], private ticker: PIXI.ticker.Ticker,
-        private showBigCard: ShowBigCard,
+    constructor(private gm: GameMaster, list: ICard[],
+        private ticker: PIXI.ticker.Ticker, private showBigCard: ShowBigCard,
         private getOffset: (c: PIXI.Container) => { x: number, y: number }
     ) {
         this.list = [...list];
@@ -26,9 +26,9 @@ class HandUI {
         let { ew, eh } = getEltSize();
         let cur_offset = 0;
         for(let card of list) {
-            let card_ui = drawCard(card, ew * 3.5, eh * 10);
+            let card_ui = drawCard(card, ew * 3, eh * 10);
             this.card_gap = card_ui.width * 0.95;
-            card_ui = setupHandCardUI(card, card_ui, ticker, showBigCard);
+            card_ui = this.setupHandCardUI(card, card_ui);
             view.addChild(card_ui);
             card_ui.position.set(cur_offset, 0);
             card_ui.rotation = 0.03;
@@ -46,8 +46,8 @@ class HandUI {
         this.view.position.set(x, y);
     }
     private resize() {
-        if(this.list.length > 8) {
-            this.view.scale.set(8 / this.list.length);
+        if(this.list.length > 7) {
+            this.view.scale.set(7 / this.list.length);
         } else {
             this.view.scale.set(1);
         }
@@ -117,44 +117,50 @@ class HandUI {
         let { ew, eh } = getEltSize();
         let card_ui = drawCard(card, ew * 3.5, eh * 10);
         let offset = this.list.length * this.card_gap;
-        card_ui = setupHandCardUI(card, card_ui, this.ticker, this.showBigCard);
+        card_ui = this.setupHandCardUI(card, card_ui);
         card_ui.position.set(offset, 0);
         card_ui.rotation = 0.03;
         let index = this.list.length;
         this.list.push(card);
         this.resize();
-        let children_to_move = this.view.children.slice(this.view.children.length-1);
+        let children_to_move = this.view.children.slice(this.view.children.length - 1);
         let goal_x = children_to_move[0].x + this.card_gap;
         this.move(children_to_move, goal_x, () => {
             this.view.addChildAt(card_ui, index);
         });
     }
-}
-
-function setupHandCardUI(card: ICard, container: PIXI.Container,
-    ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
-) {
-    container.interactive = true;
-    container.cursor = "pointer";
-    if(TG.isKnown(card)) {
-        let destroy_big_card: () => void = null;
-        container.on("mouseover", () => {
-            destroy_big_card = showBigCard(container.worldTransform.tx,
-                container.worldTransform.ty + container.height * 0.5, card, ticker);
-        });
-        container.on("mouseout", () => {
-            if(destroy_big_card) {
-                destroy_big_card();
-                destroy_big_card = null;
-            }
-        });
+    private setupHandCardUI(card: ICard, card_ui: PIXI.Container) {
+        card_ui.interactive = true;
+        card_ui.cursor = "pointer";
+        if(TG.isKnown(card)) {
+            let destroy_big_card: () => void = null;
+            card_ui.on("mouseover", () => {
+                destroy_big_card = this.showBigCard(card_ui.worldTransform.tx,
+                    card_ui.worldTransform.ty +card_ui.height * 0.5, card, this.ticker);
+            });
+            card_ui.on("mouseout", () => {
+                if(destroy_big_card) {
+                    destroy_big_card();
+                    destroy_big_card = null;
+                }
+            });
+            card_ui.on("click", async () => {
+                let pm = this.gm.getMyMaster(card);
+                if(await pm.playCard(card)) {
+                    if(destroy_big_card) {
+                        destroy_big_card();
+                        destroy_big_card = null;
+                    }
+                    this.remove(card);
+                }
+            });
+        }
+        return card_ui;
     }
-    return container;
 }
 
-
-export function constructHandUI(hands: ICard[], ticker: PIXI.ticker.Ticker,
-    showBigCard: ShowBigCard,
+export function constructHandUI(pm: GameMaster, hands: ICard[],
+    ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard,
     getOffset: (c: PIXI.Container) => { x: number, y: number }
 ): Promise<HandUI> {
     for(let card of hands) {
@@ -164,7 +170,7 @@ export function constructHandUI(hands: ICard[], ticker: PIXI.ticker.Ticker,
     }
     return new Promise<HandUI>((resolve, reject) => {
         my_loader.load(() => {
-            resolve(new HandUI(hands, ticker,  showBigCard, getOffset));
+            resolve(new HandUI(pm, hands, ticker, showBigCard, getOffset));
         });
     });
 }
