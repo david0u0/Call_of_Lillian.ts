@@ -78,7 +78,7 @@ export class CharArea {
                 container.addChild(img);
                 container.position.set(offset, 0);
 
-                let s_area = drawStrength(char, container.width*0.6);
+                let s_area = drawStrength(this.gm, char, container.width*0.6);
                 container.addChild(s_area);
                 s_area.position.set(img.width*0.2, img.height - s_area.height/2);
 

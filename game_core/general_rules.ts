@@ -190,7 +190,7 @@ export class HardRule {
         if(char.card_status != CardStat.Onboard) {
             throw new BadOperationError("欲進入場所的角色不在場上");
         } else if(arena.card_status != CardStat.Onboard) {
-            throw new BadOperationError("欲進入的場所不在場上");
+            throwIfIsBackend("欲進入的場所不在場上");
         } else if(cost > mana) {
             throwIfIsBackend("魔不夠就想進入場所");
             return false;
@@ -221,7 +221,7 @@ export class HardRule {
     }
     public static checkPush(event: IEvent, char: ICharacter | null, mana: number, cost: number): boolean {
         if(event.card_status != CardStat.Onboard) {
-            throw new BadOperationError("嘗試推進不在場上事件！");
+            throwIfIsBackend("嘗試推進不在場上事件！");
         } else if(TG.isCard(char)) {
             if(char.card_status != CardStat.Onboard) {
                 throw new BadOperationError("嘗試用不在場上的角色推進事件！");
@@ -241,7 +241,8 @@ export class HardRule {
     private static checkPlayUpgrade(u: IUpgrade): boolean {
         if(u.character_equipped) {
             if(u.character_equipped.card_status != CardStat.Onboard) {
-                throw new BadOperationError("指定的角色不在場上", u);
+                throwIfIsBackend("指定的角色不在場上", u);
+                return false;
             } else if(u.character_equipped.owner != u.owner) {
                 throwIfIsBackend("指定的角色不屬於你", u);
                 return false;

@@ -84,7 +84,7 @@ export class ArenaArea {
         let char_img = drawCardFace(char, this.card_gap * 0.6, this.card_h * 1.1);
         view.addChild(char_img);
 
-        let s_area = drawStrength(char, view.width * 0.8);
+        let s_area = drawStrength(this.gm, char, view.width * 0.8);
         s_area.position.set(view.width * 0.1, view.height - s_area.height / 2);
         view.addChild(s_area);
 

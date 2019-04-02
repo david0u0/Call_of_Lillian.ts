@@ -13,6 +13,7 @@ import C from "../../game_core/test/real_card/character/見習魔女";
 import C2 from "../../game_core/test/real_card/character/終末之民";
 import C3 from "../../game_core/test/real_card/character/雨季的魔女．語霽";
 import H from "../../game_core/test/real_card/arena/M市立綜合醫院";
+import { U_Test0 } from "../../game_core/test/real_card/upgrade/u_test0";
 
 import { showBigCard, ShowBigCard } from "./show_big_card";
 import { ICard, ICharacter } from "../../game_core/interface";
@@ -52,10 +53,12 @@ async function setup() {
     let hands2 = Array(9).fill(0).map(() => {
         let n = Math.random();
         let CurClass;
-        if(n < 0.5) {
+        if(n < 0.3) {
             CurClass = C;
-        } else {
+        } else if(n < 0.6) {
             CurClass = C2;
+        } else {
+            CurClass = U_Test0;
         }
         return gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
             return new CurClass(seq, owner, gm);
@@ -65,7 +68,7 @@ async function setup() {
     let show_big_card: ShowBigCard = (x: number, y: number,
         card: ICard, ticker: PIXI.ticker.Ticker
     ) => {
-        return showBigCard(app.stage, x, y, card, ticker);
+        return showBigCard(gm, app.stage, x, y, card, ticker);
     };
 
     let hands_ui1_obj = await constructHandUI(selecter, gm, hands1, app.ticker,

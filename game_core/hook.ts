@@ -141,9 +141,11 @@ class ActionChain<U> {
                 await Promise.resolve(cleanup());
             }
         } else {
-            // TODO: 還沒處理 after_effect
             if(callback) {
                 await Promise.resolve(callback());
+                for(let effect of res.after_effect) {
+                    effect();
+                }
             }
         }
     }

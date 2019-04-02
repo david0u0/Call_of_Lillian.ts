@@ -25,8 +25,8 @@ abstract class KnownCard implements IKnownCard {
     public readonly card_leave_chain = new ActionChain<null>();
     public readonly card_retire_chain = new ActionChain<null>();
 
-    protected readonly my_master: PlayerMaster;
-    protected readonly enemy_master: PlayerMaster;
+    public readonly my_master: PlayerMaster;
+    public readonly enemy_master: PlayerMaster;
 
     public async initialize() { return true; }
     public onPlay() { }
@@ -271,4 +271,5 @@ abstract class Event extends KnownCard implements IEvent {
     }
 }
 
-export { UnknownCard, KnownCard, Upgrade, Character, Arena, Event };
+type Card = KnownCard|UnknownCard;
+export { UnknownCard, KnownCard, Upgrade, Character, Arena, Event, Card };

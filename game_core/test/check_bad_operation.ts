@@ -16,7 +16,7 @@ export function checkBadOperationError(func: () => void) {
     }
 }
 
-export async function checkBadOperationErrorAsync(func: () => Promise<void>) {
+export async function checkBadOperationErrorAsync(func: () => Promise<any>) {
     let error_caught = true;
     try {
         await func();

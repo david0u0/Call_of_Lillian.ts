@@ -22,13 +22,12 @@ class HandUI {
         private ticker: PIXI.ticker.Ticker, private showBigCard: ShowBigCard,
         private getOffset: (c: PIXI.Container) => { x: number, y: number }
     ) {
-        console.log(list)
         this.list = [...list];
         let view = new PIXI.Container();
         let { ew, eh } = getEltSize();
         let cur_offset = 0;
         for(let card of list) {
-            let card_ui = drawCard(card, ew * 3, eh * 10);
+            let card_ui = drawCard(this.gm, card, ew * 3, eh * 10);
             this.card_gap = card_ui.width * 0.95;
             card_ui = this.setupHandCardUI(card, card_ui);
             view.addChild(card_ui);
@@ -117,7 +116,7 @@ class HandUI {
     }
     private addLoaded(card: ICard) {
         let { ew, eh } = getEltSize();
-        let card_ui = drawCard(card, ew * 3.5, eh * 10);
+        let card_ui = drawCard(this.gm, card, ew * 3.5, eh * 10);
         let offset = this.list.length * this.card_gap;
         card_ui = this.setupHandCardUI(card, card_ui);
         card_ui.position.set(offset, 0);
@@ -146,11 +145,12 @@ class HandUI {
                     destroy_big_card = null;
                 }
             });
-            card_ui.on("click", async () => {
+            card_ui.on("click", async evt => {
                 if(this.selecter.selecting) {
                     this.selecter.onCardClicked(card);
                 } else {
                     let pm = this.gm.getMyMaster(card);
+                    this.selecter.setMousePosition(evt.data.global.x, evt.data.global.y);
                     if(await pm.playCard(card)) {
                         if(destroy_big_card) {
                             destroy_big_card();
