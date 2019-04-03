@@ -1,9 +1,8 @@
 import * as PIXI from "pixi.js";
-import { getEltSize } from "./get_screen_size";
 import { PlayerMaster } from "../../game_core/game_master";
+import { getEltSize } from "./get_screen_size";
 
 let W = 60, H = 50;
-let { ew, eh } = getEltSize();
 
 function numericStyle(size: number) {
     return new PIXI.TextStyle({
@@ -23,7 +22,9 @@ function labelStyle(size: number) {
     });
 }
 
-export function drawPlayerArea(pm: PlayerMaster, width: number, height: number, ticker: PIXI.ticker.Ticker, menu=false) {
+export function drawPlayerArea(pm: PlayerMaster, width: number, height: number,
+    ticker: PIXI.ticker.Ticker, upsidedown=false
+) {
     let container = new PIXI.Container();
     let avatar = new PIXI.Sprite(PIXI.loader.resources["avatar"].texture);
     let og_w = avatar.width, og_h = avatar.height;
@@ -33,53 +34,54 @@ export function drawPlayerArea(pm: PlayerMaster, width: number, height: number, 
     avatar.x = 0.2*width;
     container.addChild(avatar);
 
-    if(menu) {
-        let add_symbol = drawAddSymbol(ticker);
+    if(!upsidedown) {
+        let add_symbol = drawAddSymbol(0.2*height, ticker);
         add_symbol.x = 0.2*width;
         container.addChild(add_symbol);
     }
 
-    let mana_label_txt = new PIXI.Text("魔力", labelStyle(0.2*width));
-    let mana_txt = new PIXI.Text(pm.mana.toString(), numericStyle(0.2*width));
+    let mana_label_txt = new PIXI.Text("魔力", labelStyle(0.2*height));
+    let mana_txt = new PIXI.Text(pm.mana.toString(), numericStyle(0.2*height));
     pm.set_mana_chain.append(() => {
         return {
-            after_effect: () => {
-                mana_txt.text = pm.mana.toString();
-                mana_txt.anchor.set(0.5, 0.5);
-            }
+            after_effect: () => { mana_txt.text = pm.mana.toString(); }
         };
     });
     mana_txt.anchor.set(0.5, 0.5);
     mana_label_txt.anchor.set(0.5, 0.5);
-    mana_label_txt.position.set(0.2*width, ew*1.2);
-    mana_txt.position.set(0.2*width, ew*1.2 + mana_label_txt.height);
+    mana_label_txt.position.set(0.2*width, 0.25*height);
+    mana_txt.position.set(0.2*width, 0.25*height + mana_label_txt.height);
     container.addChild(mana_label_txt);
     container.addChild(mana_txt);
 
-    let emo_label_txt = new PIXI.Text("情緒", labelStyle(0.2*width));
-    let emo_txt = new PIXI.Text(pm.emo.toString(), numericStyle(0.2*width));
+    let emo_label_txt = new PIXI.Text("情緒", labelStyle(0.2*height));
+    let emo_txt = new PIXI.Text(pm.emo.toString(), numericStyle(0.2*height));
     pm.set_emo_chain.append(() => {
         return {
-            after_effect: () => {
-                emo_txt.text = pm.emo.toString();
-                emo_txt.anchor.set(0.5, 0.5);
-            }
+            after_effect: () => { emo_txt.text = pm.emo.toString(); }
         };
     });
     emo_txt.anchor.set(0.5, 0.5);
     emo_label_txt.anchor.set(0.5, 0.5);
-    emo_label_txt.position.set(0.8*width, ew*1.2);
-    emo_txt.position.set(0.8*width, ew*1.2 + mana_label_txt.height);
+    emo_label_txt.position.set(0.8*width, 0.25*height);
+    emo_txt.position.set(0.8*width, 0.25*height + mana_label_txt.height);
     container.addChild(emo_label_txt);
     container.addChild(emo_txt);
+
+    if(upsidedown) {
+        mana_label_txt.position.set(0.2 * width, 0.6 * height);
+        mana_txt.position.set(0.2 * width, 0.6 * height + mana_label_txt.height);
+        emo_label_txt.position.set(0.8 * width, 0.6 * height);
+        emo_txt.position.set(0.8 * width, 0.6 * height + mana_label_txt.height);
+    }
 
     return { container, width, height };
 }
 
-function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
+function drawAddSymbol(size: number, ticker: PIXI.ticker.Ticker) {
     let symbol = new PIXI.Container();
     let add = new PIXI.Text("+", new PIXI.TextStyle({
-        "fontSize": ew,
+        "fontSize": size,
         "fill": 0xffffff,
         "fontWeight": "bold"
     }));
@@ -88,7 +90,7 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
 
     let circle = new PIXI.Graphics();
     circle.lineStyle(4, 0xffffff);
-    circle.drawCircle(0, 0, ew/2.2);
+    circle.drawCircle(0, 0, size/2);
     symbol.addChild(circle);
 
     symbol.interactive = true;
@@ -159,6 +161,7 @@ function drawAddSymbol(ticker: PIXI.ticker.Ticker) {
 }
 
 function drawMoreMenu(expand: (close?: boolean) => boolean) {
+    let { eh, ew } = getEltSize();
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
     rec.beginFill(0xFFFFFF, 1);
@@ -187,6 +190,7 @@ function drawMoreMenu(expand: (close?: boolean) => boolean) {
 }
 
 function drawIcon(name: string, index: number, expand: (close?: boolean) => boolean) {
+    let { eh, ew } = getEltSize();
     let icon = new PIXI.Sprite(PIXI.loader.resources[name].texture);
     icon.interactive = true;
     icon.scale.set(eh*2.5/icon.height);

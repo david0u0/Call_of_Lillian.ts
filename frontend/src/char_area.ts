@@ -27,7 +27,7 @@ export class CharArea {
         let { ew, eh } = getEltSize();
         this.view.addChild(this.chars_view);
         this.view.addChild(this.tired_mask_view);
-        let ratio = Math.min(ew * 2.5 / W, eh * 6 / H);
+        let ratio = Math.min(ew * 2.5 / W, eh * 7 / H);
         this.c_width = ratio * W;
         this.c_height = ratio * H;
 
@@ -78,7 +78,7 @@ export class CharArea {
                 container.addChild(img);
                 container.position.set(offset, 0);
 
-                let s_area = drawStrength(this.gm, char, container.width*0.6);
+                let s_area = drawStrength(this.gm, char, container.width*0.6, true);
                 container.addChild(s_area);
                 s_area.position.set(img.width*0.2, img.height - s_area.height/2);
 

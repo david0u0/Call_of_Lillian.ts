@@ -34,7 +34,7 @@ export class ArenaArea {
 
         gm.enter_chain.append(({ arena, char }) => {
             if(arena.owner == player) {
-                this.enterChar(arena, char);
+                return { after_effect: () => this.enterChar(arena, char) };
             }
         });
     }
@@ -84,13 +84,13 @@ export class ArenaArea {
         let char_img = drawCardFace(char, this.card_gap * 0.6, this.card_h * 1.1);
         view.addChild(char_img);
 
-        let s_area = drawStrength(this.gm, char, view.width * 0.8);
+        let s_area = drawStrength(this.gm, char, view.width * 0.8, true);
         s_area.position.set(view.width * 0.1, view.height - s_area.height / 2);
         view.addChild(s_area);
 
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;
-        if(arena.char_list.length == 0) {
+        if(arena.char_list.length == 1) {
             offset -= view.width;
             view.position.set(offset, this.card_h - view.width * 0.5);
         } else {

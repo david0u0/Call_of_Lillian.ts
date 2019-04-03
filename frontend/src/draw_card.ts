@@ -57,7 +57,7 @@ export function drawCardFace(card: ICard, width: number, height: number, landsca
     return img;
 }
 
-export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_width: number) {
+export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_width: number, need_upate=false) {
     let pm = gm.getMyMaster(card);
     let s_height = s_width * 0.4;
     let view = new PIXI.Container();
@@ -70,24 +70,33 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     s_area.endFill();
     view.addChild(s_area);
 
-    let getStr = () => {
-        if(TypeGaurd.isCharacter(card)) {
-            return pm.getStrength(card);
-        } else {
-            return card.basic_strength;
-        }
-    };
-    let s_txt = new PIXI.Text(getStr().toString(), new PIXI.TextStyle({
+    let s_txt = new PIXI.Text("", new PIXI.TextStyle({
         fontSize: s_height * 0.7,
     }));
+    s_txt.dirty = true;
     s_txt.anchor.set(0.5, 0.5);
     s_txt.position.set(s_width / 2, s_height / 2);
     view.addChild(s_txt);
+    let formatStr = () => {
+        let str = 0;
+        if(TypeGaurd.isCharacter(card)) {
+            str = pm.getStrength(card);
+        } else {
+            str = card.basic_strength;
+        }
+        if(str != card.basic_strength) {
+            s_txt.style.fill = 0x0f70d2;
+        }
+        s_txt.text = str.toString();
+    };
+    formatStr();
     // 在任何牌被打出時更新戰力
     // TODO: 應該要在 getter 鏈上接一個回調，在該鏈被動到的時候通知我
-    pm.card_play_chain.append(c => {
-        return { after_effect: () => s_txt.text = getStr().toString() };
-    });
+    if(need_upate) {
+        pm.card_play_chain.append(c => {
+            return { after_effect: formatStr };
+        });
+    }
 
     return view;
 }
@@ -152,7 +161,7 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
 
         } else if(TG.isCharacter(card) || TG.isUpgrade(card)) {
             if(isbig) {
-                let s_area = drawStrength(gm, card, width * 0.4);
+                let s_area = drawStrength(gm, card, width * 0.4); // 大圖不需要實時更新戰力
                 container.addChild(s_area);
                 s_area.position.set(width * 0.3, height - s_area.height / 2);
             }

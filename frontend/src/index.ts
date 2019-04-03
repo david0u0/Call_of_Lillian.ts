@@ -78,25 +78,25 @@ async function setup() {
 
     let hands_ui1_obj = await constructHandUI(selecter, gm, hands1, app.ticker,
         show_big_card, c => {
-            return { x: (width - c.width) / 2, y: -c.height * 0.6 };
+            return { x: (width - c.width) / 2, y: -c.height + 5.5*eh };
         }
     );
     app.stage.addChild(hands_ui1_obj.view);
     let hands_ui2_obj = await constructHandUI(selecter, gm, hands2, app.ticker,
         show_big_card, c => {
-            return { x: (width - c.width) / 2, y: height - c.height * 0.6 };
+            return { x: (width - c.width) / 2, y: height - 5.5*eh };
         }
     );
     let hands_ui1 = hands_ui1_obj.view;
     let hands_ui2 = hands_ui2_obj.view;
 
-    let p_area1 = drawPlayerArea(gm.getEnemyMaster(me), 6*ew, 10*eh, app.ticker);
-    let p_area2 = drawPlayerArea(gm.getMyMaster(me), 6*ew, 10*eh, app.ticker, true);
-    p_area1.container.position.set((width-p_area1.width)/2, hands_ui2.height*0.2);
-    p_area2.container.position.set((width-p_area2.width)/2, height - p_area2.height - hands_ui2.height*0.2);
+    let p_area1 = drawPlayerArea(gm.getEnemyMaster(me), 6*ew, 10*eh, app.ticker, true);
+    let p_area2 = drawPlayerArea(gm.getMyMaster(me), 6*ew, 10*eh, app.ticker);
+    p_area1.container.position.set((width-p_area1.width)/2, 11*eh-p_area1.height);
+    p_area2.container.position.set((width-p_area2.width)/2, 31*eh);
 
     let char_area = new CharArea(me, gm, selecter, show_big_card, app.ticker);
-    char_area.view.position.set(0, 29*eh);
+    char_area.view.position.set(0, 28.5*eh);
 
     let arena_area1 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card);
     let arena_area2 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
@@ -104,6 +104,7 @@ async function setup() {
     arena_area2.view.position.set(0, 20.25*eh - arena_area2.view.height);
 
     gm.getMyMaster(me).addMana(99);
+    gm.getEnemyMaster(me).addMana(9);
     for(let i = 0; i < 5; i++) {
         let card = gm.genArenaToBoard(me, i, (seq, owner, gm) => {
             return new H(seq, owner, gm);
