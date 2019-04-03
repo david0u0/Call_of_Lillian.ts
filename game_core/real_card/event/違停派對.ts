@@ -1,5 +1,5 @@
-import { Event } from "../../../cards";
-import { IEvent, ICharacter } from "../../../interface";
+import { Event } from "../../cards";
+import { IEvent, ICharacter } from "../../interface";
 
 let name = "違停派對";
 let description = `當你打出*違停派對*，得到7魔力。

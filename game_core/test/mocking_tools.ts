@@ -1,7 +1,13 @@
-import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter } from "./interface";
-import { BadOperationError } from "./errors";
+import fs from "fs";
+import path from "path";
 
-class TestSelecter implements ISelecter {
+import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter } from "../interface";
+import { BadOperationError } from "../errors";
+import { Player } from "../enums";
+import { GameMaster } from "../game_master";
+import { KnownCard } from "../cards";
+
+export class TestSelecter implements ISelecter {
     private card_table: { [index: number]: IKnownCard } = {};
     public setCardTable(table: { [index: number]: IKnownCard }) {
         this.card_table = table;
@@ -92,4 +98,21 @@ class TestSelecter implements ISelecter {
     }
 }
 
-export default TestSelecter;
+const PREFIX = "./dist/game_core/real_card";
+let card_class_table: { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): KnownCard }} = {};
+
+let card_type_dirs = fs.readdirSync(PREFIX);
+for(let type_name of card_type_dirs) {
+    let card_names = fs.readdirSync(`${PREFIX}/${type_name}`);
+    for(let name of card_names) {
+        try {
+            let card_path = path.resolve(`${PREFIX}/${type_name}`, name);
+            card_class_table[name] = require(card_path).default;
+        } catch(err) { }
+    }
+}
+
+export function genFunc(name: string, owner: Player, seq: number, gm: GameMaster): KnownCard {
+    let C = card_class_table[`${name}.js`];
+    return new C(seq, owner, gm);
+}

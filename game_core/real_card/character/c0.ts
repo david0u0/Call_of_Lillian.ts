@@ -1,12 +1,12 @@
-import { Character } from "../../../cards";
-import { IEvent, TypeGaurd } from "../../../interface";
-import { BadOperationError } from "../../../game_master";
+import { Character } from "../../cards";
+import { IEvent, TypeGaurd } from "../../interface";
+import { BadOperationError } from "../../game_master";
 
 let name = "魔法少女莉莉安";
 let description = `做為額外的代價，你必需支付兩點以上分數。
 **莉莉安的呼喚**：（角色瞬間行動）你可以推進的一個事件。若該事件因此完成，改為使之失敗，並令*魔法少女莉莉安*退場。`;
 
-export class C2 extends Character {
+export default class C2 extends Character {
     name = name;
     description = description;
     basic_mana_cost = 5;

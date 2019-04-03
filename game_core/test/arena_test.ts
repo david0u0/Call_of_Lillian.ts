@@ -6,14 +6,12 @@ import { GameMaster } from "../game_master";
 import { BadOperationError } from "../errors";
 
 import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
-import Hospital from "./real_card/arena/M市立綜合醫院";
-import Rainy from "./real_card/character/雨季的魔女．語霽";
-import TestSelecter from "../test_selecter";
+import { TestSelecter, genFunc } from "./mocking_tools";
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;
 let selecter = new TestSelecter();
-let gm = new GameMaster(selecter);
+let gm = new GameMaster(selecter, genFunc);
 let pm = gm.getMyMaster(p1);
 let enemy_master = gm.getEnemyMaster(p1);
 
@@ -27,25 +25,19 @@ describe("測試最基礎的場所卡", () => {
     let rainy2: Character;
     let e_rainy3: Character;
     before(async () => {
-        let a_generater = (seq: number, owner: Player, gm: GameMaster) => {
-            return new Hospital(seq, owner, gm);
-        };
-        gm.genArenaToBoard(p1, 0, a_generater);
-        gm.genArenaToBoard(p1, 1, a_generater);
-        my_h = gm.genArenaToBoard(p1, 2, a_generater) as Arena;
-        gm.genArenaToBoard(p1, 3, a_generater);
-        gm.genArenaToBoard(p1, 4, a_generater);
-        gm.genArenaToBoard(p2, 0, a_generater);
-        gm.genArenaToBoard(p2, 1, a_generater);
-        enemy_h = gm.genArenaToBoard(p2, 2, a_generater) as Arena;
-        gm.genArenaToBoard(p2, 3, a_generater);
-        gm.genArenaToBoard(p2, 4, a_generater);
-        let c_generater = (seq: number, owner: Player, gm: GameMaster) => {
-            return new Rainy(seq, owner, gm);
-        };
-        rainy = gm.genCardToHand(p1, c_generater) as Character;
-        rainy2 = gm.genCardToHand(p1, c_generater) as Character;
-        e_rainy3 = gm.genCardToHand(p2, c_generater) as Character;
+        gm.genArenaToBoard(p1, 0, "M市立綜合醫院");
+        gm.genArenaToBoard(p1, 1, "M市立綜合醫院");
+        my_h = gm.genArenaToBoard(p1, 2, "M市立綜合醫院") as Arena;
+        gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
+        gm.genArenaToBoard(p1, 4, "M市立綜合醫院");
+        gm.genArenaToBoard(p2, 0, "M市立綜合醫院");
+        gm.genArenaToBoard(p2, 1, "M市立綜合醫院");
+        enemy_h = gm.genArenaToBoard(p2, 2, "M市立綜合醫院") as Arena;
+        gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
+        gm.genArenaToBoard(p2, 4, "M市立綜合醫院");
+        rainy = gm.genCardToHand(p1, "雨季的魔女．語霽") as Character;
+        rainy2 = gm.genCardToHand(p1, "雨季的魔女．語霽") as Character;
+        e_rainy3 = gm.genCardToHand(p2, "雨季的魔女．語霽") as Character;
         await pm.playCard(rainy);
         await pm.playCard(rainy2);
         await enemy_master.playCard(e_rainy3);

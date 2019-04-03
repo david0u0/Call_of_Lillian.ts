@@ -1,5 +1,5 @@
-import { Event } from "../../../cards";
-import { IEvent, ICharacter } from "../../../interface";
+import { Event } from "../../cards";
+import { IEvent, ICharacter } from "../../interface";
 
 let name = "生命、宇宙與萬事萬物的答案";
 let description = "42";

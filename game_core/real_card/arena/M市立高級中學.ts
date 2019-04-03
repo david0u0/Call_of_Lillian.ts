@@ -1,6 +1,6 @@
-import { CardType, CardSeries, BattleRole, Player } from "../../../enums";
-import { Character, Upgrade, Arena } from "../../../cards";
-import { IArena, ICharacter } from "../../../interface";
+import { CardType, CardSeries, BattleRole, Player } from "../../enums";
+import { Character, Upgrade, Arena } from "../../cards";
+import { IArena, ICharacter } from "../../interface";
 
 let name = "M市立高級中學";
 let description = "2魔力 -> 招募一名*見習魔女*至待命區";

@@ -253,45 +253,51 @@ class PlayerMaster {
 class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [index: number]: IKnownCard } = {};
-    getSeqNumber(): number {
-        return this._cur_seq++;
+
+    constructor(public readonly selecter: ISelecter,
+        private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
+    ) {
+        SR.onGetEnterCost(this.get_enter_cost_chain);
+        SR.checkEnter(this.enter_chain);
+        SR.onEnter(this.enter_chain, (p, mana) => {
+            this.getMyMaster(p).addMana(mana);
+        });
+        SR.checkExploit(this.exploit_chain);
+        selecter.setCardTable(this.card_table);
     }
-    private genCard(owner: Player,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IKnownCard
-    ): IKnownCard {
-        let c = card_constructor(this.getSeqNumber(), owner, this);
+
+    private genCard(owner: Player, name: string): IKnownCard {
+        let c = this.genFunc(name, owner, this._cur_seq++, this);
         this.card_table[c.seq] = c;
         return c;
     }
-    genCardToDeck(owner: Player,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IKnownCard
-    ): IKnownCard {
-        let c = this.genCard(owner, card_constructor);
+    genCardToDeck(owner:Player, name: string): IKnownCard {
+        let c = this.genCard(owner, name);
         this.getMyMaster(owner).addToDeck(c);
         return c;
     }
-    genCardToHand(owner: Player,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IKnownCard
-    ): IKnownCard {
-        let c = this.genCard(owner, card_constructor);
+    genCardToHand(owner: Player, name: string): IKnownCard {
+        let c = this.genCard(owner, name);
         c.card_status = CardStat.Hand;
         this.getMyMaster(owner).addToHand(c);
         return c;
     }
     // 應該就一開始會用到而已 吧？
-    genArenaToBoard(owner: Player, pos: number,
-        card_constructor: (seq: number, owner: Player, gm: GameMaster) => IArena
-    ): IArena {
-        let arena = this.genCard(owner, card_constructor) as IArena;
-        arena.card_status = CardStat.Onboard;
-        this.getMyMaster(owner).arenas[pos] = arena;
-        arena.position = pos;
-        return arena;
+    genArenaToBoard(owner: Player, pos: number, name: string): IArena {
+        let arena = this.genCard(owner, name);
+        if(TG.isArena(arena)) {
+            arena.card_status = CardStat.Onboard;
+            this.getMyMaster(owner).arenas[pos] = arena;
+            arena.position = pos;
+            return arena;
+        } else {
+            throw new BadOperationError("嘗試將非場所卡加入建築區");
+        }
     }
 
     private p_master1: PlayerMaster = new PlayerMaster(Player.Player1, this.selecter);
     private p_master2: PlayerMaster = new PlayerMaster(Player.Player2, this.selecter);
-    getMyMaster(arg: Player|IKnownCard): PlayerMaster {
+    getMyMaster(arg: Player | IKnownCard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);
         } else if(arg == Player.Player1) {
@@ -300,7 +306,7 @@ class GameMaster {
             return this.p_master2;
         }
     }
-    getEnemyMaster(arg: Player|IKnownCard): PlayerMaster {
+    getEnemyMaster(arg: Player | IKnownCard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getEnemyMaster(arg.owner);
         } else if(arg == Player.Player2) {
@@ -308,16 +314,6 @@ class GameMaster {
         } else {
             return this.p_master2;
         }
-    }
-
-    constructor(public readonly selecter: ISelecter) {
-        SR.onGetEnterCost(this.get_enter_cost_chain);
-        SR.checkEnter(this.enter_chain);
-        SR.onEnter(this.enter_chain, (p, mana) => {
-            this.getMyMaster(p).addMana(mana);
-        });
-        SR.checkExploit(this.exploit_chain);
-        selecter.setCardTable(this.card_table);
     }
 
     getEnterCost(char: ICharacter, arena: IArena): number {
@@ -351,7 +347,7 @@ class GameMaster {
             return false;
         }
     }
-    getExploitCost(arena: IArena, char: ICharacter|Player) {
+    getExploitCost(arena: IArena, char: ICharacter | Player) {
         let get_cost_chain = arena.get_exploit_cost_chain
         .chain(this.get_exploit_cost_chain, { arena, char });
         if(TG.isCard(char)) {
@@ -360,7 +356,7 @@ class GameMaster {
         return get_cost_chain.trigger(arena.basic_exploit_cost, char);
     }
     /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
-    async exploit(arena: IArena, char: ICharacter|Player) {
+    async exploit(arena: IArena, char: ICharacter | Player) {
         let p_master = this.getMyMaster(char);
         let cost = this.getExploitCost(arena, char);
         if(HR.checkExploit(arena, char, p_master.mana, cost)) {
@@ -380,7 +376,7 @@ class GameMaster {
             }
         }
     }
-    repulse(loser: ICharacter, winner: ICharacter|null) {
+    repulse(loser: ICharacter, winner: ICharacter | null) {
         // TODO:
     }
     getAll<T extends IKnownCard>(guard: (c: IKnownCard) => c is T, filter?: (c: T) => boolean) {
@@ -399,7 +395,7 @@ class GameMaster {
     }
 
     public readonly get_enter_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter }>();
-    public readonly enter_chain = new ActionChain< { arena: IArena, char: ICharacter }>();
+    public readonly enter_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
     public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
     public readonly exploit_chain = new ActionChain<{ arena: IArena, char: ICharacter | Player }>();
 

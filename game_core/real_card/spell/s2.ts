@@ -1,5 +1,5 @@
-import { CardType, CardSeries, BattleRole } from "../../../enums";
-import { Character, Upgrade } from "../../../cards";
+import { CardType, CardSeries, BattleRole } from "../../enums";
+import { Character, Upgrade } from "../../cards";
 
 let name = "替身";
 let description = `*瞬間*

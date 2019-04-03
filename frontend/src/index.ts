@@ -3,24 +3,21 @@ import * as PIXI from "pixi.js";
 import { GameMaster } from "../../game_core/game_master";
 import { UnknownCard, Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
-import TestSelecter from "../../game_core/test_selecter";
 
 import { getWinSize, getEltSize } from "./get_screen_size";
 import { constructHandUI } from "./hand_cards";
 import { drawPlayerArea } from "./player_area";
 
-import C from "../../game_core/test/real_card/character/見習魔女";
-import C2 from "../../game_core/test/real_card/character/終末之民";
-import C3 from "../../game_core/test/real_card/character/雨季的魔女．語霽";
-import H from "../../game_core/test/real_card/arena/M市立綜合醫院";
-import { C4 } from "../../game_core/test/real_card/character/數據之海的水手";
-import { U_Test0 } from "../../game_core/test/real_card/upgrade/u_test0";
-
 import { showBigCard, ShowBigCard } from "./show_big_card";
-import { ICard, ICharacter } from "../../game_core/interface";
+import { ICard, IKnownCard } from "../../game_core/interface";
 import { CharArea } from "./char_area";
 import { ArenaArea } from "./arena_area";
 import FrontendSelecter from "./frontend_selecter";
+
+function genCard(name: string, owner: Player, seq: number, gm: GameMaster): IKnownCard {
+    let C = require(`/real_card/${name}.js`).default;
+    return new C(seq, owner, gm);
+}
 
 //Create the renderer
 let app = new PIXI.Application(getWinSize());
@@ -41,7 +38,7 @@ async function setup() {
     let me = Player.Player1;
     let { width, height } = getWinSize();
     let selecter = new FrontendSelecter(app.ticker);
-    let gm = new GameMaster(selecter);
+    let gm = new GameMaster(selecter, genCard);
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
@@ -53,21 +50,19 @@ async function setup() {
     });
     let hands2 = Array(10).fill(0).map(() => {
         let n = Math.random();
-        let CurClass;
+        let name = "";
         if(n < 0.2) {
-            CurClass = C;
+            name = "見習魔女";
         } else if(n < 0.4) {
-            CurClass = C2;
+            name = "終末之民";
         } else if(n < 0.6) {
-            CurClass = C4;
+            name = "雨季的魔女．語霽";
         } else if(n < 0.8) {
-            CurClass = C3;
+            name = "數據之海的水手";
         } else {
-            CurClass = U_Test0;
+            name = "u_test0";
         }
-        return gm.genCardToHand(Player.Player1, (seq, owner, gm) => {
-            return new CurClass(seq, owner, gm);
-        });
+        return gm.genCardToHand(Player.Player1, name);
     });
 
     let show_big_card: ShowBigCard = (x: number, y: number,
@@ -106,13 +101,9 @@ async function setup() {
     gm.getMyMaster(me).addMana(99);
     gm.getEnemyMaster(me).addMana(9);
     for(let i = 0; i < 5; i++) {
-        let card = gm.genArenaToBoard(me, i, (seq, owner, gm) => {
-            return new H(seq, owner, gm);
-        });
+        let card = gm.genArenaToBoard(me, i, "M市立綜合醫院");
         arena_area1.addArena(i, card);
-        card = gm.genArenaToBoard(1-me, i, (seq, owner, gm) => {
-            return new H(seq, owner, gm);
-        });
+        card = gm.genArenaToBoard(1-me, i, "M市立綜合醫院");
         arena_area2.addArena(i, card);
     }
 

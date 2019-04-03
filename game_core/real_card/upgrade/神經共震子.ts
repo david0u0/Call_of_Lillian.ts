@@ -1,5 +1,5 @@
-import { Upgrade, Character } from "../../../cards";
-import { BattleRole } from "../../../enums";
+import { Upgrade, Character } from "../../cards";
+import { BattleRole } from "../../enums";
 
 let name = "神經共震子";
 let description = `陷阱

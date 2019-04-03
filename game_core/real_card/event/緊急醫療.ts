@@ -1,6 +1,6 @@
-import { Event, Arena } from "../../../cards";
-import { IEvent, ICharacter, TypeGaurd as TG } from "../../../interface";
-import { CardSeries } from "../../../enums";
+import { Event, Arena } from "../../cards";
+import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
+import { CardSeries } from "../../enums";
 
 let name = "緊急醫療";
 let description = `推進：你有一個以上的角色處於醫院->得到2魔力。

@@ -1,7 +1,7 @@
-import { Upgrade, Character } from "../../../cards";
-import { BattleRole, Player } from "../../../enums";
-import { GameMaster } from "../../../game_master";
-import { TypeGaurd } from "../../../interface";
+import { Upgrade, Character } from "../../cards";
+import { BattleRole, Player } from "../../enums";
+import { GameMaster } from "../../game_master";
+import { TypeGaurd } from "../../interface";
 
 let name = "九世軍魂";
 let description = `每一季結束時，*九世軍魂*的戰力+1。當本裝備被銷毀時，可以改為將其裝備至任意角色，並使本裝備戰力+1。

@@ -1,5 +1,5 @@
-import { CardType, CardSeries, BattleRole } from "../../../enums";
-import { Character, Upgrade, Arena } from "../../../cards";
+import { CardType, CardSeries, BattleRole } from "../../enums";
+import { Character, Upgrade, Arena } from "../../cards";
 
 let name = "意識下載界面";
 let description = `

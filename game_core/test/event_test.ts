@@ -6,17 +6,13 @@ import { GameMaster } from "../game_master";
 import { ICharacter, IEvent, IArena } from "../interface";
 
 import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
-import Rainy from "./real_card/character/雨季的魔女．語霽";
-import Violatioin from "./real_card/event/違停派對";
-import Emergency from "./real_card/event/緊急醫療";
-import Hospital from "./real_card/arena/M市立綜合醫院";
-import TestSelecter from "../test_selecter";
+import { TestSelecter, genFunc } from "./mocking_tools";
 
 let p1 = Player.Player1;
 let p2 = Player.Player2;
 
 let selecter = new TestSelecter();
-let gm = new GameMaster(selecter);
+let gm = new GameMaster(selecter, genFunc);
 
 let pm = gm.getMyMaster(p1);
 let enemy_master = gm.getEnemyMaster(p1);
@@ -27,19 +23,19 @@ let event: IEvent;
 describe("測試事件卡功能", () => {
     beforeEach(async () => {
         selecter = new TestSelecter();
-        gm = new GameMaster(selecter);
+        gm = new GameMaster(selecter, genFunc);
         pm = gm.getMyMaster(p1);
         enemy_master = gm.getEnemyMaster(p1);
         await pm.addMana(1000);
         await enemy_master.addMana(1000);
-        char = gm.genCardToHand(p1, (seq, owner, gm) => new Rainy(seq, owner, gm)) as ICharacter;
-        char2 = gm.genCardToHand(p1, (seq, owner, gm) => new Rainy(seq, owner, gm)) as ICharacter;
+        char = gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
+        char2 = gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
         await pm.playCard(char);
         await pm.playCard(char2);
     });
     describe("測試基本的事件卡（違停派對）", () => {
         beforeEach(async () => {
-            event = gm.genCardToHand(p1, (seq, owner, gm) => new Violatioin(seq, owner, gm)) as IEvent;
+            event = gm.genCardToHand(p1, "違停派對") as IEvent;
             await pm.playCard(event);
         });
         it("玩家的魔力應該是1000-4-4-4+7=995", () => {
@@ -90,14 +86,10 @@ describe("測試事件卡功能", () => {
         let hospital: IArena;
         let e_hospital: IArena;
         beforeEach(async () => {
-            event = gm.genCardToHand(p1, (seq, owner, gm) => new Emergency(seq, owner, gm)) as IEvent;
+            event = gm.genCardToHand(p1, "緊急醫療") as IEvent;
             await pm.playCard(event);
-            hospital = gm.genArenaToBoard(p1, 3, (seq, owner, gm) => {
-                return new Hospital(seq, owner, gm);
-            });
-            e_hospital = gm.genArenaToBoard(p2, 3, (seq, owner, gm) => {
-                return new Hospital(seq, owner, gm);
-            });
+            hospital = gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
+            e_hospital = gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
         });
         it("玩家的魔力應該是1000-4-4-4=988", () => {
             assert.equal(pm.mana, 988);

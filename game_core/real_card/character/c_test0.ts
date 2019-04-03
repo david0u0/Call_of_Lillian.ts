@@ -1,6 +1,6 @@
-import { CardSeries, BattleRole } from "../../../enums";
-import { Character, Upgrade } from "../../../cards";
-import { TypeGaurd } from "../../../interface";
+import { CardSeries, BattleRole } from "../../enums";
+import { Character, Upgrade } from "../../cards";
+import { TypeGaurd } from "../../interface";
 
 let name = "零卍佛滅卍實驗體少女";
 let description = `
@@ -10,7 +10,7 @@ let description = `
 （角色行動）使對手的一個角色退場。
 本角色的基礎特徵為**狙擊**。`;
 
-export class C_Test0 extends Character {
+export default class C_Test0 extends Character {
     name = name;
     description = description;
     series = [ CardSeries.Testing ];

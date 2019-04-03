@@ -1,6 +1,6 @@
-import { Upgrade, Character } from "../../../cards";
-import { BattleRole, CardType, CharStat } from "../../../enums";
-import { TypeGaurd } from "../../../interface";
+import { Upgrade, Character } from "../../cards";
+import { BattleRole, CardType, CharStat } from "../../enums";
+import { TypeGaurd } from "../../interface";
 
 let name = "和平天使";
 let description = `陷阱

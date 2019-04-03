@@ -1,12 +1,12 @@
-import { Character } from "../../../cards";
-import { BattleRole, CharStat } from "../../../enums";
+import { Character } from "../../cards";
+import { BattleRole, CharStat } from "../../enums";
 
 let name = "狙擊鏡後的天使";
 let description = `
 **準星之所向**：*狙擊鏡後的天使*攻擊不同場所的角色時，額外擁有3點戰力，且不會被擊退。
 **狙擊**`;
 
-export class C2 extends Character {
+export default class C2 extends Character {
     name = name;
     description = description;
     basic_mana_cost = 5;

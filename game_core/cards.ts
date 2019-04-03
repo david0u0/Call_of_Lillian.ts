@@ -49,7 +49,6 @@ abstract class KnownCard implements IKnownCard {
     public rememberFields() { }
     public recoverFields() { }
 
-
     addGetterWhileAlive<T, U>(append: boolean,
         chain: GetterChain<T, U>[]|GetterChain<T, U>, func: GetterFunc<T, U>
     ) {

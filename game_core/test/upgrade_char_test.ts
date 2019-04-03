@@ -5,44 +5,37 @@ import { Character, Upgrade } from "../cards";
 import { GameMaster } from "../game_master";
 
 import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
-import C2 from "./real_card/character/終末之民";
-import { C_Test0 } from "./real_card/character/c_test0";
-import C1 from "./real_card/character/見習魔女";
-import { C4 } from "./real_card/character/數據之海的水手";
-import { U1 } from "./real_card/upgrade/精靈炸彈";
-import { U_Test0 } from "./real_card/upgrade/u_test0";
-import TestSelecter from "../test_selecter";
+import { TestSelecter, genFunc } from "./mocking_tools";
 
 let p = Player.Player1;
 let selecter = new TestSelecter();
-let gm = new GameMaster(selecter);
+let gm = new GameMaster(selecter, genFunc);
 let pm = gm.getMyMaster(p);
 let enemy_master = gm.getEnemyMaster(p);
 
-
-gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
+gm.genCardToDeck(p, "見習魔女");
 let simple_char = pm.draw() as Character;
-gm.genCardToDeck(p, (seq, owner, _gm) => new C1(seq, owner, _gm));
+gm.genCardToDeck(p, "見習魔女");
 let simple_char2 = pm.draw() as Character;
-gm.genCardToDeck(p, (seq, owner, _gm) => new C4(seq, owner, _gm));
+gm.genCardToDeck(p, "數據之海的水手");
 let cyber_char = pm.draw() as Character;
-gm.genCardToDeck(p, (seq, owner, _gm) => new C2(seq, owner, _gm));
+gm.genCardToDeck(p, "終末之民");
 let waste_land_char = pm.draw() as Character;
-gm.genCardToDeck(p, (seq, owner, _gm) => new U1(seq, owner, _gm));
+gm.genCardToDeck(p, "精靈炸彈");
 let ferry_bomb_upgrade = pm.draw() as Upgrade;
-gm.genCardToDeck(p, (seq, owner, _gm) => new U1(seq, owner, _gm));
+gm.genCardToDeck(p, "精靈炸彈");
 let ferry_bomb_upgrade2 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+gm.genCardToDeck(p, "u_test0");
 let simple_upgrade1 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+gm.genCardToDeck(p, "u_test0");
 let simple_upgrade2 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+gm.genCardToDeck(p, "u_test0");
 let simple_upgrade3 = pm.draw() as Upgrade;
-gm.genCardToDeck(Player.Player2, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+gm.genCardToDeck(Player.Player2, "u_test0");
 let enemy_upgrade1 = enemy_master.draw() as Upgrade;
-gm.genCardToDeck(p, (seq, owner, _gm) => new U_Test0(seq, owner, _gm));
+gm.genCardToDeck(p, "u_test0");
 let simple_upgrade4 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, (seq, owner, _gm) => new C_Test0(seq, owner, _gm));
+gm.genCardToDeck(p, "c_test0");
 let ultimate_0_test_char = pm.draw() as Character;
 
 

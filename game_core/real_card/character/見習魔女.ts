@@ -1,4 +1,4 @@
-import { Character } from "../../../cards";
+import { Character } from "../../cards";
 
 let name = "見習魔女";
 let description = `
