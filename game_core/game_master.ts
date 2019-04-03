@@ -51,7 +51,7 @@ class PlayerMaster {
             this.addMana.bind(this), this.addEmo.bind(this));
         SR.checkPush(this.push_chain);
         SR.onFinish(this.finish_chain, this.retireCard.bind(this));
-        SR.onGetManaCost(this.get_mana_cost_chain, this.arenas);
+        SR.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
     }
     
     /** 
@@ -169,7 +169,7 @@ class PlayerMaster {
         await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
             card.card_status = CardStat.Onboard;
             HR.onPlay(card, this.addCharacter.bind(this),
-                this.addEvent.bind(this));
+                this.addEvent.bind(this), this._arenas, this.retireCard.bind(this));
             await Promise.resolve(card.onPlay());
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。

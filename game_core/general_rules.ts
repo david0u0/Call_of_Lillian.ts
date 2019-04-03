@@ -117,12 +117,12 @@ export class SoftRule {
     }
 
     public static onGetManaCost(
-        get_mana_cost_chain: GetterChain<number, IKnownCard>, arenas: IArena[]
+        get_mana_cost_chain: GetterChain<number, IKnownCard>, getArenas: () => IArena[]
     ) {
         get_mana_cost_chain.append((cost, card) => {
             // 改建的費用可以下降
             if(TG.isArena(card)) {
-                let new_cost = Math.max(0, cost - arenas[card.position].basic_mana_cost);
+                let new_cost = Math.max(0, cost - getArenas()[card.position].basic_mana_cost);
                 return { var_arg: new_cost };
             }
         });
@@ -166,6 +166,8 @@ export class HardRule {
     public static onPlay(card: IKnownCard,
         addCharacter: (ch: ICharacter) => void,
         addEvent: (evt: IEvent) => void,
+        arenas: IArena[],
+        retireCard: (card: IKnownCard) => void,
     ) {
         if(TG.isUpgrade(card)) {
             // 把這件升級加入角色的裝備欄
@@ -177,7 +179,9 @@ export class HardRule {
             addCharacter(card);
         } else if(TG.isArena(card)) {
             // 打出場所的規則（把之前的建築拆了）
-            // TODO:
+            let old = arenas[card.position];
+            retireCard(old);
+            arenas[card.position] = card;
         } else if(TG.isEvent(card)) {
             // 把事件加入待完成區
             addEvent(card);
@@ -260,7 +264,8 @@ export class HardRule {
     }
     private static checkPlayArena(a: IArena): boolean {
         if(a.position >= Constant.MAX_ARENA || a.position < 0) {
-            throw new BadOperationError("場所的位置超過範圍");
+            throwIfIsBackend("場所的位置超過範圍");
+            return false;
         } else {
             return true;
         }

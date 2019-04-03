@@ -214,10 +214,23 @@ abstract class Arena extends KnownCard implements IArena {
     abstract onExploit(char: ICharacter|Player): number|void;
 
     public async initialize() {
-        return true;
-        /*let char = this.g_master.selecter.selectChars(1, 1, pos => {
+        let old_arena = await this.g_master.selecter.selectSingleCard(TypeGaurd.isArena, arena => {
+            if(arena.card_status != CardStat.Onboard || arena.owner != this.owner) {
+                return false;
+            }
+            else {
+                this.position = arena.position;
+                return this.my_master.checkCanPlay(this);
+            }
         });
-        this._character_equipped = char[0];*/
+        if(old_arena) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    recoverFields() {
+        this.position = -1;
     }
 }
 

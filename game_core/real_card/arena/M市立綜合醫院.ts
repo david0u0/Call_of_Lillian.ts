@@ -8,7 +8,7 @@ let description = "使用：賺取3點魔力，並承受1情緒。";
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 0;
+    basic_mana_cost = 1;
     basic_exploit_cost = 0;
     series = [ CardSeries.Hospital ];
 
