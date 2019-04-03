@@ -417,5 +417,5 @@ class GameMaster {
 }
 
 export {
-    GameMaster, BadOperationError, PlayerMaster
+    GameMaster, PlayerMaster
 };

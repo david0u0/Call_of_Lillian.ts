@@ -13,13 +13,8 @@ import { ICard, IKnownCard } from "../../game_core/interface";
 import { CharArea } from "./char_area";
 import { ArenaArea } from "./arena_area";
 import FrontendSelecter from "./frontend_selecter";
+import generateCard from "./generate_card";
 
-function genCard(name: string, owner: Player, seq: number, gm: GameMaster): IKnownCard {
-    let C = require(`/real_card/${name}.js`).default;
-    return new C(seq, owner, gm);
-}
-
-//Create the renderer
 let app = new PIXI.Application(getWinSize());
 
 PIXI.loader
@@ -33,12 +28,11 @@ PIXI.loader
 .add("mana_pop", require("../assets/mana_pop.png"))
 .load(setup);
 
-
 async function setup() {
     let me = Player.Player1;
     let { width, height } = getWinSize();
     let selecter = new FrontendSelecter(app.ticker);
-    let gm = new GameMaster(selecter, genCard);
+    let gm = new GameMaster(selecter, generateCard);
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);

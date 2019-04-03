@@ -10,7 +10,6 @@ let app = express();
 
 const PREFIX = "./dist/game_core/real_card";
 let card_class_table: { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): KnownCard }} = {};
-let card_path_table : { [index: string]: string } = {};
 
 let card_type_dirs = fs.readdirSync(PREFIX);
 for(let type_name of card_type_dirs) {
@@ -19,7 +18,6 @@ for(let type_name of card_type_dirs) {
         try {
             let card_path = path.resolve(`${PREFIX}/${type_name}`, name);
             card_class_table[name] = require(card_path).default;
-            card_path_table[name] = card_path;
         } catch(err) { }
     }
 }
@@ -28,16 +26,7 @@ function genCardFunc(name: string, owner: Player, seq: number, gm: GameMaster) {
     let C = card_class_table[name];
     return new C(seq, owner, gm);
 }
-
-app.use("/real_card/:card_name", function (req, res) {
-    let p = (card_path_table[`${req.params.card_name}`]);
-    if(p) {
-        res.sendFile(p);
-    } else {
-        res.status(404).send();
-    }
-});
 app.use("/card_image", express.static("frontend/assets/card_image"));
 app.use(express.static("frontend/dist"));
 
-app.listen(8080);
+app.listen(8888);

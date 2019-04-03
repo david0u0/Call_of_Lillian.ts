@@ -7,3 +7,5 @@
 *.png
 *.jpg
 *.gif
+
+**/generate_card.ts
