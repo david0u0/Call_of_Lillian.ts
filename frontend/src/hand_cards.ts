@@ -1,12 +1,13 @@
 import * as PIXI from "pixi.js";
 
-import { BadOperationError, GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
 import { getEltSize, getWinSize } from "./get_screen_size";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";
 import FrontendSelecter from "./frontend_selecter";
+import { BadOperationError } from "../../game_core/errors";
 
 // FIXME: 當一張卡被 destroy 時，如果它的大圖還開著，會永遠關不了（因為沒有觸發 mouseout 事件）
 // FIXME: 要處理好幾張卡被加入/移除的效果

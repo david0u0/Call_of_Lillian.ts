@@ -1,16 +1,16 @@
 import * as PIXI from "pixi.js";
-import { IKnownCard, ISelecter } from "../../game_core/interface";
+import { IKnownCard, ISelecter, ICard } from "../../game_core/interface";
 import { getWinSize } from "./get_screen_size";
 import { BadOperationError } from "../../game_core/errors";
 
-type CardLike = IKnownCard|null;
+type CardLike = ICard|null;
 
 export default class FrontendSelecter implements ISelecter {
     public view = new PIXI.Container();
     
     private resolve_card: (arg: CardLike|PromiseLike<CardLike>) => void = null;
     private mouse_init_pos = { x: 0, y: 0 };
-    private card_table: { [index: number]: IKnownCard } = {};
+    private card_table: { [index: number]: ICard } = {};
     private filter_func: (c: IKnownCard) => boolean;
     private line: PIXI.Graphics = null;
 
@@ -26,11 +26,11 @@ export default class FrontendSelecter implements ISelecter {
         this.view.interactive = true;
     }
 
-    setCardTable(table: { [index: number]: IKnownCard }) {
+    setCardTable(table: { [index: number]: ICard }) {
         this.card_table = table;
     }
 
-    selectSingleCard<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
         this._selecting = true;
@@ -57,7 +57,7 @@ export default class FrontendSelecter implements ISelecter {
         });
     }
 
-    selectSingleCardInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
         throw "not implemented!";

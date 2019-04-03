@@ -1,14 +1,10 @@
+// TODO: 為了達成斷線復原的功能，應該把入場曲跟在場效果分清楚（多一個 setAliveChain 方法）
+
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard } from "./interface";
 import { GameMaster, PlayerMaster } from "./game_master";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
-
-class UnknownCard implements ICard {
-    public readonly card_type = CardType.Unknown;
-    public card_status = CardStat.Deck;
-    constructor(public readonly seq: number, public readonly owner: Player) { }
-}
 
 abstract class KnownCard implements IKnownCard {
     public abstract readonly card_type: CardType;
@@ -270,5 +266,4 @@ abstract class Event extends KnownCard implements IEvent {
     }
 }
 
-type Card = KnownCard|UnknownCard;
-export { UnknownCard, KnownCard, Upgrade, Character, Arena, Event, Card };
+export { KnownCard, Upgrade, Character, Arena, Event };

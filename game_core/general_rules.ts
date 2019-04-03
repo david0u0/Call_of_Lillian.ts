@@ -7,7 +7,11 @@ export const Constant = {
     ENTER_ENEMY_COST: 1,
     MAX_ARENA: 5,
     ARENA_CAPACITY: 2,
-    PUSH_COST: 1
+    PUSH_COST: 1,
+    DECK_COUNT: 20,
+    INIT_MANA: 10,
+    INIT_HAND: 7,
+    DUMMY_NAME: "dummy_arena",
 };
 
 /**

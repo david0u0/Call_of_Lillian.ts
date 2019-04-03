@@ -180,16 +180,23 @@ const TypeGaurd = {
     }
 };
 
+class UnknownCard implements ICard {
+    public readonly card_type = CardType.Unknown;
+    public card_status = CardStat.Deck;
+    constructor(public readonly seq: number, public readonly owner: Player) { }
+}
+
+
 interface ISelecter {
-    selectSingleCard<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    selectSingleCardInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    setCardTable(table: { [index: number]: IKnownCard }): void;
+    setCardTable(table: { [index: number]: ICard }): void;
 }
 
 export {
     ICard, IKeeper, IKnownCard, ICharacter,
-    IUpgrade, IArena, IEvent, ISpell, TypeGaurd,
-    ISelecter
+    IUpgrade, IArena, IEvent, ISpell, UnknownCard,
+    TypeGaurd, ISelecter
 };

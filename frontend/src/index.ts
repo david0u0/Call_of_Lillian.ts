@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 
 import { GameMaster } from "../../game_core/game_master";
-import { UnknownCard, Character, KnownCard } from "../../game_core/cards";
+import { Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
 
 import { getWinSize, getEltSize } from "./get_screen_size";
@@ -10,10 +10,12 @@ import { drawPlayerArea } from "./player_area";
 
 import { showBigCard, ShowBigCard } from "./show_big_card";
 import { ICard, IKnownCard } from "../../game_core/interface";
+import initiateGame from "../../game_core/initiate_game";
 import { CharArea } from "./char_area";
 import { ArenaArea } from "./arena_area";
 import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
+import { my_loader } from "./card_loader";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -39,45 +41,11 @@ async function setup() {
 
     app.stage.addChild(bg);
     
-    let hands1 = Array(5).fill(0).map((a, b) => {
-        return new UnknownCard(b, Player.Player2);
-    });
-    let hands2 = Array(10).fill(0).map(() => {
-        let n = Math.random();
-        let name = "";
-        if(n < 0.2) {
-            name = "見習魔女";
-        } else if(n < 0.4) {
-            name = "終末之民";
-        } else if(n < 0.6) {
-            name = "雨季的魔女．語霽";
-        } else if(n < 0.8) {
-            name = "數據之海的水手";
-        } else {
-            name = "u_test0";
-        }
-        return gm.genCardToHand(Player.Player1, name);
-    });
-
     let show_big_card: ShowBigCard = (x: number, y: number,
         card: ICard, ticker: PIXI.ticker.Ticker
     ) => {
         return showBigCard(gm, app.stage, x, y, card, ticker);
     };
-
-    let hands_ui1_obj = await constructHandUI(selecter, gm, hands1, app.ticker,
-        show_big_card, c => {
-            return { x: (width - c.width) / 2, y: -c.height + 5.5*eh };
-        }
-    );
-    app.stage.addChild(hands_ui1_obj.view);
-    let hands_ui2_obj = await constructHandUI(selecter, gm, hands2, app.ticker,
-        show_big_card, c => {
-            return { x: (width - c.width) / 2, y: height - 5.5*eh };
-        }
-    );
-    let hands_ui1 = hands_ui1_obj.view;
-    let hands_ui2 = hands_ui2_obj.view;
 
     let p_area1 = drawPlayerArea(gm.getEnemyMaster(me), 6*ew, 10*eh, app.ticker, true);
     let p_area2 = drawPlayerArea(gm.getMyMaster(me), 6*ew, 10*eh, app.ticker);
@@ -87,29 +55,36 @@ async function setup() {
     let char_area = new CharArea(me, gm, selecter, show_big_card, app.ticker);
     char_area.view.position.set(0, 28.5*eh);
 
-    let arena_area1 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card);
-    let arena_area2 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
-    arena_area1.view.position.set(0, 21.75*eh);
-    arena_area2.view.position.set(0, 20.25*eh - arena_area2.view.height);
-
-    gm.getMyMaster(me).addMana(99);
-    gm.getEnemyMaster(me).addMana(9);
-    for(let i = 0; i < 5; i++) {
-        let card = gm.genArenaToBoard(me, i, "M市立綜合醫院");
-        arena_area1.addArena(i, card);
-        card = gm.genArenaToBoard(1-me, i, "M市立綜合醫院");
-        arena_area2.addArena(i, card);
-    }
-
     app.stage.addChild(char_area.view);
+
+    app.stage.addChild(p_area1.container);
+    app.stage.addChild(p_area2.container);
+
+    await initiateGame(gm, [], null);
+
+    let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
+    let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card);
+    arena_area1.addArena(gm.getEnemyMaster(me).arenas);
+    arena_area2.addArena(gm.getMyMaster(me).arenas);
+    arena_area1.view.position.set(0, 20.25*eh - arena_area1.view.height);
+    arena_area2.view.position.set(0, 21.75*eh);
 
     app.stage.addChild(arena_area1.view);
     app.stage.addChild(arena_area2.view);
 
-    app.stage.addChild(p_area1.container);
-    app.stage.addChild(p_area2.container);
-    app.stage.addChild(hands_ui1);
-    app.stage.addChild(hands_ui2);
+
+    let hands_ui1_obj = await constructHandUI(selecter, gm, gm.getEnemyMaster(me).hand, app.ticker,
+        show_big_card, c => {
+            return { x: (width - c.width) / 2, y: -c.height + 5.5*eh };
+        }
+    );
+    let hands_ui2_obj = await constructHandUI(selecter, gm, gm.getMyMaster(me).hand, app.ticker,
+        show_big_card, c => {
+            return { x: (width - c.width) / 2, y: height - 5.5*eh };
+        }
+    );
+    app.stage.addChild(hands_ui1_obj.view);
+    app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(selecter.view);
 }
 

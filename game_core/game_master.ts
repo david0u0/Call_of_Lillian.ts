@@ -2,16 +2,16 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat } from "./enums";
-import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter } from "./interface";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter, UnknownCard } from "./interface";
 import { ActionChain, GetterChain } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C } from "./general_rules";
 
 class PlayerMaster {
+    public readonly card_table: { [index: number]: ICard } = {};
+
     private _mana = 0;
     private _emo = 0;
-    private _deck = new Array<ICard>();
-    private _hand = new Array<ICard>();
     // private _gravyard = new Array<IKnownCard>();
     private _characters = new Array<ICharacter>();
     private _arenas = new Array<IArena>(C.MAX_ARENA);
@@ -19,8 +19,26 @@ class PlayerMaster {
     private _events_finished = new Array<IEvent>();
     public get mana() { return this._mana; };
     public get emo() { return this._emo; };
-    public get deck() { return [...this._deck]; };
-    public get hand() { return [...this._hand]; };
+    public get deck() { 
+        let deck = new Array<ICard>();
+        for(let seq in this.card_table) {
+            let c = this.card_table[seq];
+            if(c.card_status == CardStat.Deck) {
+                deck.push(c);
+            }
+        }
+        return deck;
+    }
+    public get hand() {
+        let hand = new Array<ICard>();
+        for(let seq in this.card_table) {
+            let c = this.card_table[seq];
+            if(c.card_status == CardStat.Hand) {
+                hand.push(c);
+            }
+        }
+        return hand;
+    }
     public get characters() { return [...this._characters]; };
     public get arenas() { return [...this._arenas]; };
     public get events_ongoing() { return [...this._events_ongoing]; };
@@ -66,18 +84,25 @@ class PlayerMaster {
     public get_battle_role_chain
         = new GetterChain<BattleRole, ICharacter>();
 
-    addToDeck(card: IKnownCard) {
+    addCard(card: ICard) {
         // TODO: 加上事件鏈?
-        this._deck.push(card);
+        if(card.seq in this.card_table) {
+            throw new BadOperationError("嘗試將已經有的卡牌塞給使用者");
+        } else {
+            this.card_table[card.seq] = card;
+        }
     }
-    addToHand(card: IKnownCard) {
-        // TODO: 加上事件鏈?
-        this._hand.push(card);
+    addArena(card: IArena, position: number) {
+        this.addCard(card);
+        this._arenas[position] = card;
     }
     draw(seq?: number) {
         // TODO: 加上事件鏈?
         // TODO: 用 seq 實現檢索的可能
-        let card = this._deck.pop();
+        // TODO: 應該要是亂數給牌
+        let deck = this.deck;
+        let n = Math.floor(deck.length * Math.random());
+        let card = deck[n];
         if(card) {
             card.card_status = CardStat.Hand;
         }
@@ -252,7 +277,7 @@ class PlayerMaster {
 
 class GameMaster {
     private _cur_seq = 1;
-    public readonly card_table: { [index: number]: IKnownCard } = {};
+    public readonly card_table: { [index: number]: ICard } = {};
 
     constructor(public readonly selecter: ISelecter,
         private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
@@ -266,6 +291,11 @@ class GameMaster {
         selecter.setCardTable(this.card_table);
     }
 
+    public genUnknownToDeck(owner: Player) {
+        let c = new UnknownCard(this._cur_seq++, owner);
+        this.card_table[c.seq] = c;
+        this.getMyMaster(owner).addCard(c);
+    }
     private genCard(owner: Player, name: string): IKnownCard {
         let c = this.genFunc(name, owner, this._cur_seq++, this);
         this.card_table[c.seq] = c;
@@ -273,13 +303,13 @@ class GameMaster {
     }
     genCardToDeck(owner:Player, name: string): IKnownCard {
         let c = this.genCard(owner, name);
-        this.getMyMaster(owner).addToDeck(c);
+        this.getMyMaster(owner).addCard(c);
         return c;
     }
     genCardToHand(owner: Player, name: string): IKnownCard {
         let c = this.genCard(owner, name);
         c.card_status = CardStat.Hand;
-        this.getMyMaster(owner).addToHand(c);
+        this.getMyMaster(owner).addCard(c);
         return c;
     }
     // 應該就一開始會用到而已 吧？
@@ -287,7 +317,7 @@ class GameMaster {
         let arena = this.genCard(owner, name);
         if(TG.isArena(arena)) {
             arena.card_status = CardStat.Onboard;
-            this.getMyMaster(owner).arenas[pos] = arena;
+            this.getMyMaster(owner).addArena(arena, pos);
             arena.position = pos;
             return arena;
         } else {
@@ -379,7 +409,7 @@ class GameMaster {
     repulse(loser: ICharacter, winner: ICharacter | null) {
         // TODO:
     }
-    getAll<T extends IKnownCard>(guard: (c: IKnownCard) => c is T, filter?: (c: T) => boolean) {
+    getAll<T extends IKnownCard>(guard: (c: ICard) => c is T, filter?: (c: T) => boolean) {
         let list = new Array<T>();
         for(let seq in this.card_table) {
             let c = this.card_table[seq];

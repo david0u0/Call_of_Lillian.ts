@@ -1,15 +1,15 @@
 import fs from "fs";
 import path from "path";
 
-import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter } from "../interface";
+import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter, ICard } from "../interface";
 import { BadOperationError } from "../errors";
 import { Player } from "../enums";
 import { GameMaster } from "../game_master";
 import { KnownCard } from "../cards";
 
 export class TestSelecter implements ISelecter {
-    private card_table: { [index: number]: IKnownCard } = {};
-    public setCardTable(table: { [index: number]: IKnownCard }) {
+    private card_table: { [index: number]: ICard } = {};
+    public setCardTable(table: { [index: number]: ICard }) {
         this.card_table = table;
     }
 
@@ -35,7 +35,7 @@ export class TestSelecter implements ISelecter {
      * @param checkCanSelect 一個篩選器，決定哪些卡可以選（回傳的都是符合此條件者）
      * @returns 理論上應該是一個符合條件的卡牌陣列，如果是 null，代表被取消。（應該只有在前端會發生）
      */
-    public _selectCards<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    public _selectCards<T extends ICard>(guard: (c: ICard) => c is T,
         max=1 , min=1, checkCanSelect=(card: T[]) => true
     ): T[]|null {
         if(this.selected_args.length <= this.top) {
@@ -66,7 +66,7 @@ export class TestSelecter implements ISelecter {
      * 前端沒有「取消」的選項
      * 應用實例：某個事件已確定發生，你必需選一個目標來回應，如強迫棄牌、強迫擊退等。
      */
-    public selectCardsInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    public selectCardsInteractive<T extends ICard>(guard: (c: ICard) => c is T,
         max=1, min=1, checkCanSelect=(card: T[]) => true
     ): T[] {
         return [];
@@ -77,7 +77,7 @@ export class TestSelecter implements ISelecter {
      * 因為一次只選一張，程式可以非常清楚地指出哪些牌可以選。
      * 而一次選多張卡的函式則難以枚舉所有狀況，也難以用 UI 表示出來。
      */
-    public selectSingleCard<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    public selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
         checkCanSelect=(card: T) => true
     ): Promise<T|null> {
         let list = this._selectCards(guard, 1, 1, list => {
@@ -91,7 +91,7 @@ export class TestSelecter implements ISelecter {
             }
         });
     }
-    public selectSingleCardInteractive<T extends IKnownCard>(guard: (c: IKnownCard) => c is T,
+    public selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
         checkCanSelect = (card: T) => true
     ): Promise<T | null> {
         throw "Not yet implemented";
