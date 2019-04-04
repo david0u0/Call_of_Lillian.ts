@@ -8,6 +8,7 @@ import { drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";
 import FrontendSelecter from "./frontend_selecter";
 import { BadOperationError } from "../../game_core/errors";
+import { Player } from "../../game_core/enums";
 
 // FIXME: 當一張卡被 destroy 時，如果它的大圖還開著，會永遠關不了（因為沒有觸發 mouseout 事件）
 // FIXME: 要處理好幾張卡被加入/移除的效果
@@ -19,7 +20,8 @@ class HandUI {
     private readonly card_gap: number;
     public readonly view: PIXI.Container;
 
-    constructor(private selecter: FrontendSelecter, private gm: GameMaster, list: ICard[],
+    constructor(private selecter: FrontendSelecter, private player: Player,
+        private gm: GameMaster, list: ICard[],
         private ticker: PIXI.ticker.Ticker, private showBigCard: ShowBigCard,
         private getOffset: (c: PIXI.Container) => { x: number, y: number }
     ) {
@@ -46,6 +48,10 @@ class HandUI {
         this.resize();
         let { x, y } = getOffset(this.view);
         this.view.position.set(x, y);
+
+        gm.getMyMaster(player).draw_card_chain.append(card => {
+            this.add(card);
+        });
     }
     private resize() {
         if(this.list.length > 8) {
@@ -166,7 +172,7 @@ class HandUI {
     }
 }
 
-export function constructHandUI(selecter: FrontendSelecter, gm: GameMaster, hands: ICard[],
+export function constructHandUI(selecter: FrontendSelecter, player: Player, gm: GameMaster, hands: ICard[],
     ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard,
     getOffset: (c: PIXI.Container) => { x: number, y: number }
 ): Promise<HandUI> {
@@ -177,7 +183,7 @@ export function constructHandUI(selecter: FrontendSelecter, gm: GameMaster, hand
     }
     return new Promise<HandUI>((resolve, reject) => {
         my_loader.load(() => {
-            resolve(new HandUI(selecter, gm, hands, ticker, showBigCard, getOffset));
+            resolve(new HandUI(selecter, player, gm, hands, ticker, showBigCard, getOffset));
         });
     });
 }

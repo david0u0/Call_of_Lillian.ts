@@ -93,6 +93,8 @@ class PlayerMaster {
     public get_battle_role_chain
         = new GetterChain<BattleRole, ICharacter>();
 
+    public draw_card_chain = new ActionChain<ICard>();
+
     addCard(card: ICard) {
         // TODO: 加上事件鏈?
         if(card.seq in this.card_table) {
@@ -105,14 +107,23 @@ class PlayerMaster {
         this.addCard(card);
         this._arenas[position] = card;
     }
-    draw(seq?: number) {
-        // TODO: 加上事件鏈?
-        // TODO: 用 seq 實現檢索的可能
-        let deck = this.deck;
-        let n = Math.floor(deck.length * Math.random());
-        let card = deck[n];
+    async draw(seq?: number) {
+        let card: ICard|null = null;
+        if(seq) {
+            card = this.card_table[seq];
+            if(!card || card.card_status != CardStat.Deck) {
+                throw new BadOperationError("欲檢索的卡牌不在牌庫中！");
+            }
+        } else {
+            let deck = this.deck;
+            let n = Math.floor(deck.length * Math.random());
+            card = deck[n];
+        }
         if(card) {
-            card.card_status = CardStat.Hand;
+            let _card = card;
+            await this.draw_card_chain.trigger(card, () => {
+                _card.card_status = CardStat.Hand;
+            });
         }
         return card;
     }
@@ -149,7 +160,7 @@ class PlayerMaster {
         return char.get_strength_chain.chain(this.get_strength_chain, char)
         .trigger(strength, null);
     }
-    
+
     getBattleRole(char: ICharacter) {
         return char.get_battle_role_chain.chain(this.get_battle_role_chain, char)
         .trigger(char.basic_battle_role, null);
@@ -170,9 +181,9 @@ class PlayerMaster {
             return false;
         }
     }
-    async playCard(card: IKnownCard, force=false) {
+    async playCard(card: IKnownCard, force = false) {
         if(!force && this.getCurPlayer() != this.player) {
-            throw new BadOperationError("想在別人的回合出牌？");
+            throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
@@ -242,7 +253,7 @@ class PlayerMaster {
         });
     }
 
-    async finishEvent(char: ICharacter|null, event: IEvent) {
+    async finishEvent(char: ICharacter | null, event: IEvent) {
         // 應該不太需要 checkCanTrigger 啦 @@
         await this.finish_chain.trigger({ char, event }, async () => {
             event.card_status = CardStat.Finished;
@@ -250,7 +261,7 @@ class PlayerMaster {
             await Promise.resolve(event.onFinish(char));
         });
     }
-    getPushCost(char: ICharacter|null, event: IEvent) {
+    getPushCost(char: ICharacter | null, event: IEvent) {
         let cost_chain = event.get_push_cost_chain
         .chain(this.get_push_cost_chain, { event, char });
         if(TG.isCard(char)) {
@@ -258,11 +269,11 @@ class PlayerMaster {
         }
         return cost_chain.trigger(event.push_cost, char);
     }
-    async pushEvent(char: ICharacter|null) {
+    async pushEvent(char: ICharacter | null) {
         if(this.getCurPlayer() != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
         }
-        let push_chain = new ActionChain<ICharacter|null>();
+        let push_chain = new ActionChain<ICharacter | null>();
         let cost = 0;
         let _event = await this.selecter.selectSingleCard(TG.isEvent, event => {
             cost = this.getPushCost(char, event);
@@ -363,7 +374,7 @@ class GameMaster {
         this.card_table[c.seq] = c;
         return c;
     }
-    genCardToDeck(owner:Player, name: string): IKnownCard {
+    genCardToDeck(owner: Player, name: string): IKnownCard {
         let c = this.genCard(owner, name);
         this.getMyMaster(owner).addCard(c);
         return c;

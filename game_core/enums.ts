@@ -1,7 +1,7 @@
 export enum Player { Player1, Player2 };
 export enum CardStat { Retired, Hand, Deck, Onboard, Finished, Exile };
 export enum CardType { Character, Arena, Upgrade, Spell, Event, Unknown };
-export enum CardSeries { Testing, Cyber, War, Cosmic, Wasteland, Hospital }
+export enum CardSeries { Testing, Cyber, War, Cosmic, Wasteland, Time, Hospital }
 export enum CharStat { StandBy, InArena, InBattle, Attacking, Blocking, Attacked };
 
 /** 只有 Sniper, Attacker, Defender 是會寫在卡牌上的關鍵字 */

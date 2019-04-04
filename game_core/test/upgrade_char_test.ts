@@ -6,6 +6,7 @@ import { GameMaster } from "../game_master";
 
 import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
 import { TestSelecter, genFunc } from "./mocking_tools";
+import { ICharacter, IUpgrade } from "../interface";
 
 let p = Player.Player1;
 let selecter = new TestSelecter();
@@ -13,35 +14,23 @@ let gm = new GameMaster(selecter, genFunc);
 let pm = gm.getMyMaster(p);
 let enemy_master = gm.getEnemyMaster(p);
 
-gm.genCardToDeck(p, "見習魔女");
-let simple_char = pm.draw() as Character;
-gm.genCardToDeck(p, "見習魔女");
-let simple_char2 = pm.draw() as Character;
-gm.genCardToDeck(p, "數據之海的水手");
-let cyber_char = pm.draw() as Character;
-gm.genCardToDeck(p, "終末之民");
-let waste_land_char = pm.draw() as Character;
-gm.genCardToDeck(p, "精靈炸彈");
-let ferry_bomb_upgrade = pm.draw() as Upgrade;
-gm.genCardToDeck(p, "精靈炸彈");
-let ferry_bomb_upgrade2 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, "u_test0");
-let simple_upgrade1 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, "u_test0");
-let simple_upgrade2 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, "u_test0");
-let simple_upgrade3 = pm.draw() as Upgrade;
-gm.genCardToDeck(Player.Player2, "u_test0");
-let enemy_upgrade1 = enemy_master.draw() as Upgrade;
-gm.genCardToDeck(p, "u_test0");
-let simple_upgrade4 = pm.draw() as Upgrade;
-gm.genCardToDeck(p, "c_test0");
-let ultimate_0_test_char = pm.draw() as Character;
-
+let simple_char = gm.genCardToHand(p, "見習魔女") as ICharacter;
+let simple_char2 = gm.genCardToHand(p, "見習魔女") as ICharacter;
+let cyber_char = gm.genCardToHand(p, "數據之海的水手") as ICharacter;
+let waste_land_char = gm.genCardToHand(p, "終末之民") as ICharacter;
+let ferry_bomb_upgrade = gm.genCardToHand(p, "精靈炸彈") as IUpgrade;
+let ferry_bomb_upgrade2 = gm.genCardToHand(p, "精靈炸彈") as IUpgrade;
+let simple_upgrade1 = gm.genCardToHand(p, "u_test0") as IUpgrade;
+let simple_upgrade2 = gm.genCardToHand(p, "u_test0") as IUpgrade;
+let simple_upgrade3 = gm.genCardToHand(p, "u_test0") as IUpgrade;
+let enemy_upgrade1 = gm.genCardToHand(Player.Player2, "u_test0") as IUpgrade;
+let simple_upgrade4 = gm.genCardToHand(p, "u_test0") as IUpgrade;
+let ultimate_0_test_char = gm.genCardToHand(p, "c_test0") as ICharacter;
 
 describe("測試最基礎的角色卡與升級卡的互動", () => {
     describe("測試各種錯誤", () => {
         it("升級卡未設置欲安裝的角色應該噴錯誤", async () => {
+            await gm.addActionPoint(100);
             await checkBadOperationErrorAsync(async () => {
                 await pm.playCard(simple_upgrade1);
             });

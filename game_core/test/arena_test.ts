@@ -25,6 +25,7 @@ describe("測試最基礎的場所卡", () => {
     let rainy2: Character;
     let e_rainy3: Character;
     before(async () => {
+        await gm.addActionPoint(100);
         gm.genArenaToBoard(p1, 0, "M市立綜合醫院");
         gm.genArenaToBoard(p1, 1, "M市立綜合醫院");
         my_h = gm.genArenaToBoard(p1, 2, "M市立綜合醫院") as Arena;
@@ -40,7 +41,10 @@ describe("測試最基礎的場所卡", () => {
         e_rainy3 = gm.genCardToHand(p2, "雨季的魔女．語霽") as Character;
         await pm.playCard(rainy);
         await pm.playCard(rainy2);
+        await gm.addActionPoint(-1000);
         await enemy_master.playCard(e_rainy3);
+        await gm.addActionPoint(-1000);
+        await gm.addActionPoint(100);
     });
     it("進入自己場所應該不用花費", () => {
         assert.equal(gm.getEnterCost(rainy, my_h), 0);
@@ -73,6 +77,7 @@ describe("測試最基礎的場所卡", () => {
                 assert.equal(true, my_h.char_list[0].isEqual(rainy));
             });
             it("進入時超過場所容納上限應該報錯", async () => {
+                await gm.addActionPoint(-1000);
                 selecter.setSelectedSeqs(my_h.seq);
                 await gm.enterArena(e_rainy3);
                 checkBadOperationErrorAsync(async () => {

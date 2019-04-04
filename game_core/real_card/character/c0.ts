@@ -1,6 +1,6 @@
 import { Character } from "../../cards";
 import { IEvent, TypeGaurd } from "../../interface";
-import { BadOperationError } from "../../game_master";
+import { BadOperationError } from "../../errors";
 
 let name = "魔法少女莉莉安";
 let description = `做為額外的代價，你必需支付兩點以上分數。

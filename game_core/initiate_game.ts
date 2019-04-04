@@ -46,8 +46,8 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         await pm.playCard(char, true);
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
-            pm.draw();
+            await pm.draw();
         }
     }
-    gm.endRound(Player.Player1, Player.Player1);
+    await gm.endRound(Player.Player1, Player.Player1);
 }

@@ -6,7 +6,7 @@ export function checkBadOperationError(func: () => void) {
     try {
         func();
         error_caught = false;
-    } catch (e) {
+    } catch(e) {
         if(!(e instanceof BadOperationError)) {
             assert.fail(`抓到不正確的錯誤：${e.message}`);
         }
@@ -21,7 +21,7 @@ export async function checkBadOperationErrorAsync(func: () => Promise<any>) {
     try {
         await func();
         error_caught = false;
-    } catch (e) {
+    } catch(e) {
         if(!(e instanceof BadOperationError)) {
             assert.fail(`抓到不正確的錯誤：${e.message}`);
         }

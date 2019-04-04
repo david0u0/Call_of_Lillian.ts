@@ -24,6 +24,7 @@ describe("測試事件卡功能", () => {
     beforeEach(async () => {
         selecter = new TestSelecter();
         gm = new GameMaster(selecter, genFunc);
+        await gm.addActionPoint(100);
         pm = gm.getMyMaster(p1);
         enemy_master = gm.getEnemyMaster(p1);
         await pm.addMana(1000);

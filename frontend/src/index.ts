@@ -81,13 +81,12 @@ async function setup() {
     app.stage.addChild(arena_area1.view);
     app.stage.addChild(arena_area2.view);
 
-
-    let hands_ui1_obj = await constructHandUI(selecter, gm, gm.getEnemyMaster(me).hand, app.ticker,
+    let hands_ui1_obj = await constructHandUI(selecter, 1-me, gm, gm.getEnemyMaster(me).hand, app.ticker,
         show_big_card, c => {
             return { x: (width - c.width) / 2, y: -c.height + 5.5*eh };
         }
     );
-    let hands_ui2_obj = await constructHandUI(selecter, gm, gm.getMyMaster(me).hand, app.ticker,
+    let hands_ui2_obj = await constructHandUI(selecter, me, gm, gm.getMyMaster(me).hand, app.ticker,
         show_big_card, c => {
             return { x: (width - c.width) / 2, y: height - 5.5*eh };
         }
@@ -95,6 +94,8 @@ async function setup() {
     app.stage.addChild(hands_ui1_obj.view);
     app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(selecter.view);
+
+    setTimeout(() => gm.getMyMaster(me).draw(), 1000);
 }
 
 document.body.appendChild(app.view);
