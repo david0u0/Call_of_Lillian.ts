@@ -16,6 +16,7 @@ import { ArenaArea } from "./arena_area";
 import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { my_loader } from "./card_loader";
+import { EventArea } from "./event_area";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -52,10 +53,18 @@ async function setup() {
     p_area1.container.position.set((width-p_area1.width)/2, 11*eh-p_area1.height);
     p_area2.container.position.set((width-p_area2.width)/2, 31*eh);
 
-    let char_area = new CharArea(me, gm, selecter, show_big_card, app.ticker);
-    char_area.view.position.set(0, 28.5*eh);
+    let char_area1 = new CharArea(1-me, gm, selecter, show_big_card, app.ticker);
+    char_area1.view.position.set(0, 13.5*eh - char_area1.view.height);
+    let char_area2 = new CharArea(me, gm, selecter, show_big_card, app.ticker);
+    char_area2.view.position.set(0, 28.5*eh);
 
-    app.stage.addChild(char_area.view);
+    let event_area2 = new EventArea();
+    event_area2.view.position.set(36.5*ew, 21*eh);
+
+    app.stage.addChild(event_area2.view);
+
+    app.stage.addChild(char_area1.view);
+    app.stage.addChild(char_area2.view);
 
     app.stage.addChild(p_area1.container);
     app.stage.addChild(p_area2.container);

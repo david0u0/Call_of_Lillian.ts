@@ -5,7 +5,7 @@ import { Player, CardStat, BattleRole, CharStat } from "./enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter, UnknownCard } from "./interface";
 import { ActionChain, GetterChain } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
-import { SoftRule as SR, HardRule as HR, Constant as C } from "./general_rules";
+import { SoftRule as SR, HardRule as HR, Constant as C, Constant } from "./general_rules";
 
 class PlayerMaster {
     public readonly card_table: { [index: number]: ICard } = {};
@@ -44,7 +44,10 @@ class PlayerMaster {
     public get events_ongoing() { return [...this._events_ongoing]; };
     public get events_finished() { return [...this._events_finished]; };
 
-    constructor(public readonly player: Player, private readonly selecter: ISelecter) {
+    // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
+    constructor(public readonly player: Player, private readonly selecter: ISelecter,
+        private getCurPlayer: () => Player, private addActionPoint: (n: number) => Promise<void>,
+    ) {
         SR.checkPlay(this.card_play_chain);
         SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
         SR.onFail(this.fail_chain, () => this.mana,
@@ -54,6 +57,12 @@ class PlayerMaster {
         SR.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
     }
     
+    private _is_resting = false;
+    public get is_resting() { return this._is_resting; }
+    public rest() {
+        // TODO: 休息
+    }
+
     /** 
      * 做打卡前的判斷，主要用來檢查前端界面
      * 舉例而言，有張角色的功能是施放咒語可降費
@@ -99,7 +108,6 @@ class PlayerMaster {
     draw(seq?: number) {
         // TODO: 加上事件鏈?
         // TODO: 用 seq 實現檢索的可能
-        // TODO: 應該要是亂數給牌
         let deck = this.deck;
         let n = Math.floor(deck.length * Math.random());
         let card = deck[n];
@@ -147,6 +155,9 @@ class PlayerMaster {
         .trigger(char.basic_battle_role, null);
     }
     checkBeforePlay(card: IKnownCard) {
+        if(this.getCurPlayer() != this.player) {
+            return false;
+        }
         let can_play = this.mana > this.getManaCost(card);
         return card.check_before_play_chain.chain(this.check_before_play_chain, card)
         .trigger(can_play, null);
@@ -159,13 +170,19 @@ class PlayerMaster {
             return false;
         }
     }
-    async playCard(card: IKnownCard) {
+    async playCard(card: IKnownCard, force=false) {
+        if(!force && this.getCurPlayer() != this.player) {
+            throw new BadOperationError("想在別人的回合出牌？");
+        }
         card.rememberFields();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
             card.recoverFields();
             return false;
         }
         await this.addMana(-this.getManaCost(card));
+        if(!force) {
+            await this.addActionPoint(-1);
+        }
         await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
             card.card_status = CardStat.Onboard;
             HR.onPlay(card, this.addCharacter.bind(this),
@@ -242,6 +259,9 @@ class PlayerMaster {
         return cost_chain.trigger(event.push_cost, char);
     }
     async pushEvent(char: ICharacter|null) {
+        if(this.getCurPlayer() != this.player) {
+            throw new BadOperationError("想在別人的回合推進事件？");
+        }
         let push_chain = new ActionChain<ICharacter|null>();
         let cost = 0;
         let _event = await this.selecter.selectSingleCard(TG.isEvent, event => {
@@ -259,7 +279,8 @@ class PlayerMaster {
 
         if(_event) {
             let event = _event;
-            this.addMana(-cost);
+            await this.addMana(-cost);
+            await this.addActionPoint(-1);
             if(char) {
                 await this.changeCharTired(char, true);
             }
@@ -279,9 +300,22 @@ class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [index: number]: ICard } = {};
 
+    private p_master1: PlayerMaster;
+    private p_master2: PlayerMaster;
+
+    private _cur_player = Player.Player1;
+    public getCurPlayer() { return this._cur_player; }
+    private _action_point = Constant.INIT_ACTION_POINT;
+    public getActionPoint() { return this._action_point; }
+
     constructor(public readonly selecter: ISelecter,
         private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
     ) {
+        this.p_master1 = new PlayerMaster(Player.Player1, this.selecter,
+            this.getCurPlayer.bind(this), this.addActionPoint.bind(this));
+        this.p_master2 = new PlayerMaster(Player.Player2, this.selecter,
+            this.getCurPlayer.bind(this), this.addActionPoint.bind(this));
+
         SR.onGetEnterCost(this.get_enter_cost_chain);
         SR.checkEnter(this.enter_chain);
         SR.onEnter(this.enter_chain, (p, mana) => {
@@ -289,6 +323,34 @@ class GameMaster {
         });
         SR.checkExploit(this.exploit_chain);
         selecter.setCardTable(this.card_table);
+    }
+
+    public readonly set_action_point_chain = new ActionChain<number>();
+    public readonly end_round_chain = new ActionChain<{ prev: Player, next: Player }>();
+
+    public async addActionPoint(n: number) {
+        let new_action_point = Math.max(0, this._action_point + n);
+        await this.set_action_point_chain.trigger(new_action_point, async () => {
+            this._action_point = new_action_point;
+            if(this._action_point == 0) {
+                let new_player = 1 - this._cur_player;
+                this._action_point = Constant.INIT_ACTION_POINT;
+                if(this.getMyMaster(new_player).is_resting) {
+                    // 繼續同一個玩家的回合
+                    await this.endRound(this._cur_player, this._cur_player);
+                } else {
+                    // 轉換使用權
+                    await this.endRound(this._cur_player, new_player);
+                }
+            } else {
+                // TODO: 暫時轉換使用權讓對手打瞬間牌？
+            }
+        });
+    }
+    public async endRound(prev: Player, next: Player) {
+        this.end_round_chain.trigger({ prev, next }, () => {
+            this._cur_player = next;
+        });
     }
 
     public genUnknownToDeck(owner: Player) {
@@ -325,8 +387,6 @@ class GameMaster {
         }
     }
 
-    private p_master1: PlayerMaster = new PlayerMaster(Player.Player1, this.selecter);
-    private p_master2: PlayerMaster = new PlayerMaster(Player.Player2, this.selecter);
     getMyMaster(arg: Player | IKnownCard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);
@@ -353,6 +413,9 @@ class GameMaster {
         .trigger(0, char);
     }
     async enterArena(char: ICharacter) {
+        if(this.getCurPlayer() != char.owner) {
+            throw new BadOperationError("想在別人的回合進入場所？");
+        }
         let p_master = this.getMyMaster(char);
         let _arena = await this.selecter.selectSingleCard(TG.isArena, arena => {
             if(HR.checkEnter(char, arena, p_master.mana, this.getEnterCost(char, arena))) {
@@ -370,6 +433,7 @@ class GameMaster {
                 HR.onEnter(char, arena);
             });
             await p_master.addMana(-this.getEnterCost(char, arena));
+            await this.addActionPoint(-1);
             await p_master.changeCharTired(char, true);
             return true;
         } else {

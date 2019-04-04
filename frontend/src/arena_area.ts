@@ -99,8 +99,8 @@ export class ArenaArea {
         view.addChild(char_img);
 
         let s_area = drawStrength(this.gm, char, view.width * 0.8, true);
-        s_area.position.set(view.width * 0.1, view.height - s_area.height / 2);
-        view.addChild(s_area);
+        s_area.view.position.set(view.width * 0.1, view.height - s_area.view.height / 2);
+        view.addChild(s_area.view);
 
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;

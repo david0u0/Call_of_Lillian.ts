@@ -20,7 +20,6 @@ export class CharArea {
     private readonly c_width: number;
     private readonly c_height: number;
 
-
     constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
         private showBigCard: ShowBigCard, private ticker: PIXI.ticker.Ticker
     ) {
@@ -52,10 +51,10 @@ export class CharArea {
         let { ew, eh } = getEltSize();
         if(index % 2 == 0) {
             let n = (8 - index) / 2;
-            return (2 + n * 3) * ew;
+            return (2.5 + n * 3) * ew;
         } else {
             let n = (index - 1) / 2;
-            return (25 + n * 3) * ew;
+            return (24.5 + n * 3) * ew;
         }
     }
 
@@ -79,8 +78,8 @@ export class CharArea {
                 container.position.set(offset, 0);
 
                 let s_area = drawStrength(this.gm, char, container.width*0.6, true);
-                container.addChild(s_area);
-                s_area.position.set(img.width*0.2, img.height - s_area.height/2);
+                container.addChild(s_area.view);
+                s_area.view.position.set(img.width*0.2, img.height - s_area.view.height/2);
 
                 this.setupCharUI(index, container);
                 this.chars_view.addChildAt(container, index);

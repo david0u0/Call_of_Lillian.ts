@@ -43,9 +43,11 @@ export function getCardSize(width: number, height: number, landscape = false) {
     }
 }
 
-export function drawCardFace(card: ICard, width: number, height: number, landscape = false) {
+export function drawCardFace(card: ICard|string, width: number, height: number, landscape = false) {
     let img: PIXI.Sprite;
-    if(TG.isKnown(card)) {
+    if(typeof(card) == "string") {
+        img = new PIXI.Sprite(my_loader.resources[card].texture);
+    } else if(TG.isKnown(card)) {
         img = new PIXI.Sprite(my_loader.resources[card.name].texture);
     } else {
         img = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
@@ -92,13 +94,15 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     formatStr();
     // 在任何牌被打出時更新戰力
     // TODO: 應該要在 getter 鏈上接一個回調，在該鏈被動到的時候通知我
+    let destroy: () => void = null;
     if(need_upate) {
-        pm.card_play_chain.append(c => {
+        let hook = pm.card_play_chain.append(c => {
             return { after_effect: formatStr };
         });
+        destroy = () => { hook.active_countdown = 0; };
     }
 
-    return view;
+    return { view, destroy };
 }
 
 export function drawCard(gm: GameMaster, card: ICard, width: number, height: number, isbig = false) {
@@ -162,8 +166,8 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
         } else if(TG.isCharacter(card) || TG.isUpgrade(card)) {
             if(isbig) {
                 let s_area = drawStrength(gm, card, width * 0.4); // 大圖不需要實時更新戰力
-                container.addChild(s_area);
-                s_area.position.set(width * 0.3, height - s_area.height / 2);
+                container.addChild(s_area.view);
+                s_area.view.position.set(width * 0.3, height - s_area.view.height / 2);
             }
         }
 
