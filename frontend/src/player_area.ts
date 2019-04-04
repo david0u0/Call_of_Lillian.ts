@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { PlayerMaster } from "../../game_core/game_master";
+import { PlayerMaster, GameMaster } from "../../game_core/game_master";
 import { getEltSize } from "./get_screen_size";
 
 let W = 60, H = 50;
@@ -22,7 +22,7 @@ function labelStyle(size: number) {
     });
 }
 
-export function drawPlayerArea(pm: PlayerMaster, width: number, height: number,
+export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, height: number,
     ticker: PIXI.ticker.Ticker, upsidedown=false
 ) {
     let container = new PIXI.Container();
@@ -68,11 +68,28 @@ export function drawPlayerArea(pm: PlayerMaster, width: number, height: number,
     container.addChild(emo_label_txt);
     container.addChild(emo_txt);
 
+    let round_txt = new PIXI.Text("輪到你囉^Q^", labelStyle(0.15 * height));
+    round_txt.anchor.set(1, 1);
+    round_txt.x = width;
+    round_txt.alpha = 0;
+    container.addChild(round_txt);
+    gm.end_round_chain.append(({ prev, next }) => {
+        return {
+            after_effect: () => {
+                if(next == pm.player) {
+                    round_txt.alpha = 1;
+                } else {
+                    round_txt.alpha = 0;
+                }
+            }
+        };
+    });
     if(upsidedown) {
         mana_label_txt.position.set(0.2 * width, 0.6 * height);
         mana_txt.position.set(0.2 * width, 0.6 * height + mana_label_txt.height);
         emo_label_txt.position.set(0.8 * width, 0.6 * height);
         emo_txt.position.set(0.8 * width, 0.6 * height + mana_label_txt.height);
+        round_txt.position.set(width, height);
     }
 
     return { container, width, height };

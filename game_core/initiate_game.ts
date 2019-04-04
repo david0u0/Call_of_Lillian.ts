@@ -49,5 +49,5 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
             pm.draw();
         }
     }
-    gm.endRound(Player.Player1, Player.Player2);
+    gm.endRound(Player.Player1, Player.Player1);
 }
