@@ -32,7 +32,7 @@ export class CharArea {
 
         for(let i = 0; i < MAX_CHAR; i++) {
             let mask = new PIXI.Graphics();
-            mask.beginFill(0, 0.5);
+            mask.beginFill(0, 0.7);
             mask.drawRoundedRect(0, 0, this.c_width, this.c_height, 5);
             mask.endFill();
             mask.position.set(this.getOffset(i), 0);
@@ -72,16 +72,10 @@ export class CharArea {
                 let og_w = img.width;
                 let og_h = img.height;
 
-                let container = new PIXI.Container();
                 img.scale.set(this.c_width / og_w, this.c_height / og_h);
-                container.addChild(img);
+                let container = this.setupCharUI(index, img);
                 container.position.set(offset, 0);
 
-                let s_area = drawStrength(this.gm, char, container.width*0.6, true);
-                container.addChild(s_area.view);
-                s_area.view.position.set(img.width*0.2, img.height - s_area.view.height/2);
-
-                this.setupCharUI(index, container);
                 this.chars_view.addChildAt(container, index);
             });
         } else {
@@ -95,35 +89,37 @@ export class CharArea {
         }
     }
 
-    private setupCharUI(index: number, view: PIXI.Container) {
+    private setupCharUI(index: number, img: PIXI.Sprite) {
+        let view = new PIXI.Container();
         let char = this.list[index];
         let tired_mask = this.tired_mask_view.children[index];
         // 入場效果
-        view.alpha = 0;
+        img.alpha = 0;
         let fade_in = () => {
-            if(view.alpha < 1) {
-                view.alpha += 0.1;
+            if(img.alpha < 1) {
+                img.alpha += 0.1;
             } else {
-                view.alpha = 1;
+                img.alpha = 1;
                 this.ticker.remove(fade_in);
             }
         };
+        this.ticker.add(fade_in);
+        
         // 大圖
-        view.interactive = true;
-        view.cursor = "pointer";
+        img.interactive = true;
+        img.cursor = "pointer";
         let destroy_big: () => void = null;
-        view.on("mouseover", () => {
+        img.on("mouseover", () => {
             destroy_big = this.showBigCard(
-                view.worldTransform.tx + view.width/2, view.worldTransform.ty + view.height/2,
+                img.worldTransform.tx +img.width/2,img.worldTransform.ty +img.height/2,
                 char, this.ticker);
         });
-        view.on("mouseout", () => {
+        img.on("mouseout", () => {
             if(destroy_big) {
                 destroy_big();
                 destroy_big = null;
             }
         });
-        this.ticker.add(fade_in);
         // 角色疲勞
         char.change_char_tired_chain.append(is_tired => {
             if(is_tired && !char.is_tired) {
@@ -149,7 +145,7 @@ export class CharArea {
             }
         });
         // 角色進入場所
-        view.on("click", async evt => {
+        img.on("click", async evt => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(char);
             } else {
@@ -168,5 +164,28 @@ export class CharArea {
                 }
             }
         });
+
+        view.addChild(img);
+        let s_area = drawStrength(this.gm, char, view.width * 0.6, true);
+        s_area.view.position.set(img.width * 0.2, img.height - s_area.view.height / 2);
+        view.addChild(s_area.view);
+
+        // 角色行動或能力
+        if(char.abilities.length != 0) {
+            let circle = new PIXI.Graphics();
+            circle.beginFill(0xffffff, 1);
+            circle.lineStyle(2, 0);
+            circle.drawCircle(0, 0,img.height/8);
+            circle.endFill();
+            circle.interactive = true;
+            circle.cursor = "pointer";
+            circle.on("click", async evt => {
+                evt.stopPropagation();
+                // TODO: 支援多個角色行動
+                await this.gm.getMyMaster(this.player).triggerAbility(char, 0);
+            });
+            view.addChild(circle);
+        }
+        return view;
     }
 }

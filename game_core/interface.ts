@@ -8,6 +8,13 @@ interface ICard {
     readonly owner: Player;
     card_status: CardStat;
 }
+
+type Ability = {
+    description: string,
+    func: () => void|Promise<void>,
+    cost?: number,
+};
+
 interface IKnownCard extends ICard {
     readonly name: string;
     readonly description: string;
@@ -21,6 +28,8 @@ interface IKnownCard extends ICard {
     readonly card_leave_chain: ActionChain<null>;
     /** 只有退場會觸發這條效果 */
     readonly card_retire_chain: ActionChain<null>;
+
+    readonly abilities: Array<Ability>;
 
     isEqual(card: IKnownCard|null): boolean;
 
@@ -198,5 +207,5 @@ interface ISelecter {
 export {
     ICard, IKeeper, IKnownCard, ICharacter,
     IUpgrade, IArena, IEvent, ISpell, UnknownCard,
-    TypeGaurd, ISelecter
+    TypeGaurd, ISelecter, Ability
 };

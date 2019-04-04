@@ -94,8 +94,6 @@ async function setup() {
     app.stage.addChild(hands_ui1_obj.view);
     app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(selecter.view);
-
-    setTimeout(() => gm.getMyMaster(me).draw(), 1000);
 }
 
 document.body.appendChild(app.view);

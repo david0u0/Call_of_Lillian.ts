@@ -79,6 +79,8 @@ class PlayerMaster {
     public set_mana_chain = new ActionChain<number>();
     public set_emo_chain = new ActionChain<number>();
 
+    public ability_chain = new ActionChain<{ card: IKnownCard, a_index: number }>();
+
     public fail_chain = new ActionChain<IEvent>();
     public get_push_cost_chain = new GetterChain<number, { char: ICharacter|null, event: IEvent }>();
     public push_chain = new ActionChain<{ char: ICharacter|null, event: IEvent }>();
@@ -205,6 +207,25 @@ class PlayerMaster {
             card.recoverFields();
         });
         return true;
+    }
+
+    async triggerAbility(card: IKnownCard, a_index: number) {
+        if(this.getCurPlayer() != this.player) {
+            throw new BadOperationError("想在別人的回合使用能力？");
+        }
+        let ability = card.abilities[a_index];
+        if(ability) {
+            let cost = ability.cost ? ability.cost : 0;
+            if(this.mana >= cost) {
+                await this.ability_chain.trigger({ card, a_index }, () => {
+                    this.addActionPoint(-1);
+                    ability.func();
+                });
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     async changeCharTired(char: ICharacter, is_tired: boolean) {

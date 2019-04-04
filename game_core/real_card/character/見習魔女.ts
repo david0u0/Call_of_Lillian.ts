@@ -11,5 +11,12 @@ export default class C extends Character {
     basic_strength = 0;
     basic_battle_role = { can_attack: true, can_block: true, is_melee: true };
 
+    abilities = [{
+        description: "啟程時刻：從牌庫抽一張牌",
+        func: () => {
+            this.my_master.draw();
+            this.my_master.changeCharTired(this, true);
+        }
+    }];
     // TODO: 塞入角色行動
 }
