@@ -83,7 +83,7 @@ async function setup() {
 
     let hands_ui1_obj = await constructHandUI(selecter, 1-me, gm, gm.getEnemyMaster(me).hand, app.ticker,
         show_big_card, c => {
-            return { x: (width - c.width) / 2, y: -c.height + 5.5*eh };
+            return { x: (width - c.width) / 2, y: -c.height + 5.5 * eh };
         }
     );
     let hands_ui2_obj = await constructHandUI(selecter, me, gm, gm.getMyMaster(me).hand, app.ticker,

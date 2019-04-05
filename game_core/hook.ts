@@ -139,6 +139,7 @@ class ActionChain<U> {
             if(cleanup) {
                 await Promise.resolve(cleanup());
             }
+            return false;
         } else {
             if(callback) {
                 await Promise.resolve(callback());
@@ -146,6 +147,7 @@ class ActionChain<U> {
                     effect();
                 }
             }
+            return true;
         }
     }
     public chain<V>(next_chain: ActionChain<V>, next_arg: V): ActionChain<U> {

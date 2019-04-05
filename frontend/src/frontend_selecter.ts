@@ -9,7 +9,6 @@ export default class FrontendSelecter implements ISelecter {
     public view = new PIXI.Container();
     
     private resolve_card: (arg: CardLike|PromiseLike<CardLike>) => void = null;
-    private mouse_init_pos = { x: 0, y: 0 };
     private card_table: { [index: number]: ICard } = {};
     private filter_func: (c: IKnownCard) => boolean;
     private line: PIXI.Graphics = null;
@@ -30,7 +29,7 @@ export default class FrontendSelecter implements ISelecter {
         this.card_table = table;
     }
 
-    selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
+    selectSingleCard<T extends ICard>(caller: ICard, guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
         this._selecting = true;
@@ -43,10 +42,12 @@ export default class FrontendSelecter implements ISelecter {
         };
         this.line = new PIXI.Graphics();
         this.view.addChild(this.line);
+        let caller_obj = this.card_obj_table[caller.seq];
+        let line_init_pos = { x: caller_obj.worldTransform.tx, y: caller_obj.worldTransform.ty };
         this.view.on("mousemove", evt => {
             this.line.clear();
             this.line.lineStyle(4, 0xffffff, 1);
-            this.line.moveTo(this.mouse_init_pos.x, this.mouse_init_pos.y);
+            this.line.moveTo(line_init_pos.x, line_init_pos.y);
             this.line.lineTo(evt.data.global.x, evt.data.global.y);
         });
         this.view.on("click", evt => {
@@ -57,7 +58,7 @@ export default class FrontendSelecter implements ISelecter {
         });
     }
 
-    selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
+    selectSingleCardInteractive<T extends ICard>(caller: ICard, guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
         throw "not implemented!";
@@ -82,7 +83,13 @@ export default class FrontendSelecter implements ISelecter {
             throw new BadOperationError("沒有在選擇的時候不要打擾選擇器 =_=");
         }
     }
-    setMousePosition(x: number, y: number) {
-        this.mouse_init_pos = { x, y };
+
+    private card_obj_table: { [index: number]: PIXI.DisplayObject } = {};
+    registerCardObj(card: ICard, obj?: PIXI.DisplayObject) {
+        if(obj) {
+            this.card_obj_table[card.seq] = obj;
+        } else if(card.seq in this.card_obj_table) {
+            delete this.card_obj_table[card.seq];
+        }
     }
 }

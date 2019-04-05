@@ -77,7 +77,7 @@ export class TestSelecter implements ISelecter {
      * 因為一次只選一張，程式可以非常清楚地指出哪些牌可以選。
      * 而一次選多張卡的函式則難以枚舉所有狀況，也難以用 UI 表示出來。
      */
-    public selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
+    public selectSingleCard<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
         checkCanSelect=(card: T) => true
     ): Promise<T|null> {
         let list = this._selectCards(guard, 1, 1, list => {
@@ -91,7 +91,7 @@ export class TestSelecter implements ISelecter {
             }
         });
     }
-    public selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
+    public selectSingleCardInteractive<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
         checkCanSelect = (card: T) => true
     ): Promise<T | null> {
         throw "Not yet implemented";

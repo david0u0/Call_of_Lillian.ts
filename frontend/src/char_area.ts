@@ -3,7 +3,7 @@ import { getEltSize } from "./get_screen_size";
 import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";
-import { TypeGaurd, ICharacter } from "../../game_core/interface";
+import { TypeGaurd, ICharacter, IEvent, IArena, ICard } from "../../game_core/interface";
 import { GameMaster } from "../../game_core/game_master";
 import { Player } from "../../game_core/enums";
 import { drawStrength } from "./draw_card";
@@ -144,23 +144,32 @@ export class CharArea {
                 this.ticker.add(fade_out);
             }
         });
-        // 角色進入場所
+        // 角色進入場所或推進事件
         img.on("click", async evt => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(char);
-            } else {
+            } else if(this.gm.t_master.cur_player == this.player) {
                 let x = evt.data.global.x;
                 let y = evt.data.global.y;
-                this.selecter.setMousePosition(x, y);
-                let result = await this.gm.enterArena(char);
-                if(result) {
-                    if(destroy_big) {
-                        destroy_big();
-                        destroy_big = null;
+                function guard(c: ICard): c is IEvent | IArena {
+                    return TypeGaurd.isEvent(c) || TypeGaurd.isArena(c);
+                }
+                let c_selected = await this.selecter.selectSingleCard(char, guard, card => true);
+                if(TypeGaurd.isCard(c_selected)) {
+                    if(TypeGaurd.isArena(c_selected)) {
+                        let result = await this.gm.enterArena(c_selected, char);
+                        if(result) {
+                            if(destroy_big) {
+                                destroy_big();
+                                destroy_big = null;
+                            }
+                            // 移除UI
+                            view.visible = false;
+                            tired_mask.visible = false;
+                        }
+                    } else if(TypeGaurd.isEvent(c_selected)) {
+
                     }
-                    // 移除UI
-                    view.visible = false;
-                    tired_mask.visible = false;
                 }
             }
         });
@@ -175,7 +184,7 @@ export class CharArea {
             let circle = new PIXI.Graphics();
             circle.beginFill(0xffffff, 1);
             circle.lineStyle(2, 0);
-            circle.drawCircle(0, 0,img.height/8);
+            circle.drawCircle(0, 0, img.height / 8);
             circle.endFill();
             circle.interactive = true;
             circle.cursor = "pointer";
@@ -186,6 +195,7 @@ export class CharArea {
             });
             view.addChild(circle);
         }
+        this.selecter.registerCardObj(char, view);
         return view;
     }
 }

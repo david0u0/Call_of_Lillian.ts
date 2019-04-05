@@ -43,36 +43,30 @@ describe("測試事件卡功能", () => {
             assert.equal(pm.mana, 995);
         });
         it("玩家推進一次之後魔力應該變為995-1=994", async () => {
-            selecter.setSelectedSeqs(event.seq);
-            await pm.pushEvent(char);
+            await pm.pushEvent(event, char);
             assert.equal(pm.mana, 994);
         });
         it("推進一次之後進度應該變成1", async () => {
             assert.equal(event.cur_progress_count, 0);
-            selecter.setSelectedSeqs(event.seq);
-            await pm.pushEvent(char);
+            await pm.pushEvent(event, char);
             assert.equal(event.cur_progress_count, 1);
         });
         it("推進一次之後角色應該陷入疲勞", async () => {
             assert.equal(char.is_tired, false);
-            selecter.setSelectedSeqs(event.seq);
-            await pm.pushEvent(char);
+            await pm.pushEvent(event, char);
             assert.equal(char.is_tired, true);
         });
         it("陷入疲勞的角色應該無法推進", async () => {
             await pm.changeCharTired(char, true);
-            selecter.setSelectedSeqs(event.seq);
             await checkBadOperationErrorAsync(async () => {
-                await pm.pushEvent(char);
+                await pm.pushEvent(event, char);
             });
         });
         it("推進兩次之後會成功，魔力應該變為995-1-1+5=998，總分變成1", async () => {
             assert.equal(pm.getScore(), 0, "一開始總分不為0");
             assert.equal(pm.mana, 995, "打出角色後魔力不對");
-            selecter.setSelectedSeqs(event.seq);
-            await pm.pushEvent(char);
-            selecter.setSelectedSeqs(event.seq);
-            await pm.pushEvent(char2);
+            await pm.pushEvent(event, char);
+            await pm.pushEvent(event, char2);
             assert.equal(pm.mana, 998, "完成事件後魔力不對");
             assert.equal(pm.getScore(), 1, "完成後總分不對");
             assert.equal(event.card_status, CardStat.Finished, "完成後事件沒有標記為完成");
@@ -95,26 +89,21 @@ describe("測試事件卡功能", () => {
         it("玩家的魔力應該是1000-4-4-4=988", () => {
             assert.equal(pm.mana, 988);
         });
-        it("進入醫院前應該無法推進", () => {
-            checkBadOperationErrorAsync(async () => {
-                selecter.setSelectedSeqs(event.seq);
-                await pm.pushEvent(char);
+        it("進入醫院前應該無法推進", async () => {
+            await checkBadOperationErrorAsync(async () => {
+                await pm.pushEvent(event, char);
             });
         });
         it("進入醫院後應該就可以推進了", async () => {
-            selecter.setSelectedSeqs(hospital.seq);
-            await gm.enterArena(char);
+            await gm.enterArena(hospital, char);
             assert.doesNotThrow(async () => {
-                selecter.setSelectedSeqs(event.seq);
-                await pm.pushEvent(char2);
+                await pm.pushEvent(event, char2);
             });
         });
         it("進入敵方的醫院應該也可以推進了", async () => {
-            selecter.setSelectedSeqs(e_hospital.seq);
-            await gm.enterArena(char);
+            await gm.enterArena(e_hospital, char);
             assert.doesNotThrow(async () => {
-                selecter.setSelectedSeqs(event.seq);
-                await pm.pushEvent(char2);
+                await pm.pushEvent(event, char2);
             });
         });
     });

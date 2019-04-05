@@ -298,41 +298,36 @@ class PlayerMaster {
         }
         return cost_chain.trigger(event.push_cost, char);
     }
-    async pushEvent(char: ICharacter | null) {
+    async pushEvent(event: IEvent, char: ICharacter | null) {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
         }
         let push_chain = new ActionChain<ICharacter | null>();
-        let cost = 0;
-        let _event = await this.selecter.selectSingleCard(TG.isEvent, event => {
-            cost = this.getPushCost(char, event);
-            if(HR.checkPush(event, char, this.mana, cost)) {
-                push_chain = event.push_chain.chain(this.push_chain, { event, char });
-                if(TG.isCard(char)) {
-                    push_chain.chain(char.push_chain, event);
-                }
-                return push_chain.checkCanTrigger(char);
-            } else {
-                return false;
-            }
-        });
+        let cost = this.getPushCost(char, event);
 
-        if(_event) {
-            let event = _event;
-            await this.addMana(-cost);
-            await this.t_master.addActionPoint(-1);
-            if(char) {
-                await this.changeCharTired(char, true);
+        if(HR.checkPush(event, char, this.mana, cost)) {
+            push_chain = event.push_chain.chain(this.push_chain, { event, char });
+            if(TG.isCard(char)) {
+                push_chain.chain(char.push_chain, event);
             }
-            await push_chain.trigger(char, async () => {
-                HR.onPushEvent(event);
-                await Promise.resolve(event.onPush(char));
-                if(event.cur_progress_count == event.goal_progress_count) {
-                    // 事件已完成
-                    await this.finishEvent(char, event);
+            if(push_chain.checkCanTrigger(char)) {
+                await this.addMana(-cost);
+                await this.t_master.addActionPoint(-1);
+                if(char) {
+                    await this.changeCharTired(char, true);
                 }
-            });
+                return await push_chain.trigger(char, async () => {
+                    HR.onPushEvent(event);
+                    await Promise.resolve(event.onPush(char));
+                    if(event.cur_progress_count == event.goal_progress_count) {
+                        // 事件已完成
+                        await this.finishEvent(char, event);
+                    }
+                });
+            }
         }
+        throwIfIsBackend("取消推進事件");
+        return false;
     }
 }
 
@@ -419,34 +414,27 @@ class GameMaster {
         .chain(this.get_enter_cost_chain, { char, arena })
         .trigger(0, char);
     }
-    async enterArena(char: ICharacter) {
+    async enterArena(arena: IArena, char: ICharacter) {
         if(this.t_master.cur_player != char.owner) {
             throw new BadOperationError("想在別人的回合進入場所？");
         }
         let p_master = this.getMyMaster(char);
-        let _arena = await this.selecter.selectSingleCard(TG.isArena, arena => {
-            if(HR.checkEnter(char, arena, p_master.mana, this.getEnterCost(char, arena))) {
-                return arena.enter_chain.chain(char.enter_arena_chain, arena)
-                .chain(this.enter_chain, { char, arena }).checkCanTrigger(char);
-            } else {
-                return false;
-            }
-        });
-        if(_arena) {
-            let arena = _arena;
+        let cost = this.getEnterCost(char, arena);
+
+        if(HR.checkEnter(char, arena, p_master.mana, cost)) {
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
             .chain(this.enter_chain, { char, arena });
-            await enter_chain.trigger(char, () => {
-                HR.onEnter(char, arena);
-            });
-            await p_master.addMana(-this.getEnterCost(char, arena));
-            await this.t_master.addActionPoint(-1);
-            await p_master.changeCharTired(char, true);
-            return true;
-        } else {
-            throwIfIsBackend("進入程序取消");
-            return false;
+            if(enter_chain.checkCanTrigger(char)) {
+                await p_master.addMana(-cost);
+                await this.t_master.addActionPoint(-1);
+                await p_master.changeCharTired(char, true);
+                return await enter_chain.trigger(char, () => {
+                    HR.onEnter(char, arena);
+                });
+            }
         }
+        throwIfIsBackend("進入程序取消");
+        return false;
     }
     getExploitCost(arena: IArena, char: ICharacter | Player) {
         let get_cost_chain = arena.get_exploit_cost_chain

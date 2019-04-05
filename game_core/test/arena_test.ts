@@ -53,20 +53,13 @@ describe("測試最基礎的場所卡", () => {
         assert.equal(gm.getEnterCost(rainy, enemy_h), 1);
     });
     describe("測試進入場所的功能", () => {
-        it("選擇的場所如果不到一個應該要報錯", () => {
-            checkBadOperationErrorAsync(async () => {
-                await gm.enterArena(rainy);
-            });
-        });
         describe("讓角色實際進入場所", () => {
             before(async () => {
-                selecter.setSelectedSeqs(my_h.seq);
-                await gm.enterArena(rainy);
+                await gm.enterArena(my_h, rainy);
             });
             it("在場所中的角色欲進入場所應該報錯", () => {
                 checkBadOperationErrorAsync(async () => {
-                    selecter.setSelectedSeqs(enemy_h.seq);
-                    await gm.enterArena(rainy);
+                    await gm.enterArena(enemy_h, rainy);
                 });
             });
             it("角色進入的場所應該是自己的醫院", () => {
@@ -78,11 +71,9 @@ describe("測試最基礎的場所卡", () => {
             });
             it("進入時超過場所容納上限應該報錯", async () => {
                 await gm.t_master.endTurn(p2);
-                selecter.setSelectedSeqs(my_h.seq);
-                await gm.enterArena(e_rainy3);
+                await gm.enterArena(my_h, e_rainy3);
                 checkBadOperationErrorAsync(async () => {
-                    selecter.setSelectedSeqs(my_h.seq);
-                    await gm.enterArena(rainy2);
+                    await gm.enterArena(my_h, rainy2);
                 });
                 await gm.t_master.endTurn(p1);
             });

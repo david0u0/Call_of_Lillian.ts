@@ -197,9 +197,9 @@ class UnknownCard implements ICard {
 
 
 interface ISelecter {
-    selectSingleCard<T extends ICard>(guard: (c: ICard) => c is T,
+    selectSingleCard<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    selectSingleCardInteractive<T extends ICard>(guard: (c: ICard) => c is T,
+    selectSingleCardInteractive<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
     setCardTable(table: { [index: number]: ICard }): void;
 }

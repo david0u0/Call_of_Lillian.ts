@@ -10,7 +10,6 @@ import FrontendSelecter from "./frontend_selecter";
 import { BadOperationError } from "../../game_core/errors";
 import { Player } from "../../game_core/enums";
 
-// FIXME: 當一張卡被 destroy 時，如果它的大圖還開著，會永遠關不了（因為沒有觸發 mouseout 事件）
 // FIXME: 要處理好幾張卡被加入/移除的效果
 
 const STEP = 9;
@@ -123,7 +122,7 @@ class HandUI {
     }
     private addLoaded(card: ICard) {
         let { ew, eh } = getEltSize();
-        let card_ui = drawCard(this.gm, card, ew * 3.5, eh * 10);
+        let card_ui = drawCard(this.gm, card, ew * 3, eh * 10);
         let offset = this.list.length * this.card_gap;
         card_ui = this.setupHandCardUI(card, card_ui);
         card_ui.position.set(offset, 0);
@@ -157,7 +156,6 @@ class HandUI {
                     this.selecter.onCardClicked(card);
                 } else {
                     let pm = this.gm.getMyMaster(card);
-                    this.selecter.setMousePosition(evt.data.global.x, evt.data.global.y);
                     if(await pm.playCard(card)) {
                         if(destroy_big_card) {
                             destroy_big_card();
@@ -168,6 +166,7 @@ class HandUI {
                 }
             });
         }
+        this.selecter.registerCardObj(card, card_ui);
         return card_ui;
     }
 }

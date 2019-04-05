@@ -48,7 +48,6 @@ export class TimeMaster {
             this._action_point = new_action_point;
             if(this._action_point == 0) {
                 let new_player = 1 - this._cur_player;
-                this._action_point = Constant.INIT_ACTION_POINT;
                 if(this.checkResting(new_player)) {
                     // 繼續同一個玩家的回合
                     await this.endTurn(this._cur_player);
@@ -56,6 +55,7 @@ export class TimeMaster {
                     // 轉換使用權
                     await this.endTurn(new_player);
                 }
+                this.addActionPoint(Constant.INIT_ACTION_POINT);
             } else {
                 // TODO: 暫時轉換使用權讓對手打瞬間牌？
             }
