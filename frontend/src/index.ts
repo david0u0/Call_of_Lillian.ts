@@ -29,6 +29,8 @@ PIXI.loader
 .add("release", require("../assets/release.png"))
 .add("rest", require("../assets/rest.png"))
 .add("mana_pop", require("../assets/mana_pop.png"))
+.add("goal_pop", require("../assets/goal_pop.png"))
+.add("countdown_pop", require("../assets/countdown_pop.png"))
 .load(setup);
 
 async function setup() {
@@ -58,7 +60,7 @@ async function setup() {
     let char_area2 = new CharArea(me, gm, selecter, show_big_card, app.ticker);
     char_area2.view.position.set(0, 28.5*eh);
 
-    let event_area2 = new EventArea();
+    let event_area2 = new EventArea(me, gm, selecter, show_big_card, app.ticker);
     event_area2.view.position.set(36.5*ew, 21*eh);
 
     app.stage.addChild(event_area2.view);

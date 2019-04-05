@@ -2,10 +2,19 @@ import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_screen_size";
 import { drawCard, drawCardFace } from "./draw_card";
 import { my_loader } from "./card_loader";
+import { Player } from "../../game_core/enums";
+import { GameMaster } from "../../game_core/game_master";
+import FrontendSelecter from "./frontend_selecter";
+import { ShowBigCard } from "./show_big_card";
+import { IKnownCard, IEvent, TypeGaurd } from "../../game_core/interface";
 
 export class EventArea {
     public readonly view = new PIXI.Container();
-    constructor() {
+    private list = new Array<IEvent>();
+    private finish_list = new Array<IEvent>();
+    constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
+        private showBigCard: ShowBigCard, private ticker: PIXI.ticker.Ticker
+    ) {
         let { ew, eh } = getEltSize();
         let mask = new PIXI.Graphics();
         mask.beginFill(0, 0.5);
@@ -13,31 +22,96 @@ export class EventArea {
         mask.endFill();
         this.view.addChild(mask);
 
-        my_loader.add("M市立綜合醫院").load(() => {
-            for(let i = 0; i < 4; i++) {
-                let evt_ui = new PIXI.Container();
-                let card = drawCardFace("M市立綜合醫院", 2.5 * ew, 4 * eh, true);
-                let text1 = new PIXI.Text("4/5", new PIXI.TextStyle({
-                    fontSize: ew*0.8,
-                    fill: 0xffffff
-                }));
-                let text2 = new PIXI.Text("4", new PIXI.TextStyle({
-                    fontSize: ew*0.8,
-                    fill: 0xffffff
-                }));
-                card.x = (5.5 * ew - card.width) / 2;
-                text1.anchor.set(1, 0.5);
-                text1.position.set(card.x, card.height / 4);
-                text2.anchor.set(0, 0.5);
-                text2.position.set(card.width + card.x, card.height / 4);
-                evt_ui.addChild(card);
-                evt_ui.addChild(text1);
-                evt_ui.addChild(text2);
-
-                evt_ui.y = 0.7 * evt_ui.height * i;
-                this.view.addChild(evt_ui);
+        let pm = gm.getMyMaster(player);
+        pm.card_play_chain.append(card => {
+            if(TypeGaurd.isEvent(card)) {
+                return { after_effect: () => this.addEvent(card) };
             }
-
         });
+    }
+    addEvent(card: IEvent) {
+        let { ew, eh } = getEltSize();
+        let evt_ui = new PIXI.Container();
+
+        let index = this.list.length;
+        this.list.push(card);
+
+        let card_face = drawCardFace(card, 2.5 * ew, 4 * eh, true);
+        let push_txt = new PIXI.Text("", new PIXI.TextStyle({
+            fontSize: ew * 0.8,
+            fill: 0xffffff
+        }));
+        let countdown_txt = new PIXI.Text("", new PIXI.TextStyle({
+            fontSize: ew * 0.8,
+            fill: 0xffffff
+        }));
+        let updateTxt = () => {
+            push_txt.text = `${card.cur_progress_count}/${card.goal_progress_count}`;
+            countdown_txt.text = card.cur_time_count.toString();
+        };
+        updateTxt();
+        card.push_chain.append(() => {
+            return { after_effect: updateTxt };
+        });
+        this.gm.main_phase_end_chain.append(() => {
+            return { after_effect: updateTxt };
+        });
+        let destroy_big: () => void = null;
+        card.finish_chain.append(() => {
+            return { after_effect: () => this.finishEvent(card, destroy_big) };
+        });
+        card.card_leave_chain.append(() => {
+            return { after_effect: () => this.removeEvent(card, destroy_big) };
+        });
+
+        card_face.x = (5.5 * ew - card_face.width) / 2;
+        push_txt.anchor.set(1, 0.5);
+        push_txt.position.set(card_face.x, card_face.height / 4);
+        countdown_txt.anchor.set(0, 0.5);
+        countdown_txt.position.set(card_face.width + card_face.x, card_face.height / 4);
+        evt_ui.addChild(card_face);
+        evt_ui.addChild(push_txt);
+        evt_ui.addChild(countdown_txt);
+
+        card_face.interactive = true;
+        card_face.cursor = "pointer";
+        card_face.on("click", () => {
+            if(this.selecter.selecting) {
+                this.selecter.onCardClicked(card);
+            } else {
+                // NOTE: 沒事應該不會去點事件卡 吧？
+            }
+        });
+        card_face.on("mouseover", () => {
+            destroy_big = this.showBigCard(
+                card_face.worldTransform.tx + card_face.width / 2,
+                card_face.worldTransform.ty + card_face.height / 2,
+                card, this.ticker);
+        });
+        card_face.on("mouseout", () => {
+            if(destroy_big) {
+                destroy_big();
+            }
+        });
+
+        evt_ui.y = 0.7 * evt_ui.height * index;
+        this.view.addChild(evt_ui);
+    }
+    finishEvent(event: IEvent, destroy_big: () => void) {
+        this.removeEvent(event, destroy_big);
+        this.finish_list.push(event);
+        // TODO: 在完成區的事件也有可能退場
+    }
+    removeEvent(event: IEvent, destroy_big: () => void) {
+        for(let i = 0; i < this.list.length; i++) {
+            if(this.list[i].isEqual(event)) {
+                this.view.children[i+1].destroy();
+                this.list = [...this.list.slice(0, i), ...this.list.slice(i+1)];
+                break;
+            }
+        }
+        if(destroy_big) {
+            destroy_big();
+        }
     }
 }

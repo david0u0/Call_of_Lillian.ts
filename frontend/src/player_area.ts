@@ -108,6 +108,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
         emo_label_txt.position.set(0.8 * width, 0.6 * height);
         emo_txt.position.set(0.8 * width, 0.6 * height + mana_label_txt.height);
         round_txt.position.set(width, height);
+        rest_txt.position.set(width, height);
     }
 
     return { container, width, height };

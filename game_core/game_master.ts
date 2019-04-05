@@ -245,16 +245,17 @@ class PlayerMaster {
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
-        await card.card_leave_chain.trigger(null);
-        HR.onLeave(card, this.retireCard.bind(this));
+        await card.card_leave_chain.trigger(null, () => {
+            HR.onLeave(card, this.retireCard.bind(this));
+        });
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
             let chain = card.card_retire_chain.chain(this.card_retire_chain, card);
             let can_die = chain.checkCanTrigger(null);
             if(can_die) {
-                await this._leaveCard(card);
-                await chain.trigger(null, () => {
+                await chain.trigger(null, async () => {
+                    await this._leaveCard(card);
                     card.card_status = CardStat.Retired;
                 });
             }
@@ -276,7 +277,8 @@ class PlayerMaster {
 
     // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
     async failEvent(event: IEvent) {
-        await this.fail_chain.trigger(event, async () => {
+        await event.fail_chain.chain(this.fail_chain, event)
+        .trigger(null, async () => {
             await Promise.resolve(event.onFail());
             this.retireCard(event);
         });
@@ -284,7 +286,8 @@ class PlayerMaster {
 
     async finishEvent(char: ICharacter | null, event: IEvent) {
         // 應該不太需要 checkCanTrigger 啦 @@
-        await this.finish_chain.trigger({ char, event }, async () => {
+        await event.finish_chain.chain(this.finish_chain, { event, char })
+        .trigger(char, async () => {
             event.card_status = CardStat.Finished;
             this._events_finished.push(event);
             await Promise.resolve(event.onFinish(char));
@@ -299,6 +302,7 @@ class PlayerMaster {
         return cost_chain.trigger(event.push_cost, char);
     }
     async pushEvent(event: IEvent, char: ICharacter | null) {
+        // TODO: 這裡應該要有一條 pre-push 動作鏈
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
         }
@@ -415,6 +419,7 @@ class GameMaster {
         .trigger(0, char);
     }
     async enterArena(arena: IArena, char: ICharacter) {
+        // TODO: 這裡應該要有一條 pre-enter 動作鏈
         if(this.t_master.cur_player != char.owner) {
             throw new BadOperationError("想在別人的回合進入場所？");
         }
@@ -446,6 +451,7 @@ class GameMaster {
     }
     /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
     async exploit(arena: IArena, char: ICharacter | Player) {
+        // TODO: 這裡應該要有一條 pre-exploit 動作鏈
         let p_master = this.getMyMaster(char);
         let cost = this.getExploitCost(arena, char);
         if(HR.checkExploit(arena, char, p_master.mana, cost)) {

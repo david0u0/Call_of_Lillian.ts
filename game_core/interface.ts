@@ -143,6 +143,8 @@ interface IEvent extends IKnownCard {
 
     readonly get_push_cost_chain:  GetterChain<number, ICharacter|null>
     readonly push_chain: ActionChain<ICharacter|null>
+    readonly fail_chain: ActionChain<null>;
+    readonly finish_chain: ActionChain<ICharacter|null>;
 
     onPush(char: ICharacter|null): Promise<void>|void;
     onFinish(char: ICharacter|null): Promise<void>|void;

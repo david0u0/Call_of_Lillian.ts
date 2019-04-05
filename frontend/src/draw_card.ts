@@ -147,7 +147,6 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
         mana_txt.alpha = 0.8;
         container.addChild(mana_pop_img);
         container.addChild(mana_txt);
-        container.pivot.set(0, -width / 10);
 
         if(isbig) {
             let description_rec = new PIXI.Graphics();
@@ -161,18 +160,35 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
             container.addChild(description_txt);
         }
 
-        if(TG.isSpell(card)) {
-
-        } else if(TG.isCharacter(card) || TG.isUpgrade(card)) {
+        if(TG.isCharacter(card) || TG.isUpgrade(card)) {
             if(isbig) {
-                let s_area = drawStrength(gm, card, width * 0.4); // 大圖不需要實時更新戰力
+                let s_area = drawStrength(gm, card, width * 0.4);
                 container.addChild(s_area.view);
                 s_area.view.position.set(width * 0.3, height - s_area.view.height / 2);
             }
+        } else if(TG.isEvent(card)) {
+            let goal_txt = new PIXI.Text(card.goal_progress_count.toString(), manaStyle(width));
+            let goal_pop_img = new PIXI.Sprite(PIXI.loader.resources["goal_pop"].texture);
+            goal_pop_img.scale.set(width / 7 / goal_pop_img.width);
+            goal_pop_img.position.set(width / 8 * 2, -width / 10);
+            goal_txt.anchor.set(-0.5, 0);
+            goal_txt.position.set(width / 8 * 2, -width / 10);
+            goal_txt.alpha = 0.8;
+            container.addChild(goal_pop_img);
+            container.addChild(goal_txt);
+            let countdown_txt = new PIXI.Text(card.init_time_count.toString(), manaStyle(width));
+            let countdown_pop_img = new PIXI.Sprite(PIXI.loader.resources["countdown_pop"].texture);
+            countdown_pop_img.scale.set(width / 7 / countdown_pop_img.width);
+            countdown_pop_img.position.set(width / 8 * 3, -width / 10);
+            countdown_txt.anchor.set(-0.5, 0);
+            countdown_txt.position.set(width / 8 * 3, -width / 10);
+            countdown_txt.alpha = 0.8;
+            container.addChild(countdown_pop_img);
+            container.addChild(countdown_txt);
         }
-
     }
 
+    container.pivot.set(0, -width / 10);
     return container;
 }
 

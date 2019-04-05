@@ -88,6 +88,19 @@ export class CharArea {
             this.addChar(char, i);
         }
     }
+    removeChar(card: ICharacter, destroy_big: () => void) {
+        for(let i = 0; i < this.list.length; i++) {
+            if(this.list[i].isEqual(card)) {
+                this.list[i] = null;
+                this.chars_view.children[i].destroy();
+                this.tired_mask_view.children[i].visible = false;
+                break;
+            }
+        }
+        if(destroy_big) {
+            destroy_big();
+        }
+    }
 
     private setupCharUI(index: number, img: PIXI.Sprite) {
         let view = new PIXI.Container();
@@ -144,13 +157,19 @@ export class CharArea {
                 this.ticker.add(fade_out);
             }
         });
+        // 角色退場
+        char.card_leave_chain.append(() => {
+            return {
+                after_effect: () => {
+                    this.removeChar(char, destroy_big);
+                }
+            };
+        });
         // 角色進入場所或推進事件
         img.on("click", async evt => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(char);
-            } else if(this.gm.t_master.cur_player == this.player) {
-                let x = evt.data.global.x;
-                let y = evt.data.global.y;
+            } else if(this.gm.t_master.cur_player == this.player && !char.is_tired) {
                 function guard(c: ICard): c is IEvent | IArena {
                     return TypeGaurd.isEvent(c) || TypeGaurd.isArena(c);
                 }
@@ -168,7 +187,13 @@ export class CharArea {
                             tired_mask.visible = false;
                         }
                     } else if(TypeGaurd.isEvent(c_selected)) {
-
+                        let result = await this.gm.getMyMaster(this.player).pushEvent(c_selected, char);
+                        if(result) {
+                            if(destroy_big) {
+                                destroy_big();
+                                destroy_big = null;
+                            }
+                        }
                     }
                 }
             }

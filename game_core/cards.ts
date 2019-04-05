@@ -258,6 +258,8 @@ abstract class Event extends KnownCard implements IEvent {
     })();
     
     public readonly get_push_cost_chain = new GetterChain<number, ICharacter|null>();
+    public readonly fail_chain = new ActionChain<null>();
+    public readonly finish_chain = new ActionChain<ICharacter|null>();
 
     public abstract checkCanPush(char: ICharacter|null): boolean;
     public abstract onPush(char: ICharacter|null): void;

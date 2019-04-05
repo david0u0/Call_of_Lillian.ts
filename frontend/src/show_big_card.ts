@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { ICard } from "../../game_core/interface";
-import { getEltSize } from "./get_screen_size";
+import { getEltSize, getWinSize } from "./get_screen_size";
 import { drawCard } from "./draw_card";
 import { GameMaster } from "../../game_core/game_master";
 
@@ -14,11 +14,11 @@ export type ShowBigCard = (x: number, y: number, card: ICard,
 export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number, y: number,
     card: ICard, ticker: PIXI.ticker.Ticker
 ): () => void {
+    let s_width = getWinSize().width;
+    let s_height = getWinSize().height;
     let { ew, eh } = getEltSize();
-    let card_ui = drawCard(gm, card, ew*22, eh*22, true);
-    y = y-card_ui.height; // 對準左下角
-    // TODO: 應該以當前是在畫面上半還下半來決定該把卡圖往哪個方向呈現
-    card_ui.position.set(x, y+eh);
+    let card_ui = drawCard(gm, card, ew*20, eh*20, true);
+    card_ui.position.set(x, y);
     container.addChild(card_ui);
     let tick_func = () => {
         if(card_ui && card_ui.y > y) {
@@ -28,6 +28,16 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
         }
     };
     ticker.add(tick_func);
+
+    let pivot_x = 0, pivot_y = 0;
+    if(x > s_width/2) {
+        pivot_x = card_ui.width;
+    }
+    if(y > s_height/2) {
+        pivot_y = card_ui.height;
+    }
+    card_ui.pivot.set(pivot_x, pivot_y);
+
     return () => {
         card_ui.destroy();
         card_ui = null;
