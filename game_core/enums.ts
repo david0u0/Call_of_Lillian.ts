@@ -31,9 +31,9 @@ export enum GamePhase {
     PreConflict,
     PostConflict, // 衝突是一個瞬間的結算戰力的動作，故沒有 Conflict 這個階段
 
-    PreLiquidatioin,
-    Liqudatioin,
-    PostLiquidation,
+    PreExploit,
+    Exploit,
+    PostExploit,
 
     EndGame
 };

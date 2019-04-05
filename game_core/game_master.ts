@@ -1,11 +1,12 @@
 // NOTE: 所有的鏈在觸發時，先觸發卡片事件（特例），再觸發世界事件（通則）。
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
-import { Player, CardStat, BattleRole, CharStat } from "./enums";
+import { Player, CardStat, BattleRole, CharStat, GamePhase } from "./enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter, UnknownCard } from "./interface";
 import { ActionChain, GetterChain } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, Constant } from "./general_rules";
+import { TimeMaster } from "./time_master";
 
 class PlayerMaster {
     public readonly card_table: { [index: number]: ICard } = {};
@@ -46,7 +47,7 @@ class PlayerMaster {
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
     constructor(public readonly player: Player, private readonly selecter: ISelecter,
-        private getCurPlayer: () => Player, private addActionPoint: (n: number) => Promise<void>,
+        private t_master: TimeMaster
     ) {
         SR.checkPlay(this.card_play_chain);
         SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
@@ -57,10 +58,17 @@ class PlayerMaster {
         SR.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
     }
     
-    private _is_resting = false;
-    public get is_resting() { return this._is_resting; }
-    public rest() {
-        // TODO: 休息
+    public readonly rest_chain = new ActionChain<boolean>();
+    public async rest() {
+        if(this.t_master.cur_player != this.player) {
+            throw new BadOperationError("想在別人的回合休息？");
+        }
+        this.rest_chain.trigger(true, () => {
+            if(!this.t_master.someoneHasRested()) {
+                this.addMana(Constant.REST_MANA);
+            }
+            this.t_master.dangerouslySetRest(this.player);
+        });
     }
 
     /** 
@@ -168,7 +176,7 @@ class PlayerMaster {
         .trigger(char.basic_battle_role, null);
     }
     checkBeforePlay(card: IKnownCard) {
-        if(this.getCurPlayer() != this.player) {
+        if(this.t_master.cur_player != this.player) {
             return false;
         }
         let can_play = this.mana > this.getManaCost(card);
@@ -184,7 +192,7 @@ class PlayerMaster {
         }
     }
     async playCard(card: IKnownCard, force = false) {
-        if(!force && this.getCurPlayer() != this.player) {
+        if(!force && this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
@@ -194,7 +202,7 @@ class PlayerMaster {
         }
         await this.addMana(-this.getManaCost(card));
         if(!force) {
-            await this.addActionPoint(-1);
+            await this.t_master.addActionPoint(-1);
         }
         await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
             card.card_status = CardStat.Onboard;
@@ -210,7 +218,7 @@ class PlayerMaster {
     }
 
     async triggerAbility(card: IKnownCard, a_index: number) {
-        if(this.getCurPlayer() != this.player) {
+        if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合使用能力？");
         }
         let ability = card.abilities[a_index];
@@ -218,7 +226,7 @@ class PlayerMaster {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain.trigger({ card, a_index }, () => {
-                    this.addActionPoint(-1);
+                    this.t_master.addActionPoint(-1);
                     ability.func();
                 });
                 return true;
@@ -291,7 +299,7 @@ class PlayerMaster {
         return cost_chain.trigger(event.push_cost, char);
     }
     async pushEvent(char: ICharacter | null) {
-        if(this.getCurPlayer() != this.player) {
+        if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
         }
         let push_chain = new ActionChain<ICharacter | null>();
@@ -312,7 +320,7 @@ class PlayerMaster {
         if(_event) {
             let event = _event;
             await this.addMana(-cost);
-            await this.addActionPoint(-1);
+            await this.t_master.addActionPoint(-1);
             if(char) {
                 await this.changeCharTired(char, true);
             }
@@ -332,21 +340,16 @@ class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [index: number]: ICard } = {};
 
+    public readonly t_master = new TimeMaster();
+
     private p_master1: PlayerMaster;
     private p_master2: PlayerMaster;
-
-    private _cur_player = Player.Player1;
-    public getCurPlayer() { return this._cur_player; }
-    private _action_point = Constant.INIT_ACTION_POINT;
-    public getActionPoint() { return this._action_point; }
 
     constructor(public readonly selecter: ISelecter,
         private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
     ) {
-        this.p_master1 = new PlayerMaster(Player.Player1, this.selecter,
-            this.getCurPlayer.bind(this), this.addActionPoint.bind(this));
-        this.p_master2 = new PlayerMaster(Player.Player2, this.selecter,
-            this.getCurPlayer.bind(this), this.addActionPoint.bind(this));
+        this.p_master1 = new PlayerMaster(Player.Player1, this.selecter, this.t_master);
+        this.p_master2 = new PlayerMaster(Player.Player2, this.selecter, this.t_master);
 
         SR.onGetEnterCost(this.get_enter_cost_chain);
         SR.checkEnter(this.enter_chain);
@@ -355,34 +358,6 @@ class GameMaster {
         });
         SR.checkExploit(this.exploit_chain);
         selecter.setCardTable(this.card_table);
-    }
-
-    public readonly set_action_point_chain = new ActionChain<number>();
-    public readonly end_round_chain = new ActionChain<{ prev: Player, next: Player }>();
-
-    public async addActionPoint(n: number) {
-        let new_action_point = Math.max(0, this._action_point + n);
-        await this.set_action_point_chain.trigger(new_action_point, async () => {
-            this._action_point = new_action_point;
-            if(this._action_point == 0) {
-                let new_player = 1 - this._cur_player;
-                this._action_point = Constant.INIT_ACTION_POINT;
-                if(this.getMyMaster(new_player).is_resting) {
-                    // 繼續同一個玩家的回合
-                    await this.endRound(this._cur_player, this._cur_player);
-                } else {
-                    // 轉換使用權
-                    await this.endRound(this._cur_player, new_player);
-                }
-            } else {
-                // TODO: 暫時轉換使用權讓對手打瞬間牌？
-            }
-        });
-    }
-    public async endRound(prev: Player, next: Player) {
-        this.end_round_chain.trigger({ prev, next }, () => {
-            this._cur_player = next;
-        });
     }
 
     public genUnknownToDeck(owner: Player) {
@@ -445,7 +420,7 @@ class GameMaster {
         .trigger(0, char);
     }
     async enterArena(char: ICharacter) {
-        if(this.getCurPlayer() != char.owner) {
+        if(this.t_master.cur_player != char.owner) {
             throw new BadOperationError("想在別人的回合進入場所？");
         }
         let p_master = this.getMyMaster(char);
@@ -465,7 +440,7 @@ class GameMaster {
                 HR.onEnter(char, arena);
             });
             await p_master.addMana(-this.getEnterCost(char, arena));
-            await this.addActionPoint(-1);
+            await this.t_master.addActionPoint(-1);
             await p_master.changeCharTired(char, true);
             return true;
         } else {
@@ -527,7 +502,7 @@ class GameMaster {
 
     public readonly battle_start_chain = new ActionChain<IArena>();
     public readonly get_battle_cost_chain = new GetterChain<number, IArena>();
-    public readonly battle_end_chain = new ActionChain<null>();
+    public readonly battle_end_chain = new ActionChain();
 
     public readonly before_conflict_chain
         = new ActionChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
@@ -537,9 +512,9 @@ class GameMaster {
         = new ActionChain<{ loser: ICharacter, winner: ICharacter | null }>();
 
     /** 主階段結束，開始收穫階段之前 */
-    public readonly main_phase_end_chain = new ActionChain<null>();
+    public readonly main_phase_end_chain = new ActionChain();
     /** 收穫階段結束之後 */
-    public readonly era_end_chain = new ActionChain<null>();
+    public readonly era_end_chain = new ActionChain();
 }
 
 export {

@@ -35,7 +35,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     container.addChild(avatar);
 
     if(!upsidedown) {
-        let add_symbol = drawAddSymbol(0.2*height, ticker);
+        let add_symbol = drawAddSymbol(pm, 0.2*height, ticker);
         add_symbol.x = 0.2*width;
         container.addChild(add_symbol);
     }
@@ -73,7 +73,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     round_txt.x = width;
     round_txt.alpha = 0;
     container.addChild(round_txt);
-    gm.end_round_chain.append(({ prev, next }) => {
+    gm.t_master.end_turn_chain.append(({ prev, next }) => {
         return {
             after_effect: () => {
                 if(next == pm.player) {
@@ -84,6 +84,24 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
             }
         };
     });
+
+    let rest_txt = new PIXI.Text("休息中zzz", labelStyle(0.15 * height));
+    rest_txt.anchor.set(1, 1);
+    rest_txt.x = width;
+    rest_txt.alpha = 0;
+    container.addChild(rest_txt);
+    pm.rest_chain.append(resting => {
+        return {
+            after_effect: () => {
+                if(resting) {
+                    rest_txt.alpha = 1;
+                } else {
+                    rest_txt.alpha = 0;
+                }
+            }
+        };
+    });
+
     if(upsidedown) {
         mana_label_txt.position.set(0.2 * width, 0.6 * height);
         mana_txt.position.set(0.2 * width, 0.6 * height + mana_label_txt.height);
@@ -95,7 +113,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     return { container, width, height };
 }
 
-function drawAddSymbol(size: number, ticker: PIXI.ticker.Ticker) {
+function drawAddSymbol(pm: PlayerMaster, size: number, ticker: PIXI.ticker.Ticker) {
     let symbol = new PIXI.Container();
     let add = new PIXI.Text("+", new PIXI.TextStyle({
         "fontSize": size,
@@ -142,7 +160,7 @@ function drawAddSymbol(size: number, ticker: PIXI.ticker.Ticker) {
     };
 
     let expanding = false;
-    let res = drawMoreMenu(expand);
+    let res = drawMoreMenu(pm, expand);
     let menu = res.container;
     menu.alpha = 0;
     getHovering = res.getHovering;
@@ -177,7 +195,7 @@ function drawAddSymbol(size: number, ticker: PIXI.ticker.Ticker) {
     return container;
 }
 
-function drawMoreMenu(expand: (close?: boolean) => boolean) {
+function drawMoreMenu(pm: PlayerMaster, expand: (close?: boolean) => boolean) {
     let { eh, ew } = getEltSize();
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
@@ -197,16 +215,21 @@ function drawMoreMenu(expand: (close?: boolean) => boolean) {
     });
     let getHovering = () => hovering;
 
-    container.addChild(drawIcon("incite", 0, expand));
-    container.addChild(drawIcon("war", 1, expand));
-    container.addChild(drawIcon("release", 2, expand));
-    container.addChild(drawIcon("rest", 3, expand));
-
+    for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
+        let func = (() => {
+            if(label == "rest") {
+                return () => pm.rest();
+            } else {
+                return () => alert(label);
+            }
+        })();
+        container.addChild(drawIcon(label, i, expand, func));
+    }
 
     return { container, getHovering };
 }
 
-function drawIcon(name: string, index: number, expand: (close?: boolean) => boolean) {
+function drawIcon(name: string, index: number, expand: (close?: boolean) => boolean, action: () => void) {
     let { eh, ew } = getEltSize();
     let icon = new PIXI.Sprite(PIXI.loader.resources[name].texture);
     icon.interactive = true;
@@ -222,7 +245,7 @@ function drawIcon(name: string, index: number, expand: (close?: boolean) => bool
     icon.on("click", () => {
         if(expand()) {
             expand(true);
-            alert(name);
+            action();
         }
     });
     return icon;
