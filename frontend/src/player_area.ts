@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 import { PlayerMaster, GameMaster } from "../../game_core/game_master";
 import { getEltSize } from "./get_screen_size";
+import { Player } from "../../game_core/enums";
 
 let W = 60, H = 50;
 
@@ -33,12 +34,6 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     avatar.scale.set(ratio * W / og_w * 0.6, ratio * H / og_h);
     avatar.x = 0.2*width;
     container.addChild(avatar);
-
-    if(!upsidedown) {
-        let add_symbol = drawAddSymbol(pm, 0.2*height, ticker);
-        add_symbol.x = 0.2*width;
-        container.addChild(add_symbol);
-    }
 
     let mana_label_txt = new PIXI.Text("魔力", labelStyle(0.2*height));
     let mana_txt = new PIXI.Text(pm.mana.toString(), numericStyle(0.2*height));
@@ -90,13 +85,15 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     rest_txt.x = width;
     rest_txt.alpha = 0;
     container.addChild(rest_txt);
-    pm.rest_chain.append(resting => {
+    gm.t_master.rest_chain.append(({ player, resting }) => {
         return {
             after_effect: () => {
-                if(resting) {
-                    rest_txt.alpha = 1;
-                } else {
-                    rest_txt.alpha = 0;
+                if(player == pm.player) {
+                    if(resting) {
+                        rest_txt.alpha = 1;
+                    } else {
+                        rest_txt.alpha = 0;
+                    }
                 }
             }
         };
@@ -111,10 +108,17 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
         rest_txt.position.set(width, height);
     }
 
+
+    let add_symbol = drawAddSymbol(gm, pm.player, 0.2 * height, ticker);
+    add_symbol.x = 0.2 * width;
+    container.addChild(add_symbol);
+    if(upsidedown) {
+        add_symbol.y = height;
+    }
     return { container, width, height };
 }
 
-function drawAddSymbol(pm: PlayerMaster, size: number, ticker: PIXI.ticker.Ticker) {
+function drawAddSymbol(gm: GameMaster, player: Player, size: number, ticker: PIXI.ticker.Ticker) {
     let symbol = new PIXI.Container();
     let add = new PIXI.Text("+", new PIXI.TextStyle({
         "fontSize": size,
@@ -161,7 +165,7 @@ function drawAddSymbol(pm: PlayerMaster, size: number, ticker: PIXI.ticker.Ticke
     };
 
     let expanding = false;
-    let res = drawMoreMenu(pm, expand);
+    let res = drawMoreMenu(gm, player, expand);
     let menu = res.container;
     menu.alpha = 0;
     getHovering = res.getHovering;
@@ -196,7 +200,7 @@ function drawAddSymbol(pm: PlayerMaster, size: number, ticker: PIXI.ticker.Ticke
     return container;
 }
 
-function drawMoreMenu(pm: PlayerMaster, expand: (close?: boolean) => boolean) {
+function drawMoreMenu(gm: GameMaster, player: Player, expand: (close?: boolean) => boolean) {
     let { eh, ew } = getEltSize();
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
@@ -219,7 +223,7 @@ function drawMoreMenu(pm: PlayerMaster, expand: (close?: boolean) => boolean) {
     for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
         let func = (() => {
             if(label == "rest") {
-                return () => pm.rest();
+                return () => gm.t_master.setRest(player, true);
             } else {
                 return () => alert(label);
             }

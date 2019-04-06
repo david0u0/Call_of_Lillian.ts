@@ -59,19 +59,6 @@ class PlayerMaster {
         soft_rules.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
     }
     
-    public readonly rest_chain = new ActionChain<boolean>();
-    public async rest() {
-        if(this.t_master.cur_player != this.player) {
-            throw new BadOperationError("想在別人的回合休息？");
-        }
-        this.rest_chain.trigger(true, () => {
-            if(!this.t_master.someoneHasRested()) {
-                this.addMana(Constant.REST_MANA);
-            }
-            this.t_master.dangerouslySetRest(this.player);
-        });
-    }
-
     /** 
      * 做打卡前的判斷，主要用來檢查前端界面
      * 舉例而言，有張角色的功能是施放咒語可降費
@@ -204,8 +191,12 @@ class PlayerMaster {
         }
         // 支付代價
         await this.addMana(-this.getManaCost(card));
-        if(this.t_master.cur_phase == GamePhase.InAction && !card.instance) {
-            await this.t_master.addActionPoint(-1);
+        if(!card.instance) {
+            if(this.t_master.cur_phase == GamePhase.Building
+                || this.t_master.cur_phase == GamePhase.InAction
+            ) {
+                await this.t_master.addActionPoint(-1);
+            }
         }
         // 實際行動
         return await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
@@ -345,7 +336,7 @@ class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [index: number]: ICard } = {};
 
-    public readonly t_master = new TimeMaster();
+    public readonly t_master = new TimeMaster(p => this.getMyMaster(p).addMana(C.REST_MANA));
 
     private p_master1: PlayerMaster;
     private p_master2: PlayerMaster;

@@ -1,5 +1,6 @@
 import { Player, GamePhase } from "./enums";
 import { ActionChain } from "./hook";
+import { BadOperationError } from "./errors";
 
 const BUILDING_ACTION_P = 1;
 const MAIN_FIRST_ACTION_P = 1;
@@ -12,35 +13,84 @@ export class TimeMaster {
     public get action_point() { return this._action_point; }
     private _cur_phase = GamePhase.Setup;
     public get cur_phase() { return this._cur_phase; }
+    private first_player = Player.Player1;
+
+    public readonly start_building_chain = new ActionChain<null>();
+    public readonly start_main_chain = new ActionChain<null>();
+
+    constructor(private firstRestReward: (p: Player) => void) { }
 
     public async startBulding() {
-        this._cur_phase = GamePhase.Building;
-        this._action_point = BUILDING_ACTION_P;
+        this.start_building_chain.trigger(null, async () => {
+            this._cur_phase = GamePhase.Building;
+            await this.startTurn(this.first_player);
+        });
     }
-    public async startMainPhase() {
-        this._cur_phase = GamePhase.InAction;
-        this._action_point = MAIN_FIRST_ACTION_P;
+    private async startMainPhase() {
+        this.start_main_chain.trigger(null, async () => {
+            await this.setRest(Player.Player1, false);
+            await this.setRest(Player.Player2, false);
+            this._cur_phase = GamePhase.InAction;
+            await this.startTurn(this.first_player);
+            this._action_point = MAIN_FIRST_ACTION_P; // 第一個回合的行動點不同
+        });
+    }
+    private async startExploit() {
+        await this.setRest(Player.Player1, false);
+        await this.setRest(Player.Player2, false);
+        /*this.start_main_chain.trigger(null, async () => {
+            this._cur_phase = GamePhase.InAction;
+            await this.startTurn(this.first_player);
+        });*/
     }
 
     private _resting1 = false;
     private _resting2 = false;
+    public readonly rest_chain = new ActionChain<{ resting: boolean, player: Player }>();
+
+    public async setRest(player: Player, resting: boolean) {
+        if(resting) {
+            if(this.cur_player != player) {
+                throw new BadOperationError("想在別人的回合休息？");
+            } else if(this.cur_phase != GamePhase.InAction
+                && this.cur_phase != GamePhase.Building
+                && this.cur_phase != GamePhase.Exploit
+            ) {
+                throw new BadOperationError("只能在建築階段/主階段/收獲階段休息");
+            }
+        }
+        this.rest_chain.trigger({ resting, player }, () => {
+            if(player == Player.Player1) {
+                this._resting1 = resting;
+            } else {
+                this._resting2 = resting;
+            }
+            if(resting == false) {
+                // 重置
+            } else {
+                // 休息
+                if(this.bothResting()) {
+                    if(this.cur_phase == GamePhase.Building) {
+                        this.startMainPhase();
+                    } else if(this.cur_phase == GamePhase.InAction) {
+                        // TODO: 開始收獲
+                    } else if(this.cur_phase == GamePhase.Exploit) {
+                        this.startBulding();
+                    }
+                } else {
+                    if(this.cur_phase == GamePhase.InAction) {
+                        // 下個世代的起始玩家
+                        this.firstRestReward(player);
+                        this.first_player = player;
+                    }
+                    this.startTurn(1 - player);
+                }
+            }
+        });
+    }
 
     public readonly set_action_point_chain = new ActionChain<number>();
     public readonly start_turn_chain = new ActionChain<{ prev: Player, next: Player }>();
-
-    /** 會跳過所有行動鏈，因此請儘量避免 */
-    public async dangerouslySetRest(player: Player) {
-        if(player == Player.Player1) {
-            this._resting1 = true;
-        } else {
-            this._resting2 = true;
-        }
-        if(this.someoneHasRested()) {
-            // TODO: 結束主階段
-        } else {
-            this.addActionPoint(-10);
-        }
-    }
 
     public checkResting(player: Player) {
         if(player == Player.Player1) {
@@ -50,8 +100,8 @@ export class TimeMaster {
         }
     }
 
-    public someoneHasRested() {
-        return this._resting1 || this._resting2;
+    public bothResting() {
+        return this._resting1 && this._resting2;
     }
 
     public async addActionPoint(n: number) {
@@ -73,12 +123,13 @@ export class TimeMaster {
         });
     }
     public async startTurn(next_player: Player) {
-        this.start_turn_chain.trigger({ prev: this._cur_player, next: next_player }, () => {
+        await this.start_turn_chain.trigger({ prev: this._cur_player, next: next_player }, async () => {
             this._cur_player = next_player;
+            this._action_point = 0;
             if(this.cur_phase == GamePhase.Building) {
-                this.addActionPoint(BUILDING_ACTION_P);
+                await this.addActionPoint(BUILDING_ACTION_P);
             } else if(this.cur_phase == GamePhase.InAction) {
-                this.addActionPoint(MAIN_DEFAULT_ACTION_P);
+                await this.addActionPoint(MAIN_DEFAULT_ACTION_P);
             }
         });
     }

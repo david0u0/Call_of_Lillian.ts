@@ -17,6 +17,7 @@ import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { my_loader } from "./card_loader";
 import { EventArea } from "./event_area";
+import { PhaseNotifier } from "./phase_notifier";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -75,6 +76,8 @@ async function setup() {
     app.stage.addChild(p_area1.container);
     app.stage.addChild(p_area2.container);
 
+    let phase_notifier = new PhaseNotifier(gm, me, app.ticker);
+
     await initiateGame(gm, [], []);
 
     let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
@@ -100,6 +103,7 @@ async function setup() {
     app.stage.addChild(hands_ui1_obj.view);
     app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(selecter.view);
+    app.stage.addChild(phase_notifier.view);
 }
 
 document.body.appendChild(app.view);

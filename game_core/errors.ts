@@ -23,6 +23,9 @@ export function throwDevError(msg: string, obj_with_name?: any) {
 export function throwIfIsBackend(msg: string, obj_with_name?: any) {
     if(typeof window == "undefined") { throw new BadOperationError(msg, obj_with_name);
     } else {
+        if(obj_with_name && obj_with_name.name) {
+            msg = `${obj_with_name.name}: ${msg}`;
+        }
         console.log(msg);
     }
 }

@@ -51,6 +51,5 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
             await pm.draw();
         }
     }
-    await gm.t_master.startTurn(Player.Player1);
     await gm.t_master.startBulding();
 }
