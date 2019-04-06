@@ -10,6 +10,7 @@ import { IKnownCard, IEvent, TypeGaurd } from "../../game_core/interface";
 
 export class EventArea {
     public readonly view = new PIXI.Container();
+    public readonly event_view = new PIXI.Container();
     private list = new Array<IEvent>();
     private finish_list = new Array<IEvent>();
     constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
@@ -28,6 +29,11 @@ export class EventArea {
                 return { after_effect: () => this.addEvent(card) };
             }
         });
+
+        let score_icon = this.drawTotalScore(eh*2);
+        score_icon.position.set(-score_icon.width/2, score_icon.height/2);
+        this.view.addChild(score_icon);
+        this.view.addChild(this.event_view);
     }
     addEvent(card: IEvent) {
         let { ew, eh } = getEltSize();
@@ -95,7 +101,7 @@ export class EventArea {
         });
 
         evt_ui.y = 0.7 * evt_ui.height * index;
-        this.view.addChild(evt_ui);
+        this.event_view.addChild(evt_ui);
     }
     finishEvent(event: IEvent, destroy_big: () => void) {
         this.removeEvent(event, destroy_big);
@@ -105,7 +111,7 @@ export class EventArea {
     removeEvent(event: IEvent, destroy_big: () => void) {
         for(let i = 0; i < this.list.length; i++) {
             if(this.list[i].isEqual(event)) {
-                this.view.children[i+1].destroy();
+                this.event_view.children[i].destroy();
                 this.list = [...this.list.slice(0, i), ...this.list.slice(i+1)];
                 break;
             }
@@ -113,5 +119,31 @@ export class EventArea {
         if(destroy_big) {
             destroy_big();
         }
+    }
+    drawTotalScore(size: number) {
+        let icon = new PIXI.Container();
+        let bg = new PIXI.Sprite(PIXI.loader.resources["score_pop"].texture);
+        let pm = this.gm.getMyMaster(this.player);
+        bg.width = bg.height = size;
+        let txt = new PIXI.Text("", new PIXI.TextStyle({
+            fontSize: size
+        }));
+        let updateScore = () => {
+            txt.text = pm.getScore().toString();
+        };
+        updateScore();
+        pm.finish_chain.append(() => {
+            return { after_effect: updateScore };
+        });
+        txt.x = (size-txt.width)/2;
+        txt.y = (size-txt.height)/2;
+        icon.addChild(bg);
+        icon.addChild(txt);
+
+        icon.interactive = true;
+        icon.cursor = "pointer";
+        // TODO: 打開一個新的視窗檢視完成的任務
+
+        return icon;
     }
 }

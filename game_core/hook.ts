@@ -60,12 +60,12 @@ class GetterChain<T, U> {
 type CallBack = (() => void)|(() => Promise<void>);
 type ActionResult = {
     intercept_effect?: boolean
-    after_effect?: (() => void)|Array<() => void>,
+    after_effect?: (() => void|Promise<void>)|Array<() => void|Promise<void>>,
     break_chain?: boolean,
     was_passed?: boolean
-} | void;
+};
 type ActionFunc<U>
-    = (const_arg: U) => ActionResult | Promise<ActionResult>
+    = (const_arg: U) => void | ActionResult | Promise<ActionResult|void>
 type ActionHook<U> = {
     active_countdown: number, // 0代表無活性，-1代表永久
     func: ActionFunc<U>
@@ -91,8 +91,8 @@ class ActionChain<U> {
     public dominantCheck(func: GetterFunc<boolean, U>, active_countdown=-1) {
         return this.check_chain.dominant(func, active_countdown);
     }
-    private async triggerFullActionResult(const_arg: U) {
-        let after_effect = new Array<() => void>();
+    private async triggerFullActionResult(const_arg: U): Promise<ActionResult> {
+        let after_effect = new Array<() => void|Promise<void>>();
         let break_chain = false;
         let intercept_effect = false;
         for(let hook of this.action_list) {
@@ -143,8 +143,10 @@ class ActionChain<U> {
         } else {
             if(callback) {
                 await Promise.resolve(callback());
-                for(let effect of res.after_effect) {
-                    effect();
+                if(res.after_effect instanceof Array) {
+                    for(let effect of res.after_effect) {
+                        await Promise.resolve(effect());
+                    }
                 }
             }
             return true;

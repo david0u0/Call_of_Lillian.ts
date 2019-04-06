@@ -25,7 +25,7 @@ export default class U extends Upgrade {
             this.modifier += 2;
         });
         this.card_retire_chain.append(async () => {
-            let new_char = await this.g_master.selecter.selectSingleCardInteractive(TypeGaurd.isCharacter, char => {
+            let new_char = await this.g_master.selecter.selectSingleCardInteractive(this, TypeGaurd.isCharacter, char => {
                 return char.owner == this.owner;
             });
             if(new_char) {

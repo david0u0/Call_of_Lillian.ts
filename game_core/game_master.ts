@@ -8,6 +8,8 @@ import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, Constant } from "./general_rules";
 import { TimeMaster } from "./time_master";
 
+type Caller = null|IKnownCard|IKnownCard[];
+
 class PlayerMaster {
     public readonly card_table: { [index: number]: ICard } = {};
 
@@ -84,8 +86,8 @@ class PlayerMaster {
     public card_play_chain = new ActionChain<IKnownCard>();
     public card_retire_chain = new ActionChain<IKnownCard>();
 
-    public set_mana_chain = new ActionChain<number>();
-    public set_emo_chain = new ActionChain<number>();
+    public set_mana_chain = new ActionChain<{ mana: number, caller:Caller }>();
+    public set_emo_chain = new ActionChain<{ emo: number, caller: Caller }>();
 
     public ability_chain = new ActionChain<{ card: IKnownCard, a_index: number }>();
 
@@ -138,9 +140,9 @@ class PlayerMaster {
         return card;
     }
 
-    async addEmo(n: number) {
+    async addEmo(n: number, caller: Caller = null) {
         let new_emo = Math.max(0, this.emo + n);
-        await this.set_emo_chain.trigger(new_emo, () => {
+        await this.set_emo_chain.trigger({ emo: new_emo, caller }, () => {
             this._emo = new_emo;
         });
     }
@@ -150,9 +152,9 @@ class PlayerMaster {
         .trigger(card.basic_mana_cost, null);
     }
 
-    async addMana(n: number) {
+    async addMana(n: number, caller: Caller = null) {
         let new_mana = Math.max(0, this.mana + n);
-        await this.set_mana_chain.trigger(new_mana, () => {
+        await this.set_mana_chain.trigger({ mana: new_mana, caller }, () => {
             this._mana = new_mana;
         });
     }

@@ -185,6 +185,15 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
             countdown_txt.alpha = 0.8;
             container.addChild(countdown_pop_img);
             container.addChild(countdown_txt);
+            let score_txt = new PIXI.Text(card.score.toString(), manaStyle(width));
+            let score_pop_img = new PIXI.Sprite(PIXI.loader.resources["score_pop"].texture);
+            score_pop_img.scale.set(width / 7 / score_pop_img.width);
+            score_pop_img.position.set(width / 8 * 4, -width / 10);
+            score_txt.anchor.set(-0.5, 0);
+            score_txt.position.set(width / 8 * 4, -width / 10);
+            score_txt.alpha = 0.8;
+            container.addChild(score_pop_img);
+            container.addChild(score_txt);
         }
     }
 

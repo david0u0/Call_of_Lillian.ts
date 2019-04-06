@@ -43,7 +43,10 @@ export default class FrontendSelecter implements ISelecter {
         this.line = new PIXI.Graphics();
         this.view.addChild(this.line);
         let caller_obj = this.card_obj_table[caller.seq];
-        let line_init_pos = { x: caller_obj.worldTransform.tx, y: caller_obj.worldTransform.ty };
+        let line_init_pos = { x: 0, y: 0 }; // TODO: 預設應該是頭像的位置
+        if(caller_obj) {
+            line_init_pos = { x: caller_obj.worldTransform.tx, y: caller_obj.worldTransform.ty };
+        }
         this.view.on("mousemove", evt => {
             this.line.clear();
             this.line.lineStyle(4, 0xffffff, 1);
