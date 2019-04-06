@@ -41,11 +41,11 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
 
         let char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char);
+        await pm.playCard(char, false);
         char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char);
+        await pm.playCard(char, false);
         char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char);
+        await pm.playCard(char, false);
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
             await pm.draw();

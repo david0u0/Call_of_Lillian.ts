@@ -223,7 +223,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, expand: (close?: boolean) 
     for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
         let func = (() => {
             if(label == "rest") {
-                return () => gm.t_master.setRest(player, true);
+                return () => gm.t_master.setRest(player, true, true);
             } else {
                 return () => alert(label);
             }

@@ -179,7 +179,7 @@ class PlayerMaster {
             return false;
         }
     }
-    async playCard(card: IKnownCard) {
+    async playCard(card: IKnownCard, by_keeper=false) {
         // 檢查
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
@@ -199,7 +199,8 @@ class PlayerMaster {
             }
         }
         // 實際行動
-        return await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
+        return await card.card_play_chain.chain(this.card_play_chain, card)
+        .triggerByKeeper(by_keeper, null, async () => {
             card.card_status = CardStat.Onboard;
             HR.onPlay(card, this.addCharacter.bind(this),
                 this.addEvent.bind(this), this._arenas, this.retireCard.bind(this));
@@ -211,7 +212,7 @@ class PlayerMaster {
         });
     }
 
-    async triggerAbility(card: IKnownCard, a_index: number) {
+    async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false) {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合使用能力？");
         }
@@ -219,7 +220,8 @@ class PlayerMaster {
         if(ability) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
-                await this.ability_chain.trigger({ card, a_index }, () => {
+                await this.ability_chain
+                .triggerByKeeper(by_keeper, { card, a_index }, () => {
                     this.t_master.addActionPoint(-1);
                     ability.func();
                 });
@@ -295,7 +297,7 @@ class PlayerMaster {
         }
         return cost_chain.trigger(event.push_cost, char);
     }
-    async pushEvent(event: IEvent, char: ICharacter | null) {
+    async pushEvent(event: IEvent, char: ICharacter | null, by_keeper=false) {
         // TODO: 這裡應該要有一條 pre-push 動作鏈
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
@@ -317,7 +319,7 @@ class PlayerMaster {
                     await this.changeCharTired(char, true);
                 }
 
-                return await push_chain.trigger(char, async () => {
+                return await push_chain.triggerByKeeper(by_keeper, char, async () => {
                     HR.onPushEvent(event);
                     await Promise.resolve(event.onPush(char));
                     if(event.cur_progress_count == event.goal_progress_count) {
@@ -416,7 +418,7 @@ class GameMaster {
         .chain(this.get_enter_cost_chain, { char, arena })
         .trigger(0, char);
     }
-    async enterArena(arena: IArena, char: ICharacter) {
+    async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
         // TODO: 這裡應該要有一條 pre-enter 動作鏈
         if(this.t_master.cur_player != char.owner) {
             throw new BadOperationError("想在別人的回合進入場所？");
@@ -434,7 +436,7 @@ class GameMaster {
                 }
                 await p_master.changeCharTired(char, true);
                 
-                return await enter_chain.trigger(char, () => {
+                return await enter_chain.triggerByKeeper(by_keeper, char, () => {
                     HR.onEnter(char, arena);
                 });
             }
@@ -451,7 +453,7 @@ class GameMaster {
         return get_cost_chain.trigger(arena.basic_exploit_cost, char);
     }
     /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
-    async exploit(arena: IArena, char: ICharacter | Player) {
+    async exploit(arena: IArena, char: ICharacter | Player, by_keeper=false) {
         // TODO: 這裡應該要有一條 pre-exploit 動作鏈
         let p_master = this.getMyMaster(char);
         let cost = this.getExploitCost(arena, char);
@@ -463,7 +465,7 @@ class GameMaster {
             }
             if(exploit_chain.checkCanTrigger(char)) {
                 await p_master.addMana(-cost);
-                await exploit_chain.trigger(char, async () => {
+                await exploit_chain.triggerByKeeper(by_keeper, char, async () => {
                     let income = await arena.onExploit(char);
                     if(income) {
                         p_master.addMana(income);

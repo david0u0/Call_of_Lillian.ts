@@ -156,7 +156,7 @@ class HandUI {
                     this.selecter.onCardClicked(card);
                 } else {
                     let pm = this.gm.getMyMaster(card);
-                    if(await pm.playCard(card)) {
+                    if(await pm.playCard(card, true)) {
                         if(destroy_big_card) {
                             destroy_big_card();
                             destroy_big_card = null;

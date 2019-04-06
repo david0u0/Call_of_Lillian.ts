@@ -176,7 +176,7 @@ export class CharArea {
                 let c_selected = await this.selecter.selectSingleCard(char, guard, card => true);
                 if(TypeGaurd.isCard(c_selected)) {
                     if(TypeGaurd.isArena(c_selected)) {
-                        let result = await this.gm.enterArena(c_selected, char);
+                        let result = await this.gm.enterArena(c_selected, char, true);
                         if(result) {
                             if(destroy_big) {
                                 destroy_big();
@@ -187,7 +187,7 @@ export class CharArea {
                             tired_mask.visible = false;
                         }
                     } else if(TypeGaurd.isEvent(c_selected)) {
-                        let result = await this.gm.getMyMaster(this.player).pushEvent(c_selected, char);
+                        let result = await this.gm.getMyMaster(this.player).pushEvent(c_selected, char, true);
                         if(result) {
                             if(destroy_big) {
                                 destroy_big();
@@ -216,7 +216,7 @@ export class CharArea {
             circle.on("click", async evt => {
                 evt.stopPropagation();
                 // TODO: 支援多個角色行動
-                await this.gm.getMyMaster(this.player).triggerAbility(char, 0);
+                await this.gm.getMyMaster(this.player).triggerAbility(char, 0, true);
             });
             view.addChild(circle);
         }

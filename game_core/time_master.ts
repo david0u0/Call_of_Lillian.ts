@@ -17,6 +17,7 @@ export class TimeMaster {
 
     public readonly start_building_chain = new ActionChain<null>();
     public readonly start_main_chain = new ActionChain<null>();
+    public readonly start_exploit_chain = new ActionChain<null>();
 
     constructor(private firstRestReward: (p: Player) => void) { }
 
@@ -28,27 +29,27 @@ export class TimeMaster {
     }
     private async startMainPhase() {
         this.start_main_chain.trigger(null, async () => {
-            await this.setRest(Player.Player1, false);
-            await this.setRest(Player.Player2, false);
+            await this.setRest(Player.Player1, false, false);
+            await this.setRest(Player.Player2, false, false);
             this._cur_phase = GamePhase.InAction;
             await this.startTurn(this.first_player);
             this._action_point = MAIN_FIRST_ACTION_P; // 第一個回合的行動點不同
         });
     }
     private async startExploit() {
-        await this.setRest(Player.Player1, false);
-        await this.setRest(Player.Player2, false);
-        /*this.start_main_chain.trigger(null, async () => {
-            this._cur_phase = GamePhase.InAction;
+        await this.setRest(Player.Player1, false, false);
+        await this.setRest(Player.Player2, false, false);
+        this.start_exploit_chain.trigger(null, async () => {
+            this._cur_phase = GamePhase.Exploit;
             await this.startTurn(this.first_player);
-        });*/
+        });
     }
 
     private _resting1 = false;
     private _resting2 = false;
     public readonly rest_chain = new ActionChain<{ resting: boolean, player: Player }>();
 
-    public async setRest(player: Player, resting: boolean) {
+    public async setRest(player: Player, resting: boolean, by_keeper: boolean) {
         if(resting) {
             if(this.cur_player != player) {
                 throw new BadOperationError("想在別人的回合休息？");
@@ -59,7 +60,7 @@ export class TimeMaster {
                 throw new BadOperationError("只能在建築階段/主階段/收獲階段休息");
             }
         }
-        this.rest_chain.trigger({ resting, player }, () => {
+        this.rest_chain.triggerByKeeper(by_keeper, { resting, player }, () => {
             if(player == Player.Player1) {
                 this._resting1 = resting;
             } else {
@@ -73,7 +74,7 @@ export class TimeMaster {
                     if(this.cur_phase == GamePhase.Building) {
                         this.startMainPhase();
                     } else if(this.cur_phase == GamePhase.InAction) {
-                        // TODO: 開始收獲
+                        this.startExploit();
                     } else if(this.cur_phase == GamePhase.Exploit) {
                         this.startBulding();
                     }

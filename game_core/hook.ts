@@ -168,6 +168,19 @@ class ActionChain<U> {
         });
         return new_chain;
     }
+
+    private keeperCallback = (const_arg: U) => { };
+    public setKeeperCallback(callback: (const_arg: U) => void) {
+        this.keeperCallback = callback;
+    }
+    public async triggerByKeeper(by_keeper: boolean, const_arg: U,
+        callback?: CallBack, cleanup?: CallBack
+    ) {
+        if(by_keeper) {
+            this.keeperCallback(const_arg);
+        }
+        this.trigger(const_arg, callback, cleanup);
+    }
 }
 
 export { ActionChain, GetterChain, GetterFunc, ActionFunc };
