@@ -78,12 +78,11 @@ async function setup() {
 
     let phase_notifier = new PhaseNotifier(gm, me, app.ticker);
 
-    await initiateGame(gm, [], []);
-
     let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
     let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card);
-    arena_area1.addArena(gm.getEnemyMaster(me).arenas);
-    arena_area2.addArena(gm.getMyMaster(me).arenas);
+
+    await initiateGame(gm, [], []);
+
     arena_area1.view.position.set(0, 20.25*eh - arena_area1.view.height);
     arena_area2.view.position.set(0, 21.75*eh);
 

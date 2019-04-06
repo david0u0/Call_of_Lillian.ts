@@ -8,8 +8,9 @@ const basic_deck = [
     "u_test0", "u_test0", "u_test0",
     "雨季的魔女．語霽", "雨季的魔女．語霽", "雨季的魔女．語霽",
     "數據之海的水手", "數據之海的水手", "數據之海的水手",
-    "終末之民", "終末之民", "終末之民",
-    "緊急醫療", "緊急醫療", "緊急醫療",
+    //"終末之民", "終末之民", "終末之民",
+    //"緊急醫療", "緊急醫療", "緊急醫療",
+    "火力鎮壓", "火力鎮壓", "火力鎮壓",
 ];
 
 // TODO: 應該要把 Keeper 傳進來?
@@ -17,7 +18,6 @@ const basic_deck = [
 export default async function initiateGame(gm: GameMaster, deck1: string[]|null, deck2: string[]|null) {
     let decks = [deck1, deck2];
     for(let p of [Player.Player1, Player.Player2]) {
-        await gm.t_master.startTurn(p);
         let pm = gm.getMyMaster(p);
         await pm.addMana(Constant.INIT_MANA);
         let deck = decks[p];
@@ -40,12 +40,9 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         gm.genArenaToBoard(p, 3, Constant.DUMMY_NAME);
         gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
 
-        let char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char, false);
-        char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char, false);
-        char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char, false);
+        gm.genCharToBoard(p, "見習魔女");
+        gm.genCharToBoard(p, "見習魔女");
+        gm.genCharToBoard(p, "見習魔女");
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
             await pm.draw();

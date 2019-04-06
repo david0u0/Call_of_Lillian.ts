@@ -40,10 +40,8 @@ export class CharArea {
             this.tired_mask_view.addChild(mask);
         }
         // 向主持人註冊事件
-        this.gm.getMyMaster(player).card_play_chain.append(card => {
-            if(TypeGaurd.isCharacter(card)) {
-                this.addChar(card);
-            }
+        this.gm.getMyMaster(player).add_char_chain.append(card => {
+            return { after_effect: () => this.addChar(card) };
         });
     }
 

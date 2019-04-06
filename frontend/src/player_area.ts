@@ -85,7 +85,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     rest_txt.x = width;
     rest_txt.alpha = 0;
     container.addChild(rest_txt);
-    gm.t_master.rest_chain.append(({ player, resting }) => {
+    gm.t_master.rest_state_change_chain.append(({ player, resting }) => {
         return {
             after_effect: () => {
                 if(player == pm.player) {
@@ -223,7 +223,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, expand: (close?: boolean) 
     for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
         let func = (() => {
             if(label == "rest") {
-                return () => gm.t_master.setRest(player, true, true);
+                return () => gm.t_master.rest(player, true);
             } else {
                 return () => alert(label);
             }

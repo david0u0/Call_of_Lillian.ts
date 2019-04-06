@@ -29,16 +29,16 @@ export class TimeMaster {
     }
     public async startMainPhase() {
         await this.start_main_chain.trigger(null, async () => {
-            await this.setRest(Player.Player1, false, false);
-            await this.setRest(Player.Player2, false, false);
+            await this.setRest(Player.Player1, false);
+            await this.setRest(Player.Player2, false);
             this._cur_phase = GamePhase.InAction;
             await this.startTurn(this.first_player);
             this._action_point = MAIN_FIRST_ACTION_P; // 第一個回合的行動點不同
         });
     }
     public async startExploit() {
-        await this.setRest(Player.Player1, false, false);
-        await this.setRest(Player.Player2, false, false);
+        await this.setRest(Player.Player1, false);
+        await this.setRest(Player.Player2, false);
         await this.start_exploit_chain.trigger(null, async () => {
             this._cur_phase = GamePhase.Exploit;
             await this.startTurn(this.first_player);
@@ -47,20 +47,32 @@ export class TimeMaster {
 
     private _resting1 = false;
     private _resting2 = false;
-    public readonly rest_chain = new ActionChain<{ resting: boolean, player: Player }>();
+    public readonly rest_state_change_chain = new ActionChain<{ resting: boolean, player: Player }>();
+    /** 專門指涉主階段中的休息 */
+    public readonly rest_chain = new ActionChain<Player>();
 
-    public async setRest(player: Player, resting: boolean, by_keeper: boolean) {
-        if(resting) {
-            if(this.cur_player != player) {
-                throw new BadOperationError("想在別人的回合休息？");
-            } else if(this.cur_phase != GamePhase.InAction
-                && this.cur_phase != GamePhase.Building
-                && this.cur_phase != GamePhase.Exploit
-            ) {
-                throw new BadOperationError("只能在建築階段/主階段/收獲階段休息");
-            }
+    public async rest(player: Player, by_keeper: boolean) {
+        if(this.cur_player != player) {
+            throw new BadOperationError("想在別人的回合休息？");
+        } else if(this.cur_phase != GamePhase.InAction
+            && this.cur_phase != GamePhase.Building
+            && this.cur_phase != GamePhase.Exploit
+        ) {
+            throw new BadOperationError("只能在建築階段/主階段/收獲階段休息");
         }
-        this.rest_chain.triggerByKeeper(by_keeper, { resting, player }, () => {
+        if(player == Player.Player1 && this._resting1) {
+            throw new BadOperationError("已經在休息了");
+        } else if(player == Player.Player2 && this._resting2) {
+            throw new BadOperationError("已經在休息了");
+        }
+        if(this._cur_phase == GamePhase.InAction) {
+            await this.rest_chain.triggerByKeeper(by_keeper, player);
+        }
+        this.setRest(player, true);
+    }
+
+    private async setRest(player: Player, resting: boolean) {
+        this.rest_state_change_chain.trigger({ resting, player }, () => {
             if(player == Player.Player1) {
                 this._resting1 = resting;
             } else {

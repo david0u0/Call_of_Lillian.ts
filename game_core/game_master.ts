@@ -101,9 +101,12 @@ class PlayerMaster {
             this.card_table[card.seq] = card;
         }
     }
+
+    public readonly add_arena_chain = new ActionChain<IArena>();
     addArena(card: IArena, position: number) {
-        this.addCard(card);
-        this._arenas[position] = card;
+        this.add_arena_chain.trigger(card, () => {
+            this._arenas[position] = card;
+        });
     }
     async draw(seq?: number) {
         let card: ICard|null = null;
@@ -264,11 +267,17 @@ class PlayerMaster {
         card.card_status = CardStat.Exile;
     }
 
+    public readonly add_char_chain = new ActionChain<ICharacter>();
     addCharacter(char: ICharacter) {
-        this._characters.push(char);
+        this.add_char_chain.trigger(char, () => {
+            this._characters.push(char);
+        });
     }
+    public readonly add_event_chain = new ActionChain<IEvent>();
     addEvent(event: IEvent) {
-        this._events_ongoing.push(event);
+        this.add_event_chain.trigger(event, () => {
+            this._events_ongoing.push(event);
+        });
     }
 
     // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
@@ -360,7 +369,7 @@ class GameMaster {
         selecter.setCardTable(this.card_table);
     }
 
-    public genUnknownToDeck(owner: Player) {
+    genUnknownToDeck(owner: Player) {
         let c = new UnknownCard(this._cur_seq++, owner);
         this.card_table[c.seq] = c;
         this.getMyMaster(owner).addCard(c);
@@ -386,11 +395,23 @@ class GameMaster {
         let arena = this.genCard(owner, name);
         if(TG.isArena(arena)) {
             arena.card_status = CardStat.Onboard;
+            this.getMyMaster(owner).addCard(arena);
             this.getMyMaster(owner).addArena(arena, pos);
             arena.position = pos;
             return arena;
         } else {
             throw new BadOperationError("嘗試將非場所卡加入建築區");
+        }
+    }
+    genCharToBoard(owner: Player, name: string): ICharacter {
+        let char = this.genCard(owner, name);
+        if(TG.isCharacter(char)) {
+            char.card_status = CardStat.Onboard;
+            this.getMyMaster(owner).addCard(char);
+            this.getMyMaster(owner).addCharacter(char);
+            return char;
+        } else {
+            throw new BadOperationError("嘗試將非角色卡加入角色區");
         }
     }
 

@@ -35,7 +35,7 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
         pivot_x = width;
     }
     if(y > s_height/2) {
-        pivot_y = height;
+        pivot_y = card_ui.height;
     }
     card_ui.pivot.set(pivot_x, pivot_y);
 

@@ -33,10 +33,8 @@ export class ArenaArea {
                 return { after_effect: () => this.enterChar(arena, char) };
             }
         });
-        gm.getMyMaster(player).card_play_chain.append(card => {
-            if(TypeGaurd.isArena(card)) {
-                return { after_effect: () => this.addArena(card) };
-            }
+        gm.getMyMaster(player).add_arena_chain.append(card => {
+            return { after_effect: () => this.addArena(card) };
         });
     }
     addArena(card: IArena | IArena[]) {
