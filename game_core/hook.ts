@@ -179,7 +179,7 @@ class ActionChain<U> {
         if(by_keeper) {
             this.keeperCallback(const_arg);
         }
-        this.trigger(const_arg, callback, cleanup);
+        return await this.trigger(const_arg, callback, cleanup);
     }
 }
 

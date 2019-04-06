@@ -59,7 +59,7 @@ export class EventArea {
         card.push_chain.append(() => {
             return { after_effect: updateTxt };
         });
-        this.gm.main_phase_end_chain.append(() => {
+        this.gm.t_master.start_building_chain.append(() => {
             return { after_effect: updateTxt };
         });
         let destroy_big: () => void = null;

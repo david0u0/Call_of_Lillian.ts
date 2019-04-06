@@ -53,17 +53,22 @@ export class PhaseNotifier {
         gm.t_master.start_building_chain.append(() => {
             anime(`第${this.cur_era++}世代 - 建築階段`);
         });
+        gm.t_master.start_main_chain.append(() => {
+            anime(`第${this.cur_era}世代 - 主階段`);
+        });
+        gm.t_master.start_exploit_chain.append(() => {
+            anime(`第${this.cur_era}世代 - 收獲階段`);
+        });
         gm.t_master.start_turn_chain.append(({ prev, next }) => {
             if(gm.t_master.cur_phase != GamePhase.Setup) {
-                if(player == next) {
-                    anime("輪到你囉^Q^");
-                } else {
-                    anime("輪到對手");
+                if(prev != next) {
+                    if(player == next) {
+                        anime("輪到你囉^Q^");
+                    } else {
+                        anime("輪到對手");
+                    }
                 }
             }
-        });
-        gm.t_master.start_main_chain.append(() => {
-            anime(`第${this.cur_era++}世代 - 主階段`);
         });
     };
 }

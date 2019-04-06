@@ -146,7 +146,6 @@ class PlayerMaster {
     }
 
     getScore() {
-        // TODO: 這邊是不是也該寫個鏈？
         return this.events_finished.reduce((sum, e) => sum + e.score, 0);
     }
 
@@ -507,11 +506,6 @@ class GameMaster {
         = new ActionChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
     public readonly repluse_chain
         = new ActionChain<{ loser: ICharacter, winner: ICharacter | null }>();
-
-    /** 主階段結束，開始收穫階段之前 */
-    public readonly main_phase_end_chain = new ActionChain();
-    /** 收穫階段結束之後 */
-    public readonly era_end_chain = new ActionChain();
 }
 
 export {
