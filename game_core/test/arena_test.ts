@@ -1,6 +1,6 @@
 import * as assert from "assert";
 
-import { Player, CardStat, BattleRole, CharStat } from "../enums";
+import { Player, CardStat, BattleRole, CharStat, GamePhase } from "../enums";
 import { Character, Arena } from "../cards";
 import { GameMaster } from "../game_master";
 import { BadOperationError } from "../errors";
@@ -25,7 +25,6 @@ describe("測試最基礎的場所卡", () => {
     let rainy2: Character;
     let e_rainy3: Character;
     before(async () => {
-        await gm.t_master.addActionPoint(100);
         gm.genArenaToBoard(p1, 0, "M市立綜合醫院");
         gm.genArenaToBoard(p1, 1, "M市立綜合醫院");
         my_h = gm.genArenaToBoard(p1, 2, "M市立綜合醫院") as Arena;
@@ -41,9 +40,11 @@ describe("測試最基礎的場所卡", () => {
         e_rainy3 = gm.genCardToHand(p2, "雨季的魔女．語霽") as Character;
         await pm.playCard(rainy);
         await pm.playCard(rainy2);
-        await gm.t_master.endTurn(p2);
+        await gm.t_master.startTurn(p2);
         await enemy_master.playCard(e_rainy3);
-        await gm.t_master.endTurn(p1);
+
+        await gm.t_master.startMainPhase();
+        await gm.t_master.startTurn(p1);
         await gm.t_master.addActionPoint(100);
     });
     it("進入自己場所應該不用花費", () => {
@@ -70,12 +71,12 @@ describe("測試最基礎的場所卡", () => {
                 assert.equal(true, my_h.char_list[0].isEqual(rainy));
             });
             it("進入時超過場所容納上限應該報錯", async () => {
-                await gm.t_master.endTurn(p2);
+                await gm.t_master.startTurn(p2);
                 await gm.enterArena(my_h, e_rainy3);
                 checkBadOperationErrorAsync(async () => {
                     await gm.enterArena(my_h, rainy2);
                 });
-                await gm.t_master.endTurn(p1);
+                await gm.t_master.startTurn(p1);
             });
             it("對手的角色進入我方的場所，其魔力應該為1000-4-1=995", () => {
                 assert.equal(995, enemy_master.mana);

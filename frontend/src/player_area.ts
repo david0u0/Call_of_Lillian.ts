@@ -73,7 +73,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     round_txt.x = width;
     round_txt.alpha = 0;
     container.addChild(round_txt);
-    gm.t_master.end_turn_chain.append(({ prev, next }) => {
+    gm.t_master.start_turn_chain.append(({ prev, next }) => {
         return {
             after_effect: () => {
                 if(next == pm.player) {

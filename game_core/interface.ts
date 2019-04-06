@@ -20,6 +20,7 @@ interface IKnownCard extends ICard {
     readonly description: string;
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
+    readonly instance: boolean;
 
     readonly check_before_play_chain: GetterChain<boolean, null>;
     readonly get_mana_cost_chain: GetterChain<number, null>;

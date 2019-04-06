@@ -22,7 +22,6 @@ export enum GamePhase {
 
     InAction,
     BetweenActions,
-    BetweenRounds,
 
     PreBattle,
     // InBattle 這個階段完全涵蓋於 post conflict 及 pre conflic

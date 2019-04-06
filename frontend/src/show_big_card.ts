@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import { ICard } from "../../game_core/interface";
 import { getEltSize, getWinSize } from "./get_screen_size";
-import { drawCard } from "./draw_card";
+import { drawCard, getCardSize } from "./draw_card";
 import { GameMaster } from "../../game_core/game_master";
 
 export type ShowBigCard = (x: number, y: number, card: ICard,
@@ -17,7 +17,8 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     let s_width = getWinSize().width;
     let s_height = getWinSize().height;
     let { ew, eh } = getEltSize();
-    let card_ui = drawCard(gm, card, ew*20, eh*20, true);
+    let { width, height } = getCardSize(ew*20, eh*20);
+    let card_ui = drawCard(gm, card, width, height, true);
     card_ui.position.set(x, y);
     container.addChild(card_ui);
     let tick_func = () => {
@@ -31,10 +32,10 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
 
     let pivot_x = 0, pivot_y = 0;
     if(x > s_width/2) {
-        pivot_x = card_ui.width;
+        pivot_x = width;
     }
     if(y > s_height/2) {
-        pivot_y = card_ui.height;
+        pivot_y = height;
     }
     card_ui.pivot.set(pivot_x, pivot_y);
 

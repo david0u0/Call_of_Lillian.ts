@@ -28,6 +28,9 @@ let simple_upgrade4 = gm.genCardToHand(p, "u_test0") as IUpgrade;
 let ultimate_0_test_char = gm.genCardToHand(p, "c_test0") as ICharacter;
 
 describe("測試最基礎的角色卡與升級卡的互動", () => {
+    before(async () => {
+        await gm.t_master.startMainPhase();
+    });
     describe("測試各種錯誤", () => {
         it("升級卡未設置欲安裝的角色應該噴錯誤", async () => {
             await gm.t_master.addActionPoint(100);

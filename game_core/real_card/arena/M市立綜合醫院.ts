@@ -1,6 +1,6 @@
 import { CardType, CardSeries, BattleRole, Player } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
-import { ICharacter, IArena } from "../../interface";
+import { ICharacter, IArena, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "M市立綜合醫院";
 let description = "使用：賺取3點魔力，並承受1情緒。";
@@ -13,7 +13,11 @@ export default class A extends Arena implements IArena {
     series = [ CardSeries.Hospital ];
 
     onExploit(char: ICharacter|Player) {
-        this.g_master.getMyMaster(char).addEmo(1);
+        let caller = new Array<IKnownCard>();
+        if(TypeGaurd.isCard(char)) {
+            caller.push(char);
+        }
+        this.g_master.getMyMaster(char).addEmo(1, caller);
         return 2;
     }
 }

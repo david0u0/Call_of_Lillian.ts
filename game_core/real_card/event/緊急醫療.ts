@@ -1,6 +1,6 @@
 import { Event, Arena } from "../../cards";
 import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
-import { CardSeries } from "../../enums";
+import { CardSeries, Player } from "../../enums";
 
 let name = "緊急醫療";
 let description = `推進：你有一個以上的角色處於醫院->得到2魔力。
@@ -32,13 +32,17 @@ export default class E extends Event implements IEvent {
         return (list.length > 0);
     }
 
-    onPush() {
-        this.my_master.addMana(2);
+    onPush(char: ICharacter|null) {
+        if(char) {
+            this.my_master.addMana(2, [char]);
+        } else {
+            this.my_master.addMana(2);
+        }
     }
 
     onFinish() {
         this.addActionWhileAlive(true, this.g_master.main_phase_end_chain, () => {
-            this.my_master.addMana(2);
+            this.my_master.addMana(2, [this]);
         });
     }
 }

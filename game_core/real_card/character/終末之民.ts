@@ -21,7 +21,7 @@ export default class C extends Character implements ICharacter {
             }
         });
         this.attack_chain.append(enemy => {
-            this.enemy_master.addMana(-1);
+            this.enemy_master.addMana(-1, [this]);
         });
     }
 }

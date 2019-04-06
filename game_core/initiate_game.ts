@@ -17,6 +17,7 @@ const basic_deck = [
 export default async function initiateGame(gm: GameMaster, deck1: string[]|null, deck2: string[]|null) {
     let decks = [deck1, deck2];
     for(let p of [Player.Player1, Player.Player2]) {
+        await gm.t_master.startTurn(p);
         let pm = gm.getMyMaster(p);
         await pm.addMana(Constant.INIT_MANA);
         let deck = decks[p];
@@ -40,15 +41,16 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
 
         let char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char, true);
+        await pm.playCard(char);
         char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char, true);
+        await pm.playCard(char);
         char = gm.genCardToHand(p, "見習魔女");
-        await pm.playCard(char, true);
+        await pm.playCard(char);
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
             await pm.draw();
         }
     }
-    await gm.t_master.endTurn(Player.Player1);
+    await gm.t_master.startTurn(Player.Player1);
+    await gm.t_master.startBulding();
 }

@@ -8,8 +8,6 @@ import { throwIfIsBackend, BadOperationError } from "./errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, Constant } from "./general_rules";
 import { TimeMaster } from "./time_master";
 
-type Caller = null|IKnownCard|IKnownCard[];
-
 class PlayerMaster {
     public readonly card_table: { [index: number]: ICard } = {};
 
@@ -51,13 +49,14 @@ class PlayerMaster {
     constructor(public readonly player: Player, private readonly selecter: ISelecter,
         private t_master: TimeMaster
     ) {
-        SR.checkPlay(this.card_play_chain);
-        SR.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
-        SR.onFail(this.fail_chain, () => this.mana,
+        let soft_rules = new SR(() => t_master.cur_phase);
+        soft_rules.checkPlay(this.card_play_chain);
+        soft_rules.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
+        soft_rules.onFail(this.fail_chain, () => this.mana,
             this.addMana.bind(this), this.addEmo.bind(this));
-        SR.checkPush(this.push_chain);
-        SR.onFinish(this.finish_chain, this.retireCard.bind(this));
-        SR.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
+        soft_rules.checkPush(this.push_chain);
+        soft_rules.onFinish(this.finish_chain, this.retireCard.bind(this));
+        soft_rules.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
     }
     
     public readonly rest_chain = new ActionChain<boolean>();
@@ -86,8 +85,8 @@ class PlayerMaster {
     public card_play_chain = new ActionChain<IKnownCard>();
     public card_retire_chain = new ActionChain<IKnownCard>();
 
-    public set_mana_chain = new ActionChain<{ mana: number, caller:Caller }>();
-    public set_emo_chain = new ActionChain<{ emo: number, caller: Caller }>();
+    public set_mana_chain = new ActionChain<{ mana: number, caller: IKnownCard[] }>();
+    public set_emo_chain = new ActionChain<{ emo: number, caller: IKnownCard[] }>();
 
     public ability_chain = new ActionChain<{ card: IKnownCard, a_index: number }>();
 
@@ -140,7 +139,7 @@ class PlayerMaster {
         return card;
     }
 
-    async addEmo(n: number, caller: Caller = null) {
+    async addEmo(n: number, caller: IKnownCard[] = []) {
         let new_emo = Math.max(0, this.emo + n);
         await this.set_emo_chain.trigger({ emo: new_emo, caller }, () => {
             this._emo = new_emo;
@@ -152,7 +151,7 @@ class PlayerMaster {
         .trigger(card.basic_mana_cost, null);
     }
 
-    async addMana(n: number, caller: Caller = null) {
+    async addMana(n: number, caller: IKnownCard[] = []) {
         let new_mana = Math.max(0, this.mana + n);
         await this.set_mana_chain.trigger({ mana: new_mana, caller }, () => {
             this._mana = new_mana;
@@ -193,8 +192,9 @@ class PlayerMaster {
             return false;
         }
     }
-    async playCard(card: IKnownCard, force = false) {
-        if(!force && this.t_master.cur_player != this.player) {
+    async playCard(card: IKnownCard) {
+        // 檢查
+        if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
@@ -202,11 +202,13 @@ class PlayerMaster {
             card.recoverFields();
             return false;
         }
+        // 支付代價
         await this.addMana(-this.getManaCost(card));
-        if(!force) {
+        if(this.t_master.cur_phase == GamePhase.InAction && !card.instance) {
             await this.t_master.addActionPoint(-1);
         }
-        await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
+        // 實際行動
+        return await card.card_play_chain.chain(this.card_play_chain, card).trigger(null, async () => {
             card.card_status = CardStat.Onboard;
             HR.onPlay(card, this.addCharacter.bind(this),
                 this.addEvent.bind(this), this._arenas, this.retireCard.bind(this));
@@ -216,7 +218,6 @@ class PlayerMaster {
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
             card.recoverFields();
         });
-        return true;
     }
 
     async triggerAbility(card: IKnownCard, a_index: number) {
@@ -318,10 +319,13 @@ class PlayerMaster {
             }
             if(push_chain.checkCanTrigger(char)) {
                 await this.addMana(-cost);
-                await this.t_master.addActionPoint(-1);
+                if(this.t_master.cur_phase == GamePhase.InAction) {
+                    await this.t_master.addActionPoint(-1);
+                }
                 if(char) {
                     await this.changeCharTired(char, true);
                 }
+
                 return await push_chain.trigger(char, async () => {
                     HR.onPushEvent(event);
                     await Promise.resolve(event.onPush(char));
@@ -352,12 +356,13 @@ class GameMaster {
         this.p_master1 = new PlayerMaster(Player.Player1, this.selecter, this.t_master);
         this.p_master2 = new PlayerMaster(Player.Player2, this.selecter, this.t_master);
 
-        SR.onGetEnterCost(this.get_enter_cost_chain);
-        SR.checkEnter(this.enter_chain);
-        SR.onEnter(this.enter_chain, (p, mana) => {
+        let soft_rules = new SR(() => this.t_master.cur_phase);
+        soft_rules.onGetEnterCost(this.get_enter_cost_chain);
+        soft_rules.checkEnter(this.enter_chain);
+        soft_rules.onEnter(this.enter_chain, (p, mana) => {
             this.getMyMaster(p).addMana(mana);
         });
-        SR.checkExploit(this.exploit_chain);
+        soft_rules.checkExploit(this.exploit_chain);
         selecter.setCardTable(this.card_table);
     }
 
@@ -433,8 +438,11 @@ class GameMaster {
             .chain(this.enter_chain, { char, arena });
             if(enter_chain.checkCanTrigger(char)) {
                 await p_master.addMana(-cost);
-                await this.t_master.addActionPoint(-1);
+                if(this.t_master.cur_phase == GamePhase.InAction) {
+                    await this.t_master.addActionPoint(-1);
+                }
                 await p_master.changeCharTired(char, true);
+                
                 return await enter_chain.trigger(char, () => {
                     HR.onEnter(char, arena);
                 });

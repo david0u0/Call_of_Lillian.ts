@@ -1,10 +1,9 @@
 import { IKnownCard, IUpgrade, TypeGaurd as TG, ICharacter, IArena, IEvent } from "./interface";
 import { ActionChain, GetterChain } from "./hook";
-import { CardStat, CharStat, BattleRole, Player } from "./enums";
+import { CardStat, CharStat, BattleRole, Player, GamePhase } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
 export const Constant = {
-    INIT_ACTION_POINT: 2,
     REST_MANA: 1,
     ENTER_ENEMY_COST: 1,
     MAX_ARENA: 5,
@@ -21,17 +20,41 @@ export const Constant = {
  * 需注意的是，如果你要覆蓋的只是一部份規則，使用覆蓋機制時應該注意把需要的規則手動補回來。
  */
 export class SoftRule {
-    public static checkPlay(card_play_chain: ActionChain<IKnownCard>) {
+    constructor(private getPhase: () => GamePhase) { }
+
+    public checkPlay(card_play_chain: ActionChain<IKnownCard>) {
         card_play_chain.appendCheck((can_play, card) => {
-            if(can_play) {
-                if(TG.isUpgrade(card)) {
-                    return { var_arg: SoftRule.checkPlayUpgrade(card) };
+            let phase = this.getPhase();
+            // 針對遊戲階段的檢查
+            if(phase == GamePhase.Setup) {
+                return { var_arg: true, break_chain: true };
+            }
+            if(TG.isArena(card)) {
+                if(phase != GamePhase.Building) {
+                    throwIfIsBackend("只能在建築階段打出場所卡", card);
+                    return { var_arg: false };
+                }
+            } else if(card.instance) {
+                if(phase != GamePhase.InAction && phase != GamePhase.BetweenActions) {
+                    throwIfIsBackend("只能在主階段出牌", card);
+                    return { var_arg: false };
+                }
+            } else if(phase != GamePhase.InAction) {
+                throwIfIsBackend("只能在主階段的行動時出牌", card);
+                return { var_arg: false };
+            }
+            // 對各類卡牌的檢查
+            if(TG.isUpgrade(card)) {
+                // 打出升級卡的限制
+                if(card.character_equipped && card.character_equipped.char_status != CharStat.StandBy) {
+                    // 指定的角色不在待命區
+                    return { var_arg: false };
                 }
             }
         });
     }
     /** 計算戰鬥職位的通則 */
-    public static onGetBattleRole(get_battle_role_chain: GetterChain<BattleRole, ICharacter>,
+    public onGetBattleRole(get_battle_role_chain: GetterChain<BattleRole, ICharacter>,
         getStrength: (c: ICharacter) => number
     ) {
         get_battle_role_chain.append((role, char) => {
@@ -41,16 +64,20 @@ export class SoftRule {
         });
     }
     /** 進入對手的場所要支付代價 */
-    public static onGetEnterCost(get_enter_cost_chain: GetterChain<number, { char: ICharacter, arena: IArena }>) {
+    public onGetEnterCost(get_enter_cost_chain: GetterChain<number, { char: ICharacter, arena: IArena }>) {
         get_enter_cost_chain.append((cost, arg) => {
             if(arg.char.owner != arg.arena.owner) {
                 return { var_arg: cost + Constant.ENTER_ENEMY_COST };
             }
         });
     }
-    public static checkEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>) {
+    public checkEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>) {
         enter_chain.appendCheck((can_enter, { arena, char }) => {
-            if(char.char_status != CharStat.StandBy) {
+            if(this.getPhase() != GamePhase.InAction) {
+                throwIfIsBackend("只能在主階段的行動時移動");
+                return { var_arg: false };
+            }
+            else if(char.char_status != CharStat.StandBy) {
                 throwIfIsBackend("在場所中的角色不能移動");
                 return { var_arg: false };
             } else if(char.is_tired) {
@@ -63,7 +90,7 @@ export class SoftRule {
         });
     }
     /** 進入對手的場所，對手可以拿錢 */
-    public static onEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>,
+    public onEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>,
         addMana: (player: Player, mana: number) => void
     ) {
         enter_chain.append(({ char, arena }) => {
@@ -72,9 +99,12 @@ export class SoftRule {
             }
         });
     }
-    public static checkExploit(exploit_chain: ActionChain<{ arena: IArena, char: ICharacter | Player }>) {
+    public checkExploit(exploit_chain: ActionChain<{ arena: IArena, char: ICharacter | Player }>) {
         exploit_chain.appendCheck((t, { arena, char }) => {
-            if(TG.isCard(char)) {
+            if(this.getPhase() != GamePhase.Exploit) {
+                throwIfIsBackend("只能在收獲階段使用場所");
+                return { var_arg: false };
+            } else if(TG.isCard(char)) {
                 if(!arena.isEqual(char.arena_entered)) {
                     // 角色不可開發自身所在地之外的場所
                     return { var_arg: false };
@@ -82,9 +112,12 @@ export class SoftRule {
             }
         });
     }
-    public static checkPush(push_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>) {
+    public checkPush(push_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>) {
         push_chain.appendCheck((t, { char, event }) => {
-            if(event.cur_time_count <= 0) {
+            if(this.getPhase() != GamePhase.InAction) {
+                throwIfIsBackend("只能在主階段行動時推進事件");
+                return { var_arg: false };
+            } else if(event.cur_time_count <= 0) {
                 // 不可推進倒數為0的事件
                 return { var_arg: false };
             } else if(event.cur_progress_count >= event.goal_progress_count) {
@@ -97,7 +130,7 @@ export class SoftRule {
         });
     }
     // 理論上，當任務失敗，應該扣掉等同基礎開銷的魔力，多出來的話一比一變成情緒傷害。
-    public static onFail(fail_chain: ActionChain<IEvent>, getMana: () => number,
+    public onFail(fail_chain: ActionChain<IEvent>, getMana: () => number,
         addMana: (mana: number) => void, addEmo: (emo: number) => void
     ) {
         fail_chain.append(evt => {
@@ -108,7 +141,7 @@ export class SoftRule {
         });
     }
     // 理論上，當任務成功，完成的角色應該退場
-    public static onFinish(finish_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>,
+    public onFinish(finish_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>,
         retireCard: (c: IKnownCard) => void
     ) {
         finish_chain.append(({ char, event }) => {
@@ -118,7 +151,7 @@ export class SoftRule {
         });
     }
 
-    public static onGetManaCost(
+    public onGetManaCost(
         get_mana_cost_chain: GetterChain<number, IKnownCard>, getArenas: () => IArena[]
     ) {
         get_mana_cost_chain.append((cost, card) => {
@@ -129,17 +162,6 @@ export class SoftRule {
             }
         });
     }
-
-    private static checkPlayUpgrade(u: IUpgrade): boolean {
-        // 打出升級卡的限制
-        if(u.character_equipped && u.character_equipped.char_status != CharStat.StandBy) {
-            // 指定的角色不在待命區
-            return false;
-        } else {
-            return true;
-        }
-    }
-
 }
 
 /**

@@ -12,6 +12,7 @@ abstract class KnownCard implements IKnownCard {
     public abstract readonly description: string;
     public abstract readonly basic_mana_cost: number;
     public series: CardSeries[] = []
+    public readonly instance = false;
 
     public card_status = CardStat.Deck;
 
