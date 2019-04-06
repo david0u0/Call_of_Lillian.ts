@@ -24,14 +24,16 @@ describe("測試事件卡功能", () => {
     beforeEach(async () => {
         selecter = new TestSelecter();
         gm = new GameMaster(selecter, genFunc);
-        await gm.t_master.startMainPhase();
-        await gm.t_master.addActionPoint(100);
         pm = gm.getMyMaster(p1);
         enemy_master = gm.getEnemyMaster(p1);
         await pm.addMana(1000);
         await enemy_master.addMana(1000);
         char = gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
         char2 = gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
+
+        await gm.t_master.startMainPhase();
+        await gm.t_master.startTurn(p1);
+        await gm.t_master.addActionPoint(100);
         await pm.playCard(char);
         await pm.playCard(char2);
     });

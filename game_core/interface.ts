@@ -43,6 +43,8 @@ interface IKnownCard extends ICard {
     initialize(): Promise<boolean>|boolean;
     /** 入場曲或咒語效果的概念 */
     onPlay(): Promise<void>|void;
+    /** 設置卡牌在場時的效果 */
+    setupAliveeEffect(): Promise<void>|void;
     /** 退場曲的概念 */
     onRetrieve(): Promise<void>|void;
 
@@ -147,9 +149,12 @@ interface IEvent extends IKnownCard {
     readonly fail_chain: ActionChain<null>;
     readonly finish_chain: ActionChain<ICharacter|null>;
 
+    // TODO: 應該要再一個函式 initBeforePush
+    checkCanPush(char: ICharacter|null): boolean;
     onPush(char: ICharacter|null): Promise<void>|void;
     onFinish(char: ICharacter|null): Promise<void>|void;
     onFail(): Promise<void>|void;
+    setupFinishEffect(char: ICharacter|null): Promise<void>|void;
 
     /** 不可覆寫！ */
     push(): void;

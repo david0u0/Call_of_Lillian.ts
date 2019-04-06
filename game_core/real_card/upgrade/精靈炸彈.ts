@@ -10,7 +10,7 @@ export default class U1 extends Upgrade {
     basic_mana_cost = 1 ;
     basic_strength = 2;
 
-    onPlay() {
+    setupAliveeEffect() {
         if(this.character_equipped) {
             let role_chain = this.character_equipped.get_battle_role_chain;
             this.addGetterWhileAlive(true, role_chain, (role) => {

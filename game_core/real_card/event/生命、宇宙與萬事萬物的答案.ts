@@ -24,4 +24,5 @@ export default class E extends Event implements IEvent {
     }
 
     onFinish() { }
+    setupFinishEffect() { }
 }

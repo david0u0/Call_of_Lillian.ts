@@ -15,17 +15,18 @@ export default class U extends Upgrade {
 
     protected modifier = 0;
 
-    onPlay() {
+    setupAliveeEffect() {
         this.my_master.get_strength_chain.append((str, char) => {
             if(char.isEqual(this.character_equipped)) {
                 return { var_arg: str + this.modifier };
             }
         });
-        this.g_master.era_end_chain.append(() => {
+        this.g_master.t_master.start_building_chain.append(() => {
             this.modifier += 2;
         });
         this.card_retire_chain.append(async () => {
-            let new_char = await this.g_master.selecter.selectSingleCardInteractive(this, TypeGaurd.isCharacter, char => {
+            let new_char = await this.g_master.selecter
+            .selectSingleCardInteractive(this, TypeGaurd.isCharacter, char => {
                 return char.owner == this.owner;
             });
             if(new_char) {

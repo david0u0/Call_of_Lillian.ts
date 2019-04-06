@@ -29,6 +29,7 @@ abstract class KnownCard implements IKnownCard {
 
     public async initialize() { return true; }
     public onPlay() { }
+    public setupAliveeEffect() { }
     public onRetrieve() { }
 
     constructor(public readonly seq: number, public readonly owner: Player,
@@ -263,10 +264,11 @@ abstract class Event extends KnownCard implements IEvent {
     public readonly finish_chain = new ActionChain<ICharacter|null>();
 
     public abstract checkCanPush(char: ICharacter|null): boolean;
-    public abstract onPush(char: ICharacter|null): void;
-    public abstract onFinish(char: ICharacter|null): void;
-
+    public abstract onPush(char: ICharacter|null): Promise<void>|void;
+    public abstract onFinish(char: ICharacter|null): Promise<void>|void;
     public onFail() { }
+    public abstract setupFinishEffect(char: ICharacter|null): Promise<void>|void;
+
 
     public push() {
         this._cur_progress_count++;

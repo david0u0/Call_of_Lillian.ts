@@ -37,4 +37,5 @@ export default class E extends Event implements IEvent {
         this.my_master.addMana(-mana_cost);
         this.my_master.addEmo(-emo_cost);
     }
+    setupFinishEffect() { }
 }

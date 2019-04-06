@@ -204,6 +204,7 @@ class PlayerMaster {
             HR.onPlay(card, this.addCharacter.bind(this),
                 this.addEvent.bind(this), this._arenas, this.retireCard.bind(this));
             await Promise.resolve(card.onPlay());
+            await Promise.resolve(card.setupAliveeEffect());
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -286,6 +287,7 @@ class PlayerMaster {
             event.card_status = CardStat.Finished;
             this._events_finished.push(event);
             await Promise.resolve(event.onFinish(char));
+            await Promise.resolve(event.setupFinishEffect(char));
         });
     }
     getPushCost(char: ICharacter | null, event: IEvent) {
@@ -501,9 +503,9 @@ class GameMaster {
     public readonly battle_end_chain = new ActionChain();
 
     public readonly before_conflict_chain
-        = new ActionChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
+        = new ActionChain<{ def: ICharacter, atk: ICharacter, is_target: boolean }>();
     public readonly conflict_chain
-        = new ActionChain<{ def: ICharacter, atk: ICharacter, is_blocked: boolean }>();
+        = new ActionChain<{ def: ICharacter, atk: ICharacter, is_target: boolean }>();
     public readonly repluse_chain
         = new ActionChain<{ loser: ICharacter, winner: ICharacter | null }>();
 }

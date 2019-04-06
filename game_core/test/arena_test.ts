@@ -90,6 +90,8 @@ describe("測試最基礎的場所卡", () => {
                     assert.equal(993, pm.mana);
                 });
                 it("使用後魔力應該變成993+2=995", async () => {
+                    await gm.t_master.startExploit();
+                    console.log(GamePhase[gm.t_master.cur_phase]);
                     await gm.exploit(my_h, rainy);
                     assert.equal(995, pm.mana);
                 });

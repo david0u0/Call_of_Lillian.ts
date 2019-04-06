@@ -12,9 +12,9 @@ export default class U extends Upgrade {
     basic_mana_cost = 5;
     basic_strength = 0;
 
-    onPlay() {
+    setupAliveeEffect() {
         this.addActionWhileAlive(true, this.g_master.conflict_chain, (arg) => {
-            if(arg.def.isEqual(this) && !arg.is_blocked) {
+            if(arg.def.isEqual(this) && arg.is_target) {
                 this.g_master.getAll(TypeGaurd.isCharacter, c => {
                     return c.char_status == CharStat.InBattle;
                 }).forEach(char => {

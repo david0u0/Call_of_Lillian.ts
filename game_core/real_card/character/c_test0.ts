@@ -18,10 +18,13 @@ export default class C_Test0 extends Character {
     basic_strength = 10;
 
     onPlay() {
+        // NOTE: 對手魔力減10
+        this.enemy_master.addMana(-10);
+    }
+
+    setupAliveeEffect() {
         let my_master = this.my_master;
         let enemy_master = this.enemy_master;
-        // NOTE: 對手魔力減10
-        enemy_master.addMana(-10);
 
         // NOTE: 我方戰力加5
         this.addGetterWhileAlive(true, my_master.get_strength_chain, (str, char) => {

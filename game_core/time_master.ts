@@ -22,13 +22,13 @@ export class TimeMaster {
     constructor(private firstRestReward: (p: Player) => void) { }
 
     public async startBulding() {
-        this.start_building_chain.trigger(null, async () => {
+        await this.start_building_chain.trigger(null, async () => {
             this._cur_phase = GamePhase.Building;
             await this.startTurn(this.first_player);
         });
     }
-    private async startMainPhase() {
-        this.start_main_chain.trigger(null, async () => {
+    public async startMainPhase() {
+        await this.start_main_chain.trigger(null, async () => {
             await this.setRest(Player.Player1, false, false);
             await this.setRest(Player.Player2, false, false);
             this._cur_phase = GamePhase.InAction;
@@ -36,10 +36,10 @@ export class TimeMaster {
             this._action_point = MAIN_FIRST_ACTION_P; // 第一個回合的行動點不同
         });
     }
-    private async startExploit() {
+    public async startExploit() {
         await this.setRest(Player.Player1, false, false);
         await this.setRest(Player.Player2, false, false);
-        this.start_exploit_chain.trigger(null, async () => {
+        await this.start_exploit_chain.trigger(null, async () => {
             this._cur_phase = GamePhase.Exploit;
             await this.startTurn(this.first_player);
         });
