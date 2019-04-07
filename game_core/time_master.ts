@@ -66,7 +66,13 @@ export class TimeMaster {
             throw new BadOperationError("已經在休息了");
         }
         if(this._cur_phase == GamePhase.InAction) {
-            await this.rest_chain.triggerByKeeper(by_keeper, player);
+            await this.rest_chain.triggerByKeeper(by_keeper, player, () => {
+                if(!this.bothResting()) {
+                    // 下個世代的起始玩家
+                    this.firstRestReward(player);
+                    this.first_player = player;
+                }
+            });
         }
         this.setRest(player, true);
     }
@@ -91,11 +97,6 @@ export class TimeMaster {
                         this.startBulding();
                     }
                 } else {
-                    if(this.cur_phase == GamePhase.InAction) {
-                        // 下個世代的起始玩家
-                        this.firstRestReward(player);
-                        this.first_player = player;
-                    }
                     this.startTurn(1 - player);
                 }
             }

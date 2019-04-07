@@ -102,7 +102,7 @@ export class ArenaArea {
 
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;
-        if(arena.char_list.length == 1) {
+        if(arena.find(char) == 0) {
             offset -= view.width;
             view.position.set(offset, this.card_h - view.width * 0.5);
         } else {

@@ -83,7 +83,7 @@ export class SoftRule {
             } else if(char.is_tired) {
                 throwIfIsBackend("疲勞中的角色不能移動");
                 return { var_arg: false };
-            } else if(arena.char_list.length + 1 > arena.max_capacity) {
+            } else if(arena.find(null) == -1) {
                 throwIfIsBackend("場所中的角色不可超過上限");
                 return { var_arg: false };
             }

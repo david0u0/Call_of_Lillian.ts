@@ -245,6 +245,7 @@ class PlayerMaster {
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
         await card.card_leave_chain.trigger(null, () => {
+            // TODO: 如果角色在場所中，應該想辦法使其離開
             HR.onLeave(card, this.retireCard.bind(this));
         });
     }
@@ -488,14 +489,34 @@ class GameMaster {
             if(exploit_chain.checkCanTrigger(char)) {
                 await p_master.addMana(-cost);
                 await exploit_chain.triggerByKeeper(by_keeper, char, async () => {
+                    let caller = [];
+                    if(TG.isCard(char)) {
+                        caller.push(char);
+                        this.exitArena(char);
+                    }
                     let income = await arena.onExploit(char);
                     if(income) {
-                        p_master.addMana(income);
+                        p_master.addMana(income, caller);
                     }
                 });
             }
         }
     }
+
+    async exitArena(char: ICharacter) {
+        let _arena = char.arena_entered;
+        if(_arena) {
+            let arena = _arena;
+            this.exit_chain.trigger({ char, arena }, () => {
+                char.char_status = CharStat.StandBy;
+                char.arena_entered = null;
+                arena.exit(char);
+            });
+        } else {
+            throw new BadOperationError("不在場所的角色還想離開？");
+        }
+    }
+
     repulse(loser: ICharacter, winner: ICharacter | null) {
         // TODO:
     }
@@ -516,6 +537,7 @@ class GameMaster {
 
     public readonly get_enter_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter }>();
     public readonly enter_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
+    public readonly exit_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
     public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
     public readonly exploit_chain = new ActionChain<{ arena: IArena, char: ICharacter | Player }>();
 

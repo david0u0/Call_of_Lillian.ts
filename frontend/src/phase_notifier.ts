@@ -61,7 +61,7 @@ export class PhaseNotifier {
         });
         gm.t_master.start_turn_chain.append(({ prev, next }) => {
             if(gm.t_master.cur_phase != GamePhase.Setup) {
-                if(prev != next) {
+                if(prev != next || gm.t_master.cur_phase == GamePhase.Building) {
                     if(player == next) {
                         anime("輪到你囉^Q^");
                     } else {

@@ -5,6 +5,7 @@ import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, IC
 import { GameMaster, PlayerMaster } from "./game_master";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
+import { BadOperationError } from "./errors";
 
 abstract class KnownCard implements IKnownCard {
     public abstract readonly card_type: CardType;
@@ -203,9 +204,9 @@ abstract class Arena extends KnownCard implements IArena {
     public position = -1;
     public readonly abstract basic_exploit_cost: number;
 
-    private _char_list = new Array<ICharacter>();
-    public get char_list() { return [...this._char_list]; };
     public readonly max_capacity = C.ARENA_CAPACITY;
+    private _char_list = new Array<ICharacter|null>(this.max_capacity).fill(null);
+    public get char_list() { return [...this._char_list]; };
 
     public readonly exploit_chain = new ActionChain<ICharacter|Player>();
     public readonly enter_chain = new ActionChain<ICharacter>();
@@ -213,7 +214,34 @@ abstract class Arena extends KnownCard implements IArena {
     public readonly get_enter_cost_chain = new GetterChain<number, ICharacter>();
 
     enter(char: ICharacter) {
-        this._char_list.push(char);
+        let i = this.find(null);
+        if(i != -1) {
+            this._char_list[i] = char;
+        } else {
+            throw new BadOperationError("找不到空位", this);
+        }
+    }
+    exit(char: ICharacter) {
+        let i = this.find(char);
+        if(i != -1) {
+            this._char_list[i] = null;
+        } else {
+            throw new BadOperationError("找不到欲使之離開的角色", this);
+        }
+    }
+    find(tar: ICharacter|null) {
+        for(let i = 0; i < this.max_capacity; i++) {
+            if(TypeGaurd.isCard(tar)) {
+                if(tar.isEqual(this._char_list[i])) {
+                    return i;
+                }
+            } else {
+                if(!this.char_list[i]) {
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
     abstract onExploit(char: ICharacter|Player): number|void;
 

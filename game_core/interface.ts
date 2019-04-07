@@ -118,7 +118,7 @@ interface ICharacter extends IKnownCard {
 
 interface IArena extends IKnownCard {
     position: number;
-    readonly char_list: ICharacter[];
+    readonly char_list: Array<ICharacter|null>;
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
 
@@ -134,6 +134,8 @@ interface IArena extends IKnownCard {
     onExploit(char: ICharacter|Player): Promise<void|number>|void|number;
     /** 不可覆寫！ */
     enter(char: ICharacter): void;
+    exit(char: ICharacter): void;
+    find(tar: ICharacter | null): number;
 }
 interface IEvent extends IKnownCard {
     readonly goal_progress_count: number;
