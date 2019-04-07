@@ -5,7 +5,7 @@ import { Player, CardStat, BattleRole, CharStat, GamePhase } from "./enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter, UnknownCard } from "./interface";
 import { ActionChain, GetterChain } from "./hook";
 import { throwIfIsBackend, BadOperationError } from "./errors";
-import { SoftRule as SR, HardRule as HR, Constant as C, Constant } from "./general_rules";
+import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "./general_rules";
 import { TimeMaster } from "./time_master";
 
 class PlayerMaster {
@@ -46,8 +46,8 @@ class PlayerMaster {
     public get events_finished() { return [...this._events_finished]; };
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
-    constructor(public readonly player: Player, private readonly selecter: ISelecter,
-        private t_master: TimeMaster
+    constructor(public readonly player: Player, private t_master: TimeMaster,
+        private getMaster: (card: ICard | Player)=> PlayerMaster
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
         soft_rules.checkPlay(this.card_play_chain);
@@ -59,18 +59,22 @@ class PlayerMaster {
         soft_rules.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
         soft_rules.onGetEnterCost(this.get_enter_cost_chain);
         soft_rules.checkEnter(this.enter_chain);
-        soft_rules.onEnter(this.enter_chain, (mana) => {
-            this.addMana(mana);
-        });
         soft_rules.checkExploit(this.exploit_chain);
+        soft_rules.onEnter(this.enter_chain, (p, mana) => {
+            this.getMaster(p).addMana(mana);
+        });
 
-        t_master.start_building_chain.append(() => {
+        t_master.start_building_chain.append(async () => {
             // 所有角色解除疲勞並離開場所
             for(let char of this.characters) {
-                this.changeCharTired(char, false);
+                await this.changeCharTired(char, false);
                 if(char.arena_entered) {
-                    this.exitArena(char);
+                    await this.exitArena(char);
                 }
+            }
+            // 所有事件倒數減1
+            for(let event of this.events_ongoing) {
+                await this.countdownEvent(event);
             }
         });
     }
@@ -320,6 +324,12 @@ class PlayerMaster {
     }
 
     // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
+    async countdownEvent(event: IEvent) {
+        event.countDown();
+        if(event.cur_time_count == 0) {
+            this.failEvent(event);
+        }
+    }
     async failEvent(event: IEvent) {
         await event.fail_chain.chain(this.fail_chain, event)
         .trigger(null, async () => {
@@ -492,8 +502,8 @@ class GameMaster {
     constructor(public readonly selecter: ISelecter,
         private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
     ) {
-        this.p_master1 = new PlayerMaster(Player.Player1, this.selecter, this.t_master);
-        this.p_master2 = new PlayerMaster(Player.Player2, this.selecter, this.t_master);
+        this.p_master1 = new PlayerMaster(Player.Player1, this.t_master, c => this.getMyMaster(c));
+        this.p_master2 = new PlayerMaster(Player.Player2, this.t_master, c => this.getMyMaster(c));
         selecter.setCardTable(this.card_table);
     }
 
@@ -543,7 +553,7 @@ class GameMaster {
         }
     }
 
-    getMyMaster(arg: Player | IKnownCard): PlayerMaster {
+    getMyMaster(arg: Player | ICard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);
         } else if(arg == Player.Player1) {
@@ -552,7 +562,7 @@ class GameMaster {
             return this.p_master2;
         }
     }
-    getEnemyMaster(arg: Player | IKnownCard): PlayerMaster {
+    getEnemyMaster(arg: Player | ICard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getEnemyMaster(arg.owner);
         } else if(arg == Player.Player2) {

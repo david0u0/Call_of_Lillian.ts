@@ -11,8 +11,8 @@ export default class C extends Character {
     basic_mana_cost = 4;
 
     onPlay() {
-        let master_chain = this.g_master.enter_chain;
-        this.addActionWhileAlive(true, master_chain, ({ char, arena }) => {
+        let chains = [this.my_master.enter_chain, this.enemy_master.enter_chain];
+        this.addActionWhileAlive(true, chains, ({ char, arena }) => {
             if(!char.isEqual(this) && arena.isEqual(this.arena_entered)) {
                 this.g_master.getMyMaster(char).addEmo(1, [char]);
             }

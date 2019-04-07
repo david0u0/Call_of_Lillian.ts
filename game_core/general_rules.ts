@@ -91,11 +91,11 @@ export class SoftRule {
     }
     /** 進入對手的場所，對手可以拿錢 */
     public onEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>,
-        addMana: (mana: number) => void
+        addMana: (player: Player, mana: number) => void
     ) {
         enter_chain.append(({ char, arena }) => {
             if(char.owner != arena.owner) {
-                addMana(Constant.ENTER_ENEMY_COST);
+                addMana(arena.owner, Constant.ENTER_ENEMY_COST);
             }
         });
     }
@@ -137,7 +137,7 @@ export class SoftRule {
             let mana_cost = Math.min(getMana(), evt.basic_mana_cost);
             let emo_cost = evt.basic_mana_cost - mana_cost;
             addMana(-mana_cost);
-            addEmo(-emo_cost);
+            addEmo(emo_cost);
         });
     }
     // 理論上，當任務成功，完成的角色應該退場
