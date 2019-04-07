@@ -114,8 +114,11 @@ export class ArenaArea {
         if(arena.find(char) == 0) {
             offset -= view.width;
             view.position.set(offset, this.card_h - view.width * 0.5);
-        } else {
+        } else if(arena.find(char) == 1) {
             offset += this.card_w * 0.7;
+            view.position.set(offset, view.width * 0.35);
+        } else { // 特殊狀況，容納了3個角色
+            offset += this.card_w * 0.2;
             view.position.set(offset, view.width * 0.35);
         }
 

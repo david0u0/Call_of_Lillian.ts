@@ -3,7 +3,7 @@ import { Character, Upgrade, Arena } from "../../cards";
 import { ICharacter, IArena, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "M市立綜合醫院";
-let description = "使用：賺取3點魔力，並承受1情緒。";
+let description = "使用：賺取2點魔力，並承受1情緒。";
 
 export default class A extends Arena implements IArena {
     name = name;
@@ -18,6 +18,6 @@ export default class A extends Arena implements IArena {
             caller.push(char);
         }
         this.g_master.getMyMaster(char).addEmo(1, caller);
-        return 3;
+        return 2;
     }
 }

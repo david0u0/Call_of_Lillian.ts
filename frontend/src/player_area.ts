@@ -1,7 +1,9 @@
 import * as PIXI from "pixi.js";
 import { PlayerMaster, GameMaster } from "../../game_core/game_master";
 import { getEltSize } from "./get_screen_size";
-import { Player } from "../../game_core/enums";
+import { Player, CardStat } from "../../game_core/enums";
+import FS from "./frontend_selecter";
+import { TypeGaurd } from "../../game_core/interface";
 
 let W = 60, H = 50;
 
@@ -23,7 +25,7 @@ function labelStyle(size: number) {
     });
 }
 
-export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, height: number,
+export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, width: number, height: number,
     ticker: PIXI.ticker.Ticker, upsidedown=false
 ) {
     let container = new PIXI.Container();
@@ -105,7 +107,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     }
 
 
-    let add_symbol = drawAddSymbol(gm, pm.player, 0.2 * height, ticker);
+    let add_symbol = drawAddSymbol(gm, pm.player, selecter, 0.2 * height, ticker);
     add_symbol.x = 0.2 * width;
     container.addChild(add_symbol);
     if(upsidedown) {
@@ -114,7 +116,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
     return { container, width, height };
 }
 
-function drawAddSymbol(gm: GameMaster, player: Player, size: number, ticker: PIXI.ticker.Ticker) {
+function drawAddSymbol(gm: GameMaster, player: Player, selecter: FS, size: number, ticker: PIXI.ticker.Ticker) {
     let symbol = new PIXI.Container();
     let add = new PIXI.Text("+", new PIXI.TextStyle({
         "fontSize": size,
@@ -161,7 +163,7 @@ function drawAddSymbol(gm: GameMaster, player: Player, size: number, ticker: PIX
     };
 
     let expanding = false;
-    let res = drawMoreMenu(gm, player, expand);
+    let res = drawMoreMenu(gm, player, selecter, expand);
     let menu = res.container;
     menu.alpha = 0;
     getHovering = res.getHovering;
@@ -196,7 +198,7 @@ function drawAddSymbol(gm: GameMaster, player: Player, size: number, ticker: PIX
     return container;
 }
 
-function drawMoreMenu(gm: GameMaster, player: Player, expand: (close?: boolean) => boolean) {
+function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (close?: boolean) => boolean) {
     let { eh, ew } = getEltSize();
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
@@ -219,9 +221,23 @@ function drawMoreMenu(gm: GameMaster, player: Player, expand: (close?: boolean) 
     for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
         let func = (() => {
             if(label == "rest") {
-                return () => gm.t_master.rest(player, true);
+                return async (x: number, y: number) => await gm.t_master.rest(player, true);
+            } else if(label == "incite") {
+                return async (x: number, y: number) => {
+                    selecter.setInitPos(x, y);
+                    let char = await selecter.selectSingleCard(null, TypeGaurd.isCharacter, c => {
+                        if(c.owner != player && c.card_status == CardStat.Onboard) {
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    });
+                    if(char) {
+                        gm.getMyMaster(char).incite(char, player, true);
+                    }
+                };
             } else {
-                return () => alert(label);
+                return async (x: number, y: number) => alert(label);
             }
         })();
         container.addChild(drawIcon(label, i, expand, func));
@@ -230,7 +246,9 @@ function drawMoreMenu(gm: GameMaster, player: Player, expand: (close?: boolean) 
     return { container, getHovering };
 }
 
-function drawIcon(name: string, index: number, expand: (close?: boolean) => boolean, action: () => void) {
+function drawIcon(name: string, index: number,
+    expand: (close?: boolean) => boolean, action: (x: number, y:number) => Promise<void>
+) {
     let { eh, ew } = getEltSize();
     let icon = new PIXI.Sprite(PIXI.loader.resources[name].texture);
     icon.interactive = true;
@@ -243,10 +261,10 @@ function drawIcon(name: string, index: number, expand: (close?: boolean) => bool
         icon.alpha = 0.8;
     });
     icon.position.set(-eh*3 + eh*3*index, -eh*3);
-    icon.on("click", () => {
+    icon.on("click", async evt => {
         if(expand()) {
+            await action(evt.data.global.x, evt.data.global.y);
             expand(true);
-            action();
         }
     });
     return icon;

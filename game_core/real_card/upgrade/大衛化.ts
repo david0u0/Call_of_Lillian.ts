@@ -6,7 +6,7 @@ let description = "當大衛化的角色承受情緒傷害時，令對手承受�
 export default class U extends Upgrade {
     name = name;
     description = description;
-    basic_mana_cost = 3;
+    basic_mana_cost = 5;
     basic_strength = 0;
 
     setupAliveeEffect() {

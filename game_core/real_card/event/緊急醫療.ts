@@ -3,7 +3,7 @@ import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
 import { CardSeries, Player } from "../../enums";
 
 let name = "緊急醫療";
-let description = `推進：你有一個以上的角色處於醫院->得到2魔力。
+let description = `推進：你有一個以上的角色處於醫院->得到1魔力。
 結算：你每個時代的魔力收入加2。`;
 
 export default class E extends Event implements IEvent {
@@ -34,9 +34,9 @@ export default class E extends Event implements IEvent {
 
     onPush(char: ICharacter|null) {
         if(char) {
-            this.my_master.addMana(2, [char]);
+            this.my_master.addMana(1, [char]);
         } else {
-            this.my_master.addMana(2);
+            this.my_master.addMana(1);
         }
     }
 

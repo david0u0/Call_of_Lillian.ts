@@ -61,7 +61,7 @@ export default class FrontendSelecter implements ISelecter {
             }
         });
     }
-    selectSingleCard<T extends ICard>(caller: ICard, guard: (c: ICard) => c is T,
+    selectSingleCard<T extends ICard>(caller: ICard|null, guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
         this._selecting = true;
@@ -74,10 +74,13 @@ export default class FrontendSelecter implements ISelecter {
         };
         this.line = new PIXI.Graphics();
         this.view.addChild(this.line);
-        let caller_obj = this.card_obj_table[caller.seq];
-        let line_init_pos = { x: 0, y: 0 }; // TODO: 預設應該是頭像的位置
-        if(caller_obj) {
-            line_init_pos = { x: caller_obj.worldTransform.tx, y: caller_obj.worldTransform.ty };
+        let caller_obj: PIXI.DisplayObject = null;
+        let line_init_pos = this.init_pos; // TODO: 預設應該是頭像的位置
+        if(caller) {
+            caller_obj = this.card_obj_table[caller.seq];
+            if(caller_obj) {
+                line_init_pos = { x: caller_obj.worldTransform.tx, y: caller_obj.worldTransform.ty };
+            }
         }
         this.view.on("mousemove", evt => {
             this.line.clear();
@@ -126,5 +129,10 @@ export default class FrontendSelecter implements ISelecter {
         } else if(card.seq in this.card_obj_table) {
             delete this.card_obj_table[card.seq];
         }
+    }
+
+    private init_pos = { x: 0, y: 0 };
+    setInitPos(x, y) {
+        this.init_pos = { x, y };
     }
 }

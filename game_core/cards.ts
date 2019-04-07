@@ -13,7 +13,7 @@ abstract class KnownCard implements IKnownCard {
     public abstract readonly description: string;
     public abstract readonly basic_mana_cost: number;
     public series: CardSeries[] = []
-    public readonly instance = false;
+    public instance = false;
 
     public card_status = CardStat.Deck;
 
@@ -116,6 +116,8 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public card_type = CardType.Upgrade;
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
+    public readonly instance = true; // 升級卡不會暫用時間
+
     private mem_character_equipped: ICharacter | null = this.character_equipped;
 
     public async initialize() {

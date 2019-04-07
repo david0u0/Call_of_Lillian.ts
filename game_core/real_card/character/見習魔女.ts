@@ -16,6 +16,9 @@ export default class C extends Character {
         func: () => {
             this.my_master.draw();
             this.my_master.changeCharTired(this, true);
+        },
+        canTrigger: () => {
+            return !this.is_tired;
         }
     }];
     // TODO: 塞入角色行動

@@ -9,8 +9,8 @@ let description = `推進：角色戰力需大於0。
 export default class E extends Event implements IEvent {
     name = name;
     description = description;
-    readonly basic_mana_cost = 4;
-    readonly score = 1;
+    readonly basic_mana_cost = 3;
+    readonly score = 2;
     readonly goal_progress_count = 3;
     readonly init_time_count = 2;
     readonly is_ending = false;

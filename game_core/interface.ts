@@ -11,6 +11,7 @@ interface ICard {
 
 type Ability = {
     description: string,
+    canTrigger: () => boolean,
     func: () => void|Promise<void>,
     cost?: number,
 };

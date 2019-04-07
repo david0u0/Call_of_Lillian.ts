@@ -9,43 +9,43 @@ import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "./gener
 import { TimeMaster } from "./time_master";
 
 class PlayerMaster {
+    public getAll<T extends ICard>(guard: (c: ICard) => c is T, filter: (c: T) => boolean) {
+        let res = new Array<T>();
+        for(let seq in this.card_table) {
+            let c = this.card_table[seq];
+            if(guard(c) && filter(c)) {
+                res.push(c);
+            }
+        }
+        return res;
+    }
     public readonly card_table: { [index: number]: ICard } = {};
 
     private _mana = 0;
     private _emo = 0;
     private _char_quota = -1;
 
-    private _characters = new Array<ICharacter>();
-    private _arenas = new Array<IArena>(C.MAX_ARENA);
-    private _events_ongoing = new Array<IEvent>();
-    private _events_finished = new Array<IEvent>();
     public get mana() { return this._mana; };
     public get emo() { return this._emo; };
     public get char_quota() { return this._char_quota; };
     public get deck() { 
-        let deck = new Array<ICard>();
-        for(let seq in this.card_table) {
-            let c = this.card_table[seq];
-            if(c.card_status == CardStat.Deck) {
-                deck.push(c);
-            }
-        }
-        return deck;
+        return this.getAll(TG.isCard, c => c.card_status == CardStat.Deck);
     }
     public get hand() {
-        let hand = new Array<ICard>();
-        for(let seq in this.card_table) {
-            let c = this.card_table[seq];
-            if(c.card_status == CardStat.Hand) {
-                hand.push(c);
-            }
-        }
-        return hand;
+        return this.getAll(TG.isCard, c => c.card_status == CardStat.Hand);
     }
-    public get characters() { return [...this._characters]; };
-    public get arenas() { return [...this._arenas]; };
-    public get events_ongoing() { return [...this._events_ongoing]; };
-    public get events_finished() { return [...this._events_finished]; };
+    public get characters() {
+        return this.getAll(TG.isCharacter, c => c.card_status == CardStat.Onboard);
+    }
+    public get arenas() {
+        return this.getAll(TG.isArena, c => c.card_status == CardStat.Onboard);
+    }
+    public get events_ongoing() {
+        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard);
+    }
+    public get events_finished() {
+        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Finished);
+    }
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
     constructor(public readonly player: Player, private t_master: TimeMaster,
@@ -80,6 +80,9 @@ class PlayerMaster {
             }
             // 打角色的額度恢復
             this._char_quota = 1;
+            // 抽牌
+            this.draw();
+            // TODO: 換牌
         });
 
         this.card_play_chain.append(card => {
@@ -87,10 +90,12 @@ class PlayerMaster {
                 this._char_quota--;
             }
         });
-        this.ability_chain.appendCheck(() => {
-            if(this.t_master.cur_phase != GamePhase.InAction) {
-                // TODO: 記得處理瞬間能力
-                throwIfIsBackend("只能在主階段行動中使用能力");
+        this.incited_chain.appendCheck(() => {
+            if(this.emo <= C.INCITE_EMO) {
+                throwIfIsBackend("情緒還不夠就想煽動我？");
+                return { var_arg: false };
+            } else if(this.t_master.cur_phase != GamePhase.InAction) {
+                throwIfIsBackend("只能在主階段行動中執行煽動");
                 return { var_arg: false };
             }
         });
@@ -252,18 +257,16 @@ class PlayerMaster {
                 card.character_equipped.addUpgrade(card);
             }
         } else if(TG.isCharacter(card)) {
-            // 打出角色後把她加入角色區
             await this.addCharacter(card);
         } else if(TG.isArena(card)) {
             // 打出場所的規則（把之前的建築拆了）
-            let old = this.arenas[card.position];
-            if(old) {
-                this.retireCard(old);
+            for(let a of this.arenas) {
+                if(!a.isEqual(card) && a.position == card.position) {
+                    this.retireCard(a);
+                }
             }
-            this.arenas[card.position] = card;
             this.addArena(card, card.position);
         } else if(TG.isEvent(card)) {
-            // 把事件加入待完成區
             this.addEvent(card);
         }
     }
@@ -273,7 +276,7 @@ class PlayerMaster {
             throw new BadOperationError("想在別人的回合使用能力？");
         }
         let ability = card.abilities[a_index];
-        if(ability && this.ability_chain.checkCanTrigger({ card, a_index })) {
+        if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, a_index })) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain
@@ -324,21 +327,15 @@ class PlayerMaster {
 
     public readonly add_char_chain = new ActionChain<ICharacter>();
     private async addCharacter(char: ICharacter) {
-        await this.add_char_chain.trigger(char, () => {
-            this._characters.push(char);
-        });
+        await this.add_char_chain.trigger(char);
     }
     public readonly add_event_chain = new ActionChain<IEvent>();
     private async addEvent(event: IEvent) {
-        await this.add_event_chain.trigger(event, () => {
-            this._events_ongoing.push(event);
-        });
+        await this.add_event_chain.trigger(event);
     }
     public readonly add_arena_chain = new ActionChain<IArena>();
     private async addArena(card: IArena, position: number) {
-        await this.add_arena_chain.trigger(card, () => {
-            this._arenas[position] = card;
-        });
+        await this.add_arena_chain.trigger(card);
     }
 
     // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
@@ -361,7 +358,7 @@ class PlayerMaster {
         await event.finish_chain.chain(this.finish_chain, { event, char })
         .trigger(char, async () => {
             event.card_status = CardStat.Finished;
-            this._events_finished.push(event);
+            this._leaveCard(event);
             await Promise.resolve(event.onFinish(char));
             await Promise.resolve(event.setupFinishEffect(char));
         });
@@ -419,11 +416,13 @@ class PlayerMaster {
     }
     async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
         // TODO: 這裡應該要有一條 pre-enter 動作鏈
-        if(this.t_master.cur_player != char.owner) {
+        if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合進入場所？");
+        } else if(this.player != char.owner) {
+            throw new BadOperationError("想移動別人的角色？");
         }
-        let cost = this.getEnterCost(char, arena);
 
+        let cost = this.getEnterCost(char, arena);
         if(HR.checkEnter(char, arena, this.mana, cost)) {
             let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
             .chain(this.enter_chain, { char, arena });
@@ -460,6 +459,8 @@ class PlayerMaster {
         })();
         if(p != this.t_master.cur_player) {
             throw new BadOperationError("想在別人的回合使用場所？");
+        } else if(p != this.player) {
+            throw new BadOperationError("想幫別人的角色使用場所？");
         }
         // TODO: 這裡應該要有一條 pre-exploit 動作鏈
         let cost = this.getExploitCost(arena, char);
@@ -505,6 +506,27 @@ class PlayerMaster {
     public readonly exit_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
     public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
     public readonly exploit_chain = new ActionChain<{ arena: IArena, char: ICharacter | Player }>();
+
+    public readonly incited_chain = new ActionChain<ICharacter|null>();
+    /** 由玩家 player 煽動我方的角色 char */
+    incite(char: ICharacter, player: Player, by_keeper=false) {
+        if(this.t_master.cur_player != player) {
+            throw new BadOperationError("想在別人的回合執行煽動？");
+        } else if(char.owner != this.player) {
+            throw new BadOperationError("要煽動角色，請找她的主人");
+        }
+        let enemy_master = this.getMaster(player);
+        if(enemy_master.mana > C.INCITE_COST
+            && char.card_status == CardStat.Onboard
+            && this.incited_chain.checkCanTrigger(char)
+        ) {
+            enemy_master.addMana(-C.INCITE_COST);
+            this.t_master.addActionPoint(-1);
+            this.incited_chain.triggerByKeeper(by_keeper, char, () => {
+                this.retireCard(char);
+            });
+        }
+    }
 
 }
 
@@ -565,6 +587,7 @@ class GameMaster {
             char.card_status = CardStat.Onboard;
             await this.getMyMaster(owner).addCard(char);
             await this.getMyMaster(owner).dangerouslyGenToBoard(char);
+            await this.getMyMaster(owner).changeCharTired(char, true);
             return char;
         } else {
             throw new BadOperationError("嘗試將非角色卡加入角色區");

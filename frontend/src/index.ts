@@ -54,8 +54,8 @@ async function setup() {
         return showBigCard(gm, app.stage, x, y, card, ticker);
     };
 
-    let p_area1 = drawPlayerArea(gm, gm.getEnemyMaster(me), 6*ew, 10*eh, app.ticker, true);
-    let p_area2 = drawPlayerArea(gm, gm.getMyMaster(me), 6*ew, 10*eh, app.ticker);
+    let p_area1 = drawPlayerArea(gm, gm.getEnemyMaster(me), selecter, 6*ew, 10*eh, app.ticker, true);
+    let p_area2 = drawPlayerArea(gm, gm.getMyMaster(me), selecter, 6*ew, 10*eh, app.ticker);
     p_area1.container.position.set((width-p_area1.width)/2, 11*eh-p_area1.height);
     p_area2.container.position.set((width-p_area2.width)/2, 31*eh);
 

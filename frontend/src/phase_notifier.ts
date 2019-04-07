@@ -4,7 +4,7 @@ import { Player, GamePhase } from "../../game_core/enums";
 import { getWinSize } from "./get_screen_size";
 
 export class PhaseNotifier {
-    private cur_era = 1;
+    private cur_era = 0;
     private pending_anime = new Array<() => void>();
     private anime_playing = false;
     public readonly view = new PIXI.Container();
@@ -51,7 +51,7 @@ export class PhaseNotifier {
         };
 
         gm.t_master.start_building_chain.append(() => {
-            anime(`第${this.cur_era++}世代 - 建築階段`);
+            anime(`第${++this.cur_era}世代 - 建築階段`);
         });
         gm.t_master.start_main_chain.append(() => {
             anime(`第${this.cur_era}世代 - 主階段`);

@@ -86,11 +86,11 @@ export class CharArea {
             this.addChar(char, i);
         }
     }
-    removeChar(card: ICharacter, destroy_big: () => void) {
+    removeChar(card: ICharacter, view: PIXI.Container, destroy_big: () => void) {
+        view.destroy();
         for(let i = 0; i < this.list.length; i++) {
             if(card.isEqual(this.list[i])) {
                 this.list[i] = null;
-                this.chars_view.children[i].destroy();
                 this.tired_mask_view.children[i].visible = false;
                 break;
             }
@@ -133,6 +133,7 @@ export class CharArea {
         });
         // 角色疲勞
         char.change_char_tired_chain.append(is_tired => {
+            tired_mask.visible = true;
             if(is_tired && !char.is_tired) {
                 let fade_in = () => {
                     if(tired_mask.alpha < 0.7) {
@@ -167,7 +168,7 @@ export class CharArea {
         char.card_leave_chain.append(() => {
             return {
                 after_effect: () => {
-                    this.removeChar(char, destroy_big);
+                    this.removeChar(char, view, destroy_big);
                 }
             };
         });
