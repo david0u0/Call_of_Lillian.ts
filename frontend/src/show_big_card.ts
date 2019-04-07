@@ -19,7 +19,7 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     let { ew, eh } = getEltSize();
     let { width, height } = getCardSize(ew*20, eh*20);
     let card_ui = drawCard(gm, card, width, height, true);
-    card_ui.position.set(x, y);
+    card_ui.position.set(x, y+eh);
     container.addChild(card_ui);
     let tick_func = () => {
         if(card_ui && card_ui.y > y) {

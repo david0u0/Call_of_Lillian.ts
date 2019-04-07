@@ -187,30 +187,6 @@ export class HardRule {
 
         return true;
     }
-    public static onPlay(card: IKnownCard,
-        addCharacter: (ch: ICharacter) => void,
-        addEvent: (evt: IEvent) => void,
-        arenas: IArena[],
-        retireCard: (card: IKnownCard) => void,
-    ) {
-        if(TG.isUpgrade(card)) {
-            // 把這件升級加入角色的裝備欄
-            if(card.character_equipped) {
-                card.character_equipped.addUpgrade(card);
-            }
-        } else if(TG.isCharacter(card)) {
-            // 打出角色後把她加入角色區
-            addCharacter(card);
-        } else if(TG.isArena(card)) {
-            // 打出場所的規則（把之前的建築拆了）
-            let old = arenas[card.position];
-            retireCard(old);
-            arenas[card.position] = card;
-        } else if(TG.isEvent(card)) {
-            // 把事件加入待完成區
-            addEvent(card);
-        }
-    }
     public static onLeave(card: IKnownCard, retireCard: (c: IKnownCard) => void) {
         if(TG.isUpgrade(card)) {
             HardRule.onLeaveUpgrade(card);

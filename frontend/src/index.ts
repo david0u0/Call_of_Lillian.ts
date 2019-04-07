@@ -33,6 +33,7 @@ PIXI.loader
 .add("goal_pop", require("../assets/goal_pop.png"))
 .add("countdown_pop", require("../assets/countdown_pop.png"))
 .add("score_pop", require("../assets/score_pop.png"))
+.add("ability", require("../assets/ability.png"))
 .load(setup);
 
 async function setup() {

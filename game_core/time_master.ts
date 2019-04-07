@@ -67,7 +67,7 @@ export class TimeMaster {
         }
         if(this._cur_phase == GamePhase.InAction) {
             await this.rest_chain.triggerByKeeper(by_keeper, player, () => {
-                if(!this.bothResting()) {
+                if(!this.someoneResting()) {
                     // 下個世代的起始玩家
                     this.firstRestReward(player);
                     this.first_player = player;
@@ -79,16 +79,11 @@ export class TimeMaster {
 
     private async setRest(player: Player, resting: boolean) {
         this.rest_state_change_chain.trigger({ resting, player }, () => {
-            if(player == Player.Player1) {
-                this._resting1 = resting;
-            } else {
-                this._resting2 = resting;
-            }
             if(resting == false) {
                 // 重置
             } else {
                 // 休息
-                if(this.bothResting()) {
+                if(this.someoneResting()) {
                     if(this.cur_phase == GamePhase.Building) {
                         this.startMainPhase();
                     } else if(this.cur_phase == GamePhase.InAction) {
@@ -99,6 +94,11 @@ export class TimeMaster {
                 } else {
                     this.startTurn(1 - player);
                 }
+            }
+            if(player == Player.Player1) {
+                this._resting1 = resting;
+            } else {
+                this._resting2 = resting;
             }
         });
     }
@@ -114,8 +114,8 @@ export class TimeMaster {
         }
     }
 
-    public bothResting() {
-        return this._resting1 && this._resting2;
+    public someoneResting() {
+        return this._resting1 || this._resting2;
     }
 
     public async addActionPoint(n: number) {

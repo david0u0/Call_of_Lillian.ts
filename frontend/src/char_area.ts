@@ -204,19 +204,17 @@ export class CharArea {
 
         // 角色行動或能力
         if(char.abilities.length != 0) {
-            let circle = new PIXI.Graphics();
-            circle.beginFill(0xffffff, 1);
-            circle.lineStyle(2, 0);
-            circle.drawCircle(0, 0, img.height / 8);
-            circle.endFill();
-            circle.interactive = true;
-            circle.cursor = "pointer";
-            circle.on("click", async evt => {
+            let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
+            icon.height = icon.width = img.height/3;
+            icon.anchor.set(0.5, 0.5);
+            icon.interactive = true;
+            icon.cursor = "pointer";
+            icon.on("click", async evt => {
                 evt.stopPropagation();
                 // TODO: 支援多個角色行動
                 await this.gm.getMyMaster(this.player).triggerAbility(char, 0, true);
             });
-            view.addChild(circle);
+            view.addChild(icon);
         }
         this.selecter.registerCardObj(char, view);
         return view;

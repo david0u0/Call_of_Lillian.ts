@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js";
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
 import { GameMaster } from "../../game_core/game_master";
+import { Player } from "../../game_core/enums";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -65,8 +66,13 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     let view = new PIXI.Container();
 
     let s_area = new PIXI.Graphics();
-    s_area.lineStyle(2, 0x48e0cf);
-    s_area.beginFill(0xdefdf9, 2);
+    if(pm.player == Player.Player1) {
+        s_area.lineStyle(2, 0x48e0cf);
+        s_area.beginFill(0xdefdf9, 2);
+    } else {
+        s_area.lineStyle(2, 0xf86390);
+        s_area.beginFill(0xfcb6cb, 2);
+    }
     s_area.drawRoundedRect(0, 0, s_width, s_height, s_height);
     //s_area.drawEllipse(s_width/2, s_height/2, s_width/2, s_height/2);
     s_area.endFill();

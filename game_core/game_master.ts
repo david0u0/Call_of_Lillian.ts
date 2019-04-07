@@ -102,12 +102,6 @@ class PlayerMaster {
         }
     }
 
-    public readonly add_arena_chain = new ActionChain<IArena>();
-    addArena(card: IArena, position: number) {
-        this.add_arena_chain.trigger(card, () => {
-            this._arenas[position] = card;
-        });
-    }
     async draw(seq?: number) {
         let card: ICard|null = null;
         if(seq) {
@@ -204,8 +198,7 @@ class PlayerMaster {
         return await card.card_play_chain.chain(this.card_play_chain, card)
         .triggerByKeeper(by_keeper, null, async () => {
             card.card_status = CardStat.Onboard;
-            HR.onPlay(card, this.addCharacter.bind(this),
-                this.addEvent.bind(this), this._arenas, this.retireCard.bind(this));
+            this.dangerouslyPlay(card);
             await Promise.resolve(card.onPlay());
             await Promise.resolve(card.setupAliveeEffect());
         }, () => {
@@ -213,6 +206,29 @@ class PlayerMaster {
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
             card.recoverFields();
         });
+    }
+    /** 會跳過大多數的檢查、代價與行動鏈 */
+    public dangerouslyPlay(card: IKnownCard) {
+        if(TG.isUpgrade(card)) {
+            // 把這件升級加入角色的裝備欄
+            if(card.character_equipped) {
+                card.character_equipped.addUpgrade(card);
+            }
+        } else if(TG.isCharacter(card)) {
+            // 打出角色後把她加入角色區
+            this.addCharacter(card);
+        } else if(TG.isArena(card)) {
+            // 打出場所的規則（把之前的建築拆了）
+            let old = this.arenas[card.position];
+            if(old) {
+                this.retireCard(old);
+            }
+            this.arenas[card.position] = card;
+            this.addArena(card, card.position);
+        } else if(TG.isEvent(card)) {
+            // 把事件加入待完成區
+            this.addEvent(card);
+        }
     }
 
     async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false) {
@@ -269,15 +285,21 @@ class PlayerMaster {
     }
 
     public readonly add_char_chain = new ActionChain<ICharacter>();
-    addCharacter(char: ICharacter) {
+    private addCharacter(char: ICharacter) {
         this.add_char_chain.trigger(char, () => {
             this._characters.push(char);
         });
     }
     public readonly add_event_chain = new ActionChain<IEvent>();
-    addEvent(event: IEvent) {
+    private addEvent(event: IEvent) {
         this.add_event_chain.trigger(event, () => {
             this._events_ongoing.push(event);
+        });
+    }
+    public readonly add_arena_chain = new ActionChain<IArena>();
+    private addArena(card: IArena, position: number) {
+        this.add_arena_chain.trigger(card, () => {
+            this._arenas[position] = card;
         });
     }
 
@@ -397,8 +419,8 @@ class GameMaster {
         if(TG.isArena(arena)) {
             arena.card_status = CardStat.Onboard;
             this.getMyMaster(owner).addCard(arena);
-            this.getMyMaster(owner).addArena(arena, pos);
             arena.position = pos;
+            this.getMyMaster(owner).dangerouslyPlay(arena);
             return arena;
         } else {
             throw new BadOperationError("嘗試將非場所卡加入建築區");
@@ -409,7 +431,7 @@ class GameMaster {
         if(TG.isCharacter(char)) {
             char.card_status = CardStat.Onboard;
             this.getMyMaster(owner).addCard(char);
-            this.getMyMaster(owner).addCharacter(char);
+            this.getMyMaster(owner).dangerouslyPlay(char);
             return char;
         } else {
             throw new BadOperationError("嘗試將非角色卡加入角色區");
@@ -477,6 +499,16 @@ class GameMaster {
     }
     /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
     async exploit(arena: IArena, char: ICharacter | Player, by_keeper=false) {
+        let p = (() => {
+            if(TG.isCard(char)) {
+                return char.owner;
+            } else {
+                return char;
+            }
+        })();
+        if(p != this.t_master.cur_player) {
+            throw new BadOperationError("想在別人的回合使用場所？");
+        }
         // TODO: 這裡應該要有一條 pre-exploit 動作鏈
         let p_master = this.getMyMaster(char);
         let cost = this.getExploitCost(arena, char);

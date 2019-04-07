@@ -3,7 +3,7 @@ import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_screen_size";
 import { drawCardFace, getCardSize, drawCard, drawStrength } from "./draw_card";
 
-import { Player } from "../../game_core/enums";
+import { Player, GamePhase } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/game_master";
 import { my_loader } from "./card_loader";
 import FrontendSelecter from "./frontend_selecter";
@@ -125,9 +125,23 @@ export class ArenaArea {
         view.on("click", () => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(char);
+            } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
+                this.gm.exploit(arena, char, true);
+            }
+        });
+        this.gm.exit_chain.append(arg => {
+            if(char.isEqual(arg.char)) {
+                this.removeChar(view, destroy_big);
             }
         });
 
         this.view.addChild(view);
+    }
+    private removeChar(char_view: PIXI.Container, destroy_big: () => void) {
+        char_view.destroy();
+        if(destroy_big) {
+            destroy_big();
+        }
+        this.hovering_char = false;
     }
 }
