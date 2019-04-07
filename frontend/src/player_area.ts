@@ -89,11 +89,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, width: number, 
         return {
             after_effect: () => {
                 if(player == pm.player) {
-                    if(resting) {
-                        rest_txt.alpha = 1;
-                    } else {
-                        rest_txt.alpha = 0;
-                    }
+                    rest_txt.alpha = resting ? 1 : 0;
                 }
             }
         };

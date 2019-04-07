@@ -57,6 +57,22 @@ class PlayerMaster {
         soft_rules.checkPush(this.push_chain);
         soft_rules.onFinish(this.finish_chain, this.retireCard.bind(this));
         soft_rules.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
+        soft_rules.onGetEnterCost(this.get_enter_cost_chain);
+        soft_rules.checkEnter(this.enter_chain);
+        soft_rules.onEnter(this.enter_chain, (mana) => {
+            this.addMana(mana);
+        });
+        soft_rules.checkExploit(this.exploit_chain);
+
+        t_master.start_building_chain.append(() => {
+            // 所有角色解除疲勞並離開場所
+            for(let char of this.characters) {
+                this.changeCharTired(char, false);
+                if(char.arena_entered) {
+                    this.exitArena(char);
+                }
+            }
+        });
     }
     
     /** 
@@ -365,6 +381,103 @@ class PlayerMaster {
         throwIfIsBackend("取消推進事件");
         return false;
     }
+
+    // 底下所有函式都是「我的角色」與「任何人的場所」
+    getEnterCost(char: ICharacter, arena: IArena): number {
+        // NOTE: 觸發順序：場所 -> 角色 -> 世界
+        return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arena)
+        .chain(this.get_enter_cost_chain, { char, arena })
+        .trigger(0, char);
+    }
+    async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
+        // TODO: 這裡應該要有一條 pre-enter 動作鏈
+        if(this.t_master.cur_player != char.owner) {
+            throw new BadOperationError("想在別人的回合進入場所？");
+        }
+        let cost = this.getEnterCost(char, arena);
+
+        if(HR.checkEnter(char, arena, this.mana, cost)) {
+            let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
+            .chain(this.enter_chain, { char, arena });
+            if(enter_chain.checkCanTrigger(char)) {
+                await this.addMana(-cost);
+                if(this.t_master.cur_phase == GamePhase.InAction) {
+                    await this.t_master.addActionPoint(-1);
+                }
+                await this.changeCharTired(char, true);
+                
+                return await enter_chain.triggerByKeeper(by_keeper, char, () => {
+                    HR.onEnter(char, arena);
+                });
+            }
+        }
+        throwIfIsBackend("進入程序取消");
+        return false;
+    }
+    getExploitCost(arena: IArena, char: ICharacter | Player) {
+        let get_cost_chain = arena.get_exploit_cost_chain
+        .chain(this.get_exploit_cost_chain, { arena, char });
+        if(TG.isCard(char)) {
+            get_cost_chain.chain(char.get_exploit_cost_chain, arena);
+        }
+        return get_cost_chain.trigger(arena.basic_exploit_cost, char);
+    }
+    async exploit(arena: IArena, char: ICharacter | Player, by_keeper=false) {
+        let p = (() => {
+            if(TG.isCard(char)) {
+                return char.owner;
+            } else {
+                return char;
+            }
+        })();
+        if(p != this.t_master.cur_player) {
+            throw new BadOperationError("想在別人的回合使用場所？");
+        }
+        // TODO: 這裡應該要有一條 pre-exploit 動作鏈
+        let cost = this.getExploitCost(arena, char);
+        if(HR.checkExploit(arena, char, this.mana, cost)) {
+            let exploit_chain = arena.exploit_chain
+            .chain(this.exploit_chain, { arena, char });
+            if(TG.isCard(char)) {
+                exploit_chain.chain(char.exploit_chain, arena);
+            }
+            if(exploit_chain.checkCanTrigger(char)) {
+                await this.addMana(-cost);
+                await exploit_chain.triggerByKeeper(by_keeper, char, async () => {
+                    let caller = [];
+                    if(TG.isCard(char)) {
+                        caller.push(char);
+                        this.exitArena(char);
+                    }
+                    let income = await arena.onExploit(char);
+                    if(income) {
+                        this.addMana(income, caller);
+                    }
+                });
+            }
+        }
+    }
+
+    async exitArena(char: ICharacter) {
+        let _arena = char.arena_entered;
+        if(_arena) {
+            let arena = _arena;
+            this.exit_chain.trigger({ char, arena }, () => {
+                char.char_status = CharStat.StandBy;
+                char.arena_entered = null;
+                arena.exit(char);
+            });
+        } else {
+            throw new BadOperationError("不在場所的角色還想離開？");
+        }
+    }
+
+    public readonly get_enter_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter }>();
+    public readonly enter_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
+    public readonly exit_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
+    public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
+    public readonly exploit_chain = new ActionChain<{ arena: IArena, char: ICharacter | Player }>();
+
 }
 
 class GameMaster {
@@ -381,14 +494,6 @@ class GameMaster {
     ) {
         this.p_master1 = new PlayerMaster(Player.Player1, this.selecter, this.t_master);
         this.p_master2 = new PlayerMaster(Player.Player2, this.selecter, this.t_master);
-
-        let soft_rules = new SR(() => this.t_master.cur_phase);
-        soft_rules.onGetEnterCost(this.get_enter_cost_chain);
-        soft_rules.checkEnter(this.enter_chain);
-        soft_rules.onEnter(this.enter_chain, (p, mana) => {
-            this.getMyMaster(p).addMana(mana);
-        });
-        soft_rules.checkExploit(this.exploit_chain);
         selecter.setCardTable(this.card_table);
     }
 
@@ -456,99 +561,6 @@ class GameMaster {
             return this.p_master2;
         }
     }
-
-    getEnterCost(char: ICharacter, arena: IArena): number {
-        // NOTE: 觸發順序：場所 -> 角色 -> 世界
-        return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arena)
-        .chain(this.get_enter_cost_chain, { char, arena })
-        .trigger(0, char);
-    }
-    async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
-        // TODO: 這裡應該要有一條 pre-enter 動作鏈
-        if(this.t_master.cur_player != char.owner) {
-            throw new BadOperationError("想在別人的回合進入場所？");
-        }
-        let p_master = this.getMyMaster(char);
-        let cost = this.getEnterCost(char, arena);
-
-        if(HR.checkEnter(char, arena, p_master.mana, cost)) {
-            let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
-            .chain(this.enter_chain, { char, arena });
-            if(enter_chain.checkCanTrigger(char)) {
-                await p_master.addMana(-cost);
-                if(this.t_master.cur_phase == GamePhase.InAction) {
-                    await this.t_master.addActionPoint(-1);
-                }
-                await p_master.changeCharTired(char, true);
-                
-                return await enter_chain.triggerByKeeper(by_keeper, char, () => {
-                    HR.onEnter(char, arena);
-                });
-            }
-        }
-        throwIfIsBackend("進入程序取消");
-        return false;
-    }
-    getExploitCost(arena: IArena, char: ICharacter | Player) {
-        let get_cost_chain = arena.get_exploit_cost_chain
-        .chain(this.get_exploit_cost_chain, { arena, char });
-        if(TG.isCard(char)) {
-            get_cost_chain.chain(char.get_exploit_cost_chain, arena);
-        }
-        return get_cost_chain.trigger(arena.basic_exploit_cost, char);
-    }
-    /** 這應該是難得不用跟前端還有選擇器糾纏不清的函式了= = */
-    async exploit(arena: IArena, char: ICharacter | Player, by_keeper=false) {
-        let p = (() => {
-            if(TG.isCard(char)) {
-                return char.owner;
-            } else {
-                return char;
-            }
-        })();
-        if(p != this.t_master.cur_player) {
-            throw new BadOperationError("想在別人的回合使用場所？");
-        }
-        // TODO: 這裡應該要有一條 pre-exploit 動作鏈
-        let p_master = this.getMyMaster(char);
-        let cost = this.getExploitCost(arena, char);
-        if(HR.checkExploit(arena, char, p_master.mana, cost)) {
-            let exploit_chain = arena.exploit_chain
-            .chain(this.exploit_chain, { arena, char });
-            if(TG.isCard(char)) {
-                exploit_chain.chain(char.exploit_chain, arena);
-            }
-            if(exploit_chain.checkCanTrigger(char)) {
-                await p_master.addMana(-cost);
-                await exploit_chain.triggerByKeeper(by_keeper, char, async () => {
-                    let caller = [];
-                    if(TG.isCard(char)) {
-                        caller.push(char);
-                        this.exitArena(char);
-                    }
-                    let income = await arena.onExploit(char);
-                    if(income) {
-                        p_master.addMana(income, caller);
-                    }
-                });
-            }
-        }
-    }
-
-    async exitArena(char: ICharacter) {
-        let _arena = char.arena_entered;
-        if(_arena) {
-            let arena = _arena;
-            this.exit_chain.trigger({ char, arena }, () => {
-                char.char_status = CharStat.StandBy;
-                char.arena_entered = null;
-                arena.exit(char);
-            });
-        } else {
-            throw new BadOperationError("不在場所的角色還想離開？");
-        }
-    }
-
     repulse(loser: ICharacter, winner: ICharacter | null) {
         // TODO:
     }
@@ -566,12 +578,6 @@ class GameMaster {
         }
         return list;
     }
-
-    public readonly get_enter_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter }>();
-    public readonly enter_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
-    public readonly exit_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
-    public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
-    public readonly exploit_chain = new ActionChain<{ arena: IArena, char: ICharacter | Player }>();
 
     public readonly battle_start_chain = new ActionChain<IArena>();
     public readonly get_battle_cost_chain = new GetterChain<number, IArena>();

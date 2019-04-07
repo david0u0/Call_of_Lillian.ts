@@ -91,11 +91,11 @@ export class SoftRule {
     }
     /** 進入對手的場所，對手可以拿錢 */
     public onEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>,
-        addMana: (player: Player, mana: number) => void
+        addMana: (mana: number) => void
     ) {
         enter_chain.append(({ char, arena }) => {
             if(char.owner != arena.owner) {
-                addMana(arena.owner, Constant.ENTER_ENEMY_COST);
+                addMana(Constant.ENTER_ENEMY_COST);
             }
         });
     }

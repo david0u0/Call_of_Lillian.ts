@@ -6,7 +6,7 @@ import { BadOperationError } from "../../game_core/errors";
 import { TypeGaurd, ICharacter, IEvent, IArena, ICard } from "../../game_core/interface";
 import { GameMaster } from "../../game_core/game_master";
 import { Player } from "../../game_core/enums";
-import { drawStrength } from "./draw_card";
+import { drawStrength, drawUpgradeCount } from "./draw_card";
 import FrontendSelecter from "./frontend_selecter";
 
 const H = 70, W = 50, MAX_CHAR = 9;
@@ -155,6 +155,13 @@ export class CharArea {
                 this.ticker.add(fade_out);
             }
         });
+        // 角色回到場邊
+        this.gm.getMyMaster(this.player).exit_chain.append(arg => {
+            if(arg.char.isEqual(char)) {
+                view.visible = true;
+                tired_mask.visible = true;
+            }
+        });
         // 角色退場
         char.card_leave_chain.append(() => {
             return {
@@ -174,7 +181,8 @@ export class CharArea {
                 let c_selected = await this.selecter.selectSingleCard(char, guard, card => true);
                 if(TypeGaurd.isCard(c_selected)) {
                     if(TypeGaurd.isArena(c_selected)) {
-                        let result = await this.gm.enterArena(c_selected, char, true);
+                        let result = await this.gm.getMyMaster(this.player)
+                        .enterArena(c_selected, char, true);
                         if(result) {
                             if(destroy_big) {
                                 destroy_big();
@@ -196,11 +204,15 @@ export class CharArea {
                 }
             }
         });
-
         view.addChild(img);
+
         let s_area = drawStrength(this.gm, char, view.width * 0.6, true);
         s_area.view.position.set(img.width * 0.2, img.height - s_area.view.height / 2);
         view.addChild(s_area.view);
+
+        let upgrade_area = drawUpgradeCount(this.gm.getMyMaster(char), char, img.height/3);
+        upgrade_area.position.set(img.width, img.height/3);
+        view.addChild(upgrade_area);
 
         // 角色行動或能力
         if(char.abilities.length != 0) {

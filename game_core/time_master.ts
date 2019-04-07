@@ -23,6 +23,8 @@ export class TimeMaster {
 
     public async startBulding() {
         await this.start_building_chain.trigger(null, async () => {
+            await this.setRest(Player.Player1, false);
+            await this.setRest(Player.Player2, false);
             this._cur_phase = GamePhase.Building;
             await this.startTurn(this.first_player);
         });

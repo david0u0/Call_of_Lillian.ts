@@ -1,7 +1,7 @@
 import { IArena, ICharacter, TypeGaurd } from "../../game_core/interface";
 import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_screen_size";
-import { drawCardFace, getCardSize, drawCard, drawStrength } from "./draw_card";
+import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount } from "./draw_card";
 
 import { Player, GamePhase } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/game_master";
@@ -28,7 +28,12 @@ export class ArenaArea {
         this.card_h = res.height;
         this.card_gap = 7 * ew - res.width;
 
-        gm.enter_chain.append(({ arena, char }) => {
+        gm.getMyMaster(this.player).enter_chain.append(({ arena, char }) => {
+            if(arena.owner == player) {
+                return { after_effect: () => this.enterChar(arena, char) };
+            }
+        });
+        gm.getEnemyMaster(this.player).enter_chain.append(({ arena, char }) => {
             if(arena.owner == player) {
                 return { after_effect: () => this.enterChar(arena, char) };
             }
@@ -100,6 +105,10 @@ export class ArenaArea {
         s_area.view.position.set(view.width * 0.1, view.height - s_area.view.height / 2);
         view.addChild(s_area.view);
 
+        let upgrade_area = drawUpgradeCount(this.gm.getMyMaster(char), char, view.height/3);
+        upgrade_area.position.set(view.width, view.height/3);
+        view.addChild(upgrade_area);
+
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;
         if(arena.find(char) == 0) {
@@ -122,14 +131,19 @@ export class ArenaArea {
                 destroy_big();
             }
         });
-        view.on("click", () => {
+        view.on("click", async () => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
-                this.gm.exploit(arena, char, true);
+                await this.gm.getMyMaster(char).exploit(arena, char, true);
             }
         });
-        this.gm.exit_chain.append(arg => {
+        this.gm.getMyMaster(this.player).exit_chain.append(arg => {
+            if(char.isEqual(arg.char)) {
+                this.removeChar(view, destroy_big);
+            }
+        });
+        this.gm.getEnemyMaster(this.player).exit_chain.append(arg => {
             if(char.isEqual(arg.char)) {
                 this.removeChar(view, destroy_big);
             }

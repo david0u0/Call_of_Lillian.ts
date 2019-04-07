@@ -40,7 +40,9 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     card_ui.pivot.set(pivot_x, pivot_y);
 
     return () => {
-        card_ui.destroy();
+        if(card_ui) {
+            card_ui.destroy();
+        }
         card_ui = null;
     };
 }

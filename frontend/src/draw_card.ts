@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster, PlayerMaster } from "../../game_core/game_master";
 import { Player } from "../../game_core/enums";
 
 const H = 1000, W = 722;
@@ -60,6 +60,31 @@ export function drawCardFace(card: ICard|string, width: number, height: number, 
     return img;
 }
 
+export function drawUpgradeCount(pm: PlayerMaster , card: ICharacter, size: number) {
+    let view = new PIXI.Container();
+    let img = new PIXI.Sprite(PIXI.loader.resources["upgrade_pop"].texture);
+    img.height = img.width = size;
+    img.anchor.set(0.5, 0.5);
+    let txt = new PIXI.Text("", new PIXI.TextStyle({
+        fontSize: size*0.6
+    }));
+    txt.anchor.set(0.5, 0.5);
+    let updateTxt = () => {
+        if(card.upgrade_list.length > 0) {
+            txt.text = card.upgrade_list.length.toString();
+            view.visible = true;
+        } else {
+            view.visible = false;
+        }
+    };
+    pm.card_play_chain.append(() => {
+        return { after_effect: updateTxt };
+    });
+    updateTxt();
+    view.addChild(img);
+    view.addChild(txt);
+    return view;
+}
 export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_width: number, need_upate=false) {
     let pm = gm.getMyMaster(card);
     let s_height = s_width * 0.4;
