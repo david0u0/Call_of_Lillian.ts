@@ -1,4 +1,10 @@
-const ENV = "backend";
+const ENV = (() => {
+    if(typeof window == "undefined") {
+        return "backend";
+    } else {
+        return "frontend";
+    }
+})();
 
 /** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
 export class BadOperationError {
@@ -8,6 +14,9 @@ export class BadOperationError {
             message = `${obj_with_name.name}: ${message}`;
         }
         this.message = message;
+        if(ENV == "frontend") {
+            alert(this.message);
+        }
         Error.apply(this, [message]);
     }
 }
@@ -21,12 +30,13 @@ export function throwDevError(msg: string, obj_with_name?: any) {
 
 /** 如果是後端就噴錯誤，如果是前端就只是擋下UI */
 export function throwIfIsBackend(msg: string, obj_with_name?: any) {
-    if(typeof window == "undefined") { throw new BadOperationError(msg, obj_with_name);
+    if(ENV == "backend") {
+        throw new BadOperationError(msg, obj_with_name);
     } else {
         if(obj_with_name && obj_with_name.name) {
             msg = `${obj_with_name.name}: ${msg}`;
         }
-        console.log(msg);
+        alert(msg);
     }
 }
 

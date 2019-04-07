@@ -22,7 +22,7 @@ export const Constant = {
 export class SoftRule {
     constructor(private getPhase: () => GamePhase) { }
 
-    public checkPlay(card_play_chain: ActionChain<IKnownCard>) {
+    public checkPlay(card_play_chain: ActionChain<IKnownCard>, getCharQuota: () => number) {
         card_play_chain.appendCheck((can_play, card) => {
             let phase = this.getPhase();
             // 針對遊戲階段的檢查
@@ -48,6 +48,13 @@ export class SoftRule {
                 // 打出升級卡的限制
                 if(card.character_equipped && card.character_equipped.char_status != CharStat.StandBy) {
                     // 指定的角色不在待命區
+                    throwIfIsBackend("指定的角色不在待命區", card);
+                    return { var_arg: false };
+                }
+            } else if(TG.isCharacter(card)) {
+                if(getCharQuota() == 0) {
+                    // 一回合打出的角色超過上限
+                    throwIfIsBackend("一回合打出的角色超過上限", card);
                     return { var_arg: false };
                 }
             }
@@ -216,15 +223,15 @@ export class HardRule {
     }
     /** 這裡的 char 可以是一個玩家 */
     public static checkExploit(arena: IArena, char: ICharacter | Player, mana: number, cost: number): boolean {
-        if(TG.isCard(char)) {
-            if(char.card_status != CardStat.Onboard) {
-                throw new BadOperationError("欲開發場所的角色不在場上");
-            }
-        } else if(arena.card_status != CardStat.Onboard) {
+        if(arena.card_status != CardStat.Onboard) {
             throw new BadOperationError("欲開發的場所不在場上");
         } else if(cost > mana) {
             throwIfIsBackend("魔不夠就想開發資源？");
             return false;
+        } else if(TG.isCard(char)) {
+            if(char.card_status != CardStat.Onboard) {
+                throw new BadOperationError("欲開發場所的角色不在場上");
+            }
         }
         return true;
     }

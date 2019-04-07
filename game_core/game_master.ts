@@ -13,13 +13,15 @@ class PlayerMaster {
 
     private _mana = 0;
     private _emo = 0;
-    // private _gravyard = new Array<IKnownCard>();
+    private _char_quota = -1;
+
     private _characters = new Array<ICharacter>();
     private _arenas = new Array<IArena>(C.MAX_ARENA);
     private _events_ongoing = new Array<IEvent>();
     private _events_finished = new Array<IEvent>();
     public get mana() { return this._mana; };
     public get emo() { return this._emo; };
+    public get char_quota() { return this._char_quota; };
     public get deck() { 
         let deck = new Array<ICard>();
         for(let seq in this.card_table) {
@@ -50,7 +52,7 @@ class PlayerMaster {
         private getMaster: (card: ICard | Player)=> PlayerMaster
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
-        soft_rules.checkPlay(this.card_play_chain);
+        soft_rules.checkPlay(this.card_play_chain, () => this.char_quota);
         soft_rules.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
         soft_rules.onFail(this.fail_chain, () => this.mana,
             this.addMana.bind(this), this.addEmo.bind(this));
@@ -75,6 +77,21 @@ class PlayerMaster {
             // 所有事件倒數減1
             for(let event of this.events_ongoing) {
                 await this.countdownEvent(event);
+            }
+            // 打角色的額度恢復
+            this._char_quota = 1;
+        });
+
+        this.card_play_chain.append(card => {
+            if(TG.isCharacter(card)) {
+                this._char_quota--;
+            }
+        });
+        this.ability_chain.appendCheck(() => {
+            if(this.t_master.cur_phase != GamePhase.InAction) {
+                // TODO: 記得處理瞬間能力
+                throwIfIsBackend("只能在主階段行動中使用能力");
+                return { var_arg: false };
             }
         });
     }
@@ -218,9 +235,8 @@ class PlayerMaster {
         return await card.card_play_chain.chain(this.card_play_chain, card)
         .triggerByKeeper(by_keeper, null, async () => {
             card.card_status = CardStat.Onboard;
-            this.dangerouslyPlay(card);
             await Promise.resolve(card.onPlay());
-            await Promise.resolve(card.setupAliveeEffect());
+            await this.dangerouslyGenToBoard(card);
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -228,7 +244,8 @@ class PlayerMaster {
         });
     }
     /** 會跳過大多數的檢查、代價與行動鏈 */
-    public dangerouslyPlay(card: IKnownCard) {
+    public async dangerouslyGenToBoard(card: IKnownCard) {
+        await Promise.resolve(card.setupAliveeEffect());
         if(TG.isUpgrade(card)) {
             // 把這件升級加入角色的裝備欄
             if(card.character_equipped) {
@@ -236,7 +253,7 @@ class PlayerMaster {
             }
         } else if(TG.isCharacter(card)) {
             // 打出角色後把她加入角色區
-            this.addCharacter(card);
+            await this.addCharacter(card);
         } else if(TG.isArena(card)) {
             // 打出場所的規則（把之前的建築拆了）
             let old = this.arenas[card.position];
@@ -256,7 +273,7 @@ class PlayerMaster {
             throw new BadOperationError("想在別人的回合使用能力？");
         }
         let ability = card.abilities[a_index];
-        if(ability) {
+        if(ability && this.ability_chain.checkCanTrigger({ card, a_index })) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain
@@ -280,10 +297,11 @@ class PlayerMaster {
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
-        await card.card_leave_chain.trigger(null, () => {
-            // TODO: 如果角色在場所中，應該想辦法使其離開
-            HR.onLeave(card, this.retireCard.bind(this));
-        });
+        if(TG.isCharacter(card) && card.arena_entered) {
+            await this.exitArena(card);
+        }
+        HR.onLeave(card, this.retireCard.bind(this));
+        await card.card_leave_chain.trigger(null);
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
@@ -305,20 +323,20 @@ class PlayerMaster {
     }
 
     public readonly add_char_chain = new ActionChain<ICharacter>();
-    private addCharacter(char: ICharacter) {
-        this.add_char_chain.trigger(char, () => {
+    private async addCharacter(char: ICharacter) {
+        await this.add_char_chain.trigger(char, () => {
             this._characters.push(char);
         });
     }
     public readonly add_event_chain = new ActionChain<IEvent>();
-    private addEvent(event: IEvent) {
-        this.add_event_chain.trigger(event, () => {
+    private async addEvent(event: IEvent) {
+        await this.add_event_chain.trigger(event, () => {
             this._events_ongoing.push(event);
         });
     }
     public readonly add_arena_chain = new ActionChain<IArena>();
-    private addArena(card: IArena, position: number) {
-        this.add_arena_chain.trigger(card, () => {
+    private async addArena(card: IArena, position: number) {
+        await this.add_arena_chain.trigger(card, () => {
             this._arenas[position] = card;
         });
     }
@@ -459,9 +477,9 @@ class PlayerMaster {
                         caller.push(char);
                         this.exitArena(char);
                     }
-                    let income = await arena.onExploit(char);
+                    let income = await Promise.resolve(arena.onExploit(char));
                     if(income) {
-                        this.addMana(income, caller);
+                        await this.addMana(income, caller);
                     }
                 });
             }
@@ -529,24 +547,24 @@ class GameMaster {
         return c;
     }
     // 應該就一開始會用到而已 吧？
-    genArenaToBoard(owner: Player, pos: number, name: string): IArena {
+    async genArenaToBoard(owner: Player, pos: number, name: string): Promise<IArena> {
         let arena = this.genCard(owner, name);
         if(TG.isArena(arena)) {
             arena.card_status = CardStat.Onboard;
-            this.getMyMaster(owner).addCard(arena);
+            await this.getMyMaster(owner).addCard(arena);
             arena.position = pos;
-            this.getMyMaster(owner).dangerouslyPlay(arena);
+            await this.getMyMaster(owner).dangerouslyGenToBoard(arena);
             return arena;
         } else {
             throw new BadOperationError("嘗試將非場所卡加入建築區");
         }
     }
-    genCharToBoard(owner: Player, name: string): ICharacter {
+    async genCharToBoard(owner: Player, name: string): Promise<ICharacter> {
         let char = this.genCard(owner, name);
         if(TG.isCharacter(char)) {
             char.card_status = CardStat.Onboard;
-            this.getMyMaster(owner).addCard(char);
-            this.getMyMaster(owner).dangerouslyPlay(char);
+            await this.getMyMaster(owner).addCard(char);
+            await this.getMyMaster(owner).dangerouslyGenToBoard(char);
             return char;
         } else {
             throw new BadOperationError("嘗試將非角色卡加入角色區");

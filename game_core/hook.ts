@@ -143,10 +143,10 @@ class ActionChain<U> {
         } else {
             if(callback) {
                 await Promise.resolve(callback());
-                if(res.after_effect instanceof Array) {
-                    for(let effect of res.after_effect) {
-                        await Promise.resolve(effect());
-                    }
+            }
+            if(res.after_effect instanceof Array) {
+                for(let effect of res.after_effect) {
+                    await Promise.resolve(effect());
                 }
             }
             return true;

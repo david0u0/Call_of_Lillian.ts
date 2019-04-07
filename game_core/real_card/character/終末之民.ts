@@ -13,7 +13,7 @@ export default class C extends Character implements ICharacter {
     public readonly basic_battle_role = { can_attack: false, can_block: true };
     public readonly basic_strength = 0;
 
-    onPlay() {
+    setupAliveeEffect() {
         let master_role_chain = this.my_master.get_battle_role_chain;
         this.addGetterWhileAlive(true, master_role_chain, (role, char) => {
             if(char.isEqual(this)) {

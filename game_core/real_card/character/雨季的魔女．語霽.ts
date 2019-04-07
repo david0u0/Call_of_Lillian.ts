@@ -10,7 +10,7 @@ export default class C extends Character {
     basic_strength = 2;
     basic_mana_cost = 4;
 
-    onPlay() {
+    setupAliveeEffect() {
         let chains = [this.my_master.enter_chain, this.enemy_master.enter_chain];
         this.addActionWhileAlive(true, chains, ({ char, arena }) => {
             if(!char.isEqual(this) && arena.isEqual(this.arena_entered)) {

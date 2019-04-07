@@ -4,14 +4,15 @@ import { BadOperationError } from "./errors";
 import { Constant } from "./general_rules";
 
 const basic_deck = [
-    "M市立綜合醫院", "M市立綜合醫院", "M市立綜合醫院",
-    "u_test0", "u_test0", "u_test0",
+    "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",
+    "u_test0", "u_test0",
     "雨季的魔女．語霽", "雨季的魔女．語霽", "雨季的魔女．語霽",
-    "數據之海的水手", "數據之海的水手", "數據之海的水手",
-    //"終末之民", "終末之民", "終末之民",
+    "迷糊工程師．八喵", "迷糊工程師．八喵", "迷糊工程師．八喵",
     "緊急醫療", "緊急醫療", "緊急醫療",
     "火力鎮壓", "火力鎮壓", "火力鎮壓",
     "大衛化", "大衛化", "大衛化",
+    "彩虹橋下的酒館", "彩虹橋下的酒館",
+    "義體維護廠", "義體維護廠", "戰地醫院", "戰地醫院"
 ];
 
 // TODO: 應該要把 Keeper 傳進來?
@@ -41,7 +42,6 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         gm.genArenaToBoard(p, 3, Constant.DUMMY_NAME);
         gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
 
-        gm.genCharToBoard(p, "見習魔女");
         gm.genCharToBoard(p, "見習魔女");
         gm.genCharToBoard(p, "見習魔女");
 

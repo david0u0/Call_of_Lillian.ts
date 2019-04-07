@@ -243,7 +243,7 @@ abstract class Arena extends KnownCard implements IArena {
         }
         return -1;
     }
-    abstract onExploit(char: ICharacter|Player): number|void;
+    abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
 
     public async initialize() {
         let old_arena = await this.g_master.selecter.selectSingleCard(this, TypeGaurd.isArena, arena => {

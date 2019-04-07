@@ -88,7 +88,7 @@ export class CharArea {
     }
     removeChar(card: ICharacter, destroy_big: () => void) {
         for(let i = 0; i < this.list.length; i++) {
-            if(this.list[i].isEqual(card)) {
+            if(card.isEqual(this.list[i])) {
                 this.list[i] = null;
                 this.chars_view.children[i].destroy();
                 this.tired_mask_view.children[i].visible = false;
@@ -160,9 +160,10 @@ export class CharArea {
             if(arg.char.isEqual(char)) {
                 view.visible = true;
                 tired_mask.visible = true;
+                this.selecter.registerCardObj(char, view);
             }
         });
-        // 角色退場
+        // 角色離開場面（不論退場還是放逐）
         char.card_leave_chain.append(() => {
             return {
                 after_effect: () => {

@@ -86,6 +86,7 @@ export class ArenaArea {
     }
     private setupArenaUI(obj: PIXI.DisplayObject, card: IArena) {
         obj.interactive = true;
+        this.selecter.registerCardObj(card, obj);
         obj.on("click", () => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(card);
@@ -93,7 +94,6 @@ export class ArenaArea {
                 // NOTE: 沒事應該不會去點場地卡 吧？
             }
         });
-
     }
     private enterChar(arena: IArena, char: ICharacter) {
         let index = arena.position;
@@ -148,6 +148,7 @@ export class ArenaArea {
                 this.removeChar(view, destroy_big);
             }
         });
+        this.selecter.registerCardObj(char, view);
 
         this.view.addChild(view);
     }

@@ -211,6 +211,7 @@ interface ISelecter {
         check: (card: T) => boolean): Promise<T | null>;
     selectSingleCardInteractive<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
+    selectText(caller: IKnownCard, text: string[]): Promise<number|null>;
     setCardTable(table: { [index: number]: ICard }): void;
 }
 
