@@ -4,7 +4,7 @@ import { CardStat, CharStat, BattleRole, Player, GamePhase } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
 export const Constant = {
-    INCITE_EMO: 9,
+    INCITE_EMO: 7,
     INCITE_COST: 2,
     REST_MANA: 1,
     ENTER_ENEMY_COST: 1,
@@ -166,8 +166,12 @@ export class SoftRule {
         get_mana_cost_chain.append((cost, card) => {
             // 改建的費用可以下降
             if(TG.isArena(card)) {
-                let new_cost = Math.max(0, cost - getArenas()[card.position].basic_mana_cost);
-                return { var_arg: new_cost };
+                for(let a of getArenas()) {
+                    if(a.position == card.position) {
+                        let new_cost = Math.max(0, cost - a.basic_mana_cost);
+                        return { var_arg: new_cost };
+                    }
+                }
             }
         });
     }

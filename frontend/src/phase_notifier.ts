@@ -22,6 +22,17 @@ export class PhaseNotifier {
         txt.position.set(width/2, height/2);
         this.view.addChild(txt);
 
+        let phase_txt = new PIXI.Text("", new PIXI.TextStyle({
+            fontSize: width/50,
+            fontWeight: "bold",
+            fontFamily: "微軟正黑體",
+            fill: 0xffca7a,
+            strokeThickness: 2
+        }));
+        phase_txt.anchor.set(1, 1);
+        phase_txt.position.set(width, height);
+        this.view.addChild(phase_txt);
+
         let anime = (txt_content) => {
             if(this.anime_playing) {
                 let pending = () => anime(txt_content);
@@ -51,14 +62,17 @@ export class PhaseNotifier {
         };
 
         gm.t_master.start_building_chain.append(() => {
+            phase_txt.text = "建築階段";
             anime(`第${++this.cur_era}世代 - 建築階段`);
             anime("本階段只能打出場所卡");
         });
         gm.t_master.start_main_chain.append(() => {
+            phase_txt.text = "主階段";
             anime(`第${this.cur_era}世代 - 主階段`);
             anime("請點選角色進入場所，或打出卡牌");
         });
         gm.t_master.start_exploit_chain.append(() => {
+            phase_txt.text = "收獲階段";
             anime(`第${this.cur_era}世代 - 收獲階段`);
             anime("如欲使用場所，請點選其上的角色");
         });
