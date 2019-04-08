@@ -15,7 +15,6 @@ import { CharArea } from "./char_area";
 import { ArenaArea } from "./arena_area";
 import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
-import { my_loader } from "./card_loader";
 import { EventArea } from "./event_area";
 import { PhaseNotifier } from "./phase_notifier";
 

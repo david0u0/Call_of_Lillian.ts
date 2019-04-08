@@ -9,3 +9,5 @@
 *.gif
 
 **/generate_card.ts
+
+*.swp

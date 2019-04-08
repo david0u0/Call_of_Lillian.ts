@@ -230,9 +230,7 @@ class PlayerMaster {
         // 支付代價
         await this.addMana(-this.getManaCost(card));
         if(!card.instance) {
-            if(this.t_master.cur_phase == GamePhase.Building
-                || this.t_master.cur_phase == GamePhase.InAction
-            ) {
+            if(this.t_master.cur_phase == GamePhase.InAction) {
                 await this.t_master.addActionPoint(-1);
             }
         }

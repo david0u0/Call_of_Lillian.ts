@@ -3,8 +3,7 @@ import { Character, Upgrade } from "../../cards";
 import { TypeGaurd } from "../../interface";
 
 let name = "零卍佛滅卍實驗體少女";
-let description = `
-**系統最深處的少女**：*零卍佛滅卍實驗體少女*入場時，對手的魔力值減10。
+let description = `**系統最深處的少女**：*零卍佛滅卍實驗體少女*入場時，對手的魔力值減10。
 裝備升級卡於本角色無需耗費魔力，每當雙方有角色退場，對手承受3點情緒傷害。
 這個角色在場時，所有我方角色的戰力加五。
 （角色行動）使對手的一個角色退場。

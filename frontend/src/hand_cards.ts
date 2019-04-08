@@ -107,15 +107,10 @@ class HandUI {
         }
     }
     add(card: ICard) {
-        // 檢查這張卡圖載進來了沒
         if(TG.isKnown(card)) {
-            if(my_loader.resources[card.name]) {
+            my_loader.add(card.name).load(() => {
                 this.addLoaded(card);
-            } else {
-                my_loader.add(card.name).load(() => {
-                    this.addLoaded(card);
-                });
-            }
+            });
         } else {
             this.addLoaded(card);
         }
@@ -176,7 +171,7 @@ export function constructHandUI(selecter: FrontendSelecter, player: Player, gm: 
     getOffset: (c: PIXI.Container) => { x: number, y: number }
 ): Promise<HandUI> {
     for(let card of hands) {
-        if(TG.isKnown(card) && !my_loader.resources[card.name]) {
+        if(TG.isKnown(card)) {
             my_loader.add(card.name);
         }
     }

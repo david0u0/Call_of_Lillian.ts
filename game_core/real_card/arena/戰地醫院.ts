@@ -3,7 +3,7 @@ import { Character, Upgrade, Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "戰地醫院";
-let description = "使用：承受1情緒，賺取1+X魔力，X為使用角色的戰力。";
+let description = "使用：承受1情緒，賺取2+X魔力，X為使用角色的戰力。";
 
 export default class A extends Arena implements IArena {
     name = name;
@@ -20,6 +20,6 @@ export default class A extends Arena implements IArena {
             str = this.g_master.getMyMaster(char).getStrength(char);
         }
         this.g_master.getMyMaster(char).addEmo(1, caller);
-        return 1 + str;
+        return 2 + str;
     }
 }

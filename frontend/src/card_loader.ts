@@ -6,16 +6,21 @@ import { IKnownCard } from "../../game_core/interface";
  */
 class CardLoader {
     public resources: { [index: string]: PIXI.loaders.Resource } = {};
-
+    
     private loader = new PIXI.loaders.Loader();
     private added_table: { [index: string]: boolean } = {};
     private added_table_backup: { [index: string]: boolean } = {};
     private pending = new Array<() => void>();
     private loading = false;
 
+    constructor() {
+        this.add("img_not_found").load(() => {});
+        this.loader.onComplete.add(() => this.onComplete());
+    }
+
     add(arg: string | IKnownCard): CardLoader {
         if(typeof (arg) == "string") {
-            if(!this.resources[arg] && !this.added_table[arg]) {
+            if(!this.resources[arg] && !this.added_table[arg] && !this.added_table[arg]) {
                 if(this.loading) {
                     this.added_table_backup[arg] = true;
                 } else {
@@ -42,23 +47,28 @@ class CardLoader {
         for(let name of Object.keys(this.added_table)) {
             this.loader.add(name, `/card_image/${name}.jpg`);
         }
-        this.loader.load(() => {
-            for(let name of Object.keys(this.added_table)) {
-                this.resources[name] = this.loader.resources[name];
+        this.loader.load();
+    }
+    private onComplete() {
+        for(let name of Object.keys(this.added_table)) {
+            this.resources[name] = this.loader.resources[name];
+            if(!this.resources[name] || this.resources[name].error) {
+                this.resources[name] = this.resources["img_not_found"];
             }
-            let done = (Object.keys(this.added_table_backup).length == 0);
-            this.added_table = this.added_table_backup;
-            this.added_table_backup = {};
-            if(done) {
-                for(let pending_func of this.pending) {
-                    pending_func();
-                }
-                this.pending = [];
-                this.loading = false;
-            } else {
-                this.loadAll();
+        }
+        let done = (Object.keys(this.added_table_backup).length == 0);
+        this.added_table = this.added_table_backup;
+        this.added_table_backup = {};
+        if(done) {
+            let t = this.pending;
+            this.pending = [];
+            for(let pending_func of t) {
+                pending_func();
             }
-        });
+            this.loading = false;
+        } else {
+            this.loadAll();
+        }
     }
 }
 

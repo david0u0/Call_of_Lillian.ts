@@ -3,8 +3,7 @@ import { CardType, CardStat, CharStat } from "../../enums";
 import { TypeGaurd } from "../../interface";
 
 let name = "數據之海的水手";
-let description = `
-**超頻下載**：在衝突階段之前，你可以在**數據之海的水手**身上安裝任意多件裝備（支付所有代價）。`;
+let description = "**超頻下載**：在衝突階段之前，你可以在**數據之海的水手**身上安裝任意多件裝備（支付所有代價）。";
 
 export default class C4 extends Character {
     name = name;

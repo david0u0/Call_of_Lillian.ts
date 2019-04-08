@@ -98,7 +98,7 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
         s_area.lineStyle(2, 0xf86390);
         s_area.beginFill(0xfcb6cb, 2);
     }
-    s_area.drawRoundedRect(0, 0, s_width, s_height, s_height);
+    s_area.drawRoundedRect(0, 0, s_width, s_height, s_height/2);
     //s_area.drawEllipse(s_width/2, s_height/2, s_width/2, s_height/2);
     s_area.endFill();
     view.addChild(s_area);

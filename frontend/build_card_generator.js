@@ -18,8 +18,9 @@ for(let type_name of card_type_dirs) {
     let card_names = fs.readdirSync(`${PREFIX}/${type_name}`);
     for(let name of card_names) {
         try {
-            let card_path = path.resolve(`${PREFIX}/${type_name}`, name);
-            card_path = card_path.replace(/\\/g, "/");
+            let card_path = `../${PREFIX}/${type_name}/${name}`;
+            //path.resolve(`${PREFIX}/${type_name}`, name);
+            // card_path = card_path.replace(/\\/g, "/");
             let a = name.split(".");
             name = a.slice(0, a.length-1).join("");
             txt += `card_class_table["${name}"] = require("${card_path}").default;\n`;
