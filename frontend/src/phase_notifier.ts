@@ -35,7 +35,7 @@ export class PhaseNotifier {
                     this.anime_playing = true;
                     if(Date.now() - time > 600) {
                         if(txt.alpha > 0) {
-                            txt.alpha -= 0.04;
+                            txt.alpha -= 0.02;
                         } else {
                             ticker.remove(fade_out);
                             this.anime_playing = false;
@@ -52,12 +52,15 @@ export class PhaseNotifier {
 
         gm.t_master.start_building_chain.append(() => {
             anime(`第${++this.cur_era}世代 - 建築階段`);
+            anime("本階段只能打出場所卡");
         });
         gm.t_master.start_main_chain.append(() => {
             anime(`第${this.cur_era}世代 - 主階段`);
+            anime("請點選角色進入場所，或打出卡牌");
         });
         gm.t_master.start_exploit_chain.append(() => {
             anime(`第${this.cur_era}世代 - 收獲階段`);
+            anime("如欲使用場所，請點選其上的角色");
         });
         gm.t_master.start_turn_chain.append(({ prev, next }) => {
             if(gm.t_master.cur_phase != GamePhase.Setup) {
