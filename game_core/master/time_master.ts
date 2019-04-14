@@ -121,6 +121,9 @@ export class TimeMaster {
     }
 
     public async addActionPoint(n: number) {
+        if(this.cur_phase != GamePhase.InAction) {
+            return;
+        }
         let new_action_point = Math.max(0, this._action_point + n);
         await this.set_action_point_chain.trigger(new_action_point, async () => {
             this._action_point = new_action_point;

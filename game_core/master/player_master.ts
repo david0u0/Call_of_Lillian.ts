@@ -258,12 +258,12 @@ export class PlayerMaster {
             // 打出場所的規則（把之前的建築拆了）
             for(let a of this.arenas) {
                 if(!a.isEqual(card) && a.position == card.position) {
-                    this.retireCard(a);
+                    await this.retireCard(a);
                 }
             }
-            this.addArena(card, card.position);
+            await this.addArena(card, card.position);
         } else if(TG.isEvent(card)) {
-            this.addEvent(card);
+            await this.addEvent(card);
         }
     }
 

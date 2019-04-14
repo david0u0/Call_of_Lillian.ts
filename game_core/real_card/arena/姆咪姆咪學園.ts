@@ -13,12 +13,12 @@ export default class A extends Arena implements IArena {
     basic_mana_cost = 1;
     basic_exploit_cost = 3;
 
-    onExploit(char: ICharacter|Player) {
+    async onExploit(char: ICharacter|Player) {
         let caller = new Array<IKnownCard>();
         if(TypeGaurd.isCard(char)) {
             caller.push(char);
         }
         let p = TypeGaurd.isCard(char) ? char.owner : char;
-        this.g_master.genCharToBoard(p, "見習魔女");
+        await this.g_master.genCharToBoard(p, "見習魔女");
     }
 }

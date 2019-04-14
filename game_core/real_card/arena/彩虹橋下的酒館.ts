@@ -20,9 +20,9 @@ export default class A extends Arena implements IArena {
             index = _index;
         }
         if(index == 0) {
-            this.my_master.addEmo(-2);
+            await this.g_master.getMyMaster(char).addEmo(-2);
         } else {
-            this.enemy_master.addEmo(1);
+            await this.g_master.getEnemyMaster(char).addEmo(1);
         }
     }
 }

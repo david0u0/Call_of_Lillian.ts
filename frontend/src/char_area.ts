@@ -56,7 +56,7 @@ export class CharArea {
         }
     }
 
-    addChar(char: ICharacter, index?: number) {
+    addChar(char: ICharacter, index?: number): Promise<void> {
         if(typeof index == "number") {
             if(this.list[index]) {
                 throw new BadOperationError("嘗試將角色加入至有人的位置！");
@@ -65,16 +65,19 @@ export class CharArea {
             }
             this.list[index] = char;
             let offset = this.getOffset(index);
-            my_loader.add(char).load(() => {
-                let img = new PIXI.Sprite(my_loader.resources[char.name].texture);
-                let og_w = img.width;
-                let og_h = img.height;
+            return new Promise<void>(resolve => {
+                my_loader.add(char).load(() => {
+                    let img = new PIXI.Sprite(my_loader.resources[char.name].texture);
+                    let og_w = img.width;
+                    let og_h = img.height;
 
-                img.scale.set(this.c_width / og_w, this.c_height / og_h);
-                let container = this.setupCharUI(index, img);
-                container.position.set(offset, 0);
+                    img.scale.set(this.c_width / og_w, this.c_height / og_h);
+                    let container = this.setupCharUI(index, img);
+                    container.position.set(offset, 0);
 
-                this.chars_view.addChildAt(container, index);
+                    this.chars_view.addChildAt(container, index);
+                    resolve();
+                });
             });
         } else {
             let i = 0;
@@ -83,7 +86,7 @@ export class CharArea {
                     break;
                 }
             }
-            this.addChar(char, i);
+            return this.addChar(char, i);
         }
     }
     removeChar(card: ICharacter, view: PIXI.Container, destroy_big: () => void) {
@@ -115,14 +118,14 @@ export class CharArea {
             }
         };
         this.ticker.add(fade_in);
-        
+
         // 大圖
         img.interactive = true;
         img.cursor = "pointer";
         let destroy_big: () => void = null;
         img.on("mouseover", () => {
             destroy_big = this.showBigCard(
-                img.worldTransform.tx +img.width/2,img.worldTransform.ty +img.height/2,
+                img.worldTransform.tx + img.width / 2, img.worldTransform.ty + img.height / 2,
                 char, this.ticker);
         });
         img.on("mouseout", () => {
@@ -132,28 +135,30 @@ export class CharArea {
             }
         });
         // 角色疲勞
+        let fade_in_tired = () => {
+            if(tired_mask.alpha < 0.7) {
+                tired_mask.alpha += 0.1;
+            } else {
+                tired_mask.alpha = 0.7;
+                this.ticker.remove(fade_in_tired);
+            }
+        };
+        let fade_out_tired = () => {
+            if(tired_mask.alpha > 0) {
+                tired_mask.alpha -= 0.1;
+            } else {
+                tired_mask.alpha = 0;
+                this.ticker.remove(fade_out_tired);
+            }
+        };
         char.change_char_tired_chain.append(is_tired => {
             tired_mask.visible = true;
-            if(is_tired && !char.is_tired) {
-                let fade_in = () => {
-                    if(tired_mask.alpha < 0.7) {
-                        tired_mask.alpha += 0.1;
-                    } else {
-                        tired_mask.alpha = 0.7;
-                        this.ticker.remove(fade_in);
-                    }
-                };
-                this.ticker.add(fade_in);
-            } else if(!is_tired && char.is_tired) {
-                let fade_out = () => {
-                    if(tired_mask.alpha > 0) {
-                        tired_mask.alpha -= 0.1;
-                    } else {
-                        tired_mask.alpha = 0;
-                        this.ticker.remove(fade_out);
-                    }
-                };
-                this.ticker.add(fade_out);
+            this.ticker.remove(fade_in_tired);
+            this.ticker.remove(fade_out_tired);
+            if(is_tired) {
+                this.ticker.add(fade_in_tired);
+            } else {
+                this.ticker.add(fade_out_tired);
             }
         });
         // 角色回到場邊
@@ -212,14 +217,14 @@ export class CharArea {
         s_area.view.position.set(img.width * 0.2, img.height - s_area.view.height / 2);
         view.addChild(s_area.view);
 
-        let upgrade_area = drawUpgradeCount(this.gm.getMyMaster(char), char, img.height/3);
-        upgrade_area.position.set(img.width, img.height/3);
+        let upgrade_area = drawUpgradeCount(this.gm.getMyMaster(char), char, img.height / 3);
+        upgrade_area.position.set(img.width, img.height / 3);
         view.addChild(upgrade_area);
 
         // 角色行動或能力
         if(char.abilities.length != 0) {
             let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
-            icon.height = icon.width = img.height/3;
+            icon.height = icon.width = img.height / 3;
             icon.anchor.set(0.5, 0.5);
             icon.interactive = true;
             icon.cursor = "pointer";
