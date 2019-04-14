@@ -1,6 +1,6 @@
-import { Player, GamePhase } from "./enums";
-import { ActionChain } from "./hook";
-import { BadOperationError } from "./errors";
+import { Player, GamePhase } from "../enums";
+import { ActionChain } from "../hook";
+import { BadOperationError } from "../errors";
 
 const BUILDING_ACTION_P = 1;
 const MAIN_FIRST_ACTION_P = 1;
@@ -148,5 +148,12 @@ export class TimeMaster {
                 await this.addActionPoint(MAIN_DEFAULT_ACTION_P);
             }
         });
+    }
+    public setWarPhase(inwar: boolean) {
+        if(inwar) {
+            this._cur_phase = GamePhase.InWar;
+        } else {
+            this._cur_phase = GamePhase.InAction;
+        }
     }
 }

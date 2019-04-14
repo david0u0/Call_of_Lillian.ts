@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { Player, GamePhase } from "../../game_core/enums";
 import { getWinSize } from "./get_screen_size";
 

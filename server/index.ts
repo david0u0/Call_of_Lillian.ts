@@ -4,7 +4,7 @@ import express from "express";
 
 import { KnownCard } from "../game_core/cards";
 import { Player } from "../game_core/enums";
-import { GameMaster } from "../game_core/game_master";
+import { GameMaster } from "../game_core/master/game_master";
 
 let app = express();
 

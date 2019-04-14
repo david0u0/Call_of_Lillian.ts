@@ -2,8 +2,9 @@ import * as PIXI from "pixi.js";
 
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
-import { GameMaster, PlayerMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { Player } from "../../game_core/enums";
+import { PlayerMaster } from "../../game_core/master/player_master";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {

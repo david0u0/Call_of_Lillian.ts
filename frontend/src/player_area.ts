@@ -1,12 +1,12 @@
 import * as PIXI from "pixi.js";
-import { PlayerMaster, GameMaster } from "../../game_core/game_master";
 import { getEltSize } from "./get_screen_size";
 import { Player, CardStat } from "../../game_core/enums";
 import FS from "./frontend_selecter";
 import { TypeGaurd } from "../../game_core/interface";
+import { GameMaster } from "../../game_core/master/game_master";
+import { PlayerMaster } from "../../game_core/master/player_master";
 
 let W = 60, H = 50;
-
 function numericStyle(size: number) {
     return new PIXI.TextStyle({
         fontSize: size,

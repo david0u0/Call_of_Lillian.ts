@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 import { ICard, TypeGaurd } from "../../game_core/interface";
 import { getEltSize, getWinSize } from "./get_screen_size";
 import { drawCard, getCardSize } from "./draw_card";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 
 export type ShowBigCard = (x: number, y: number, card: ICard,
     ticker: PIXI.ticker.Ticker) => (() => void);

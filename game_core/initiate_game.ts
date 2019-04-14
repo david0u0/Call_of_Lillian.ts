@@ -1,7 +1,7 @@
-import { GameMaster } from "./game_master";
 import { Player } from "./enums";
 import { BadOperationError } from "./errors";
 import { Constant } from "./general_rules";
+import { GameMaster } from "./master/game_master";
 
 const basic_deck = [
     "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",

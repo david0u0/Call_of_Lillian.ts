@@ -3,7 +3,7 @@ import { getEltSize } from "./get_screen_size";
 import { drawCard, drawCardFace } from "./draw_card";
 import { my_loader } from "./card_loader";
 import { Player } from "../../game_core/enums";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
 import { IKnownCard, IEvent, TypeGaurd } from "../../game_core/interface";

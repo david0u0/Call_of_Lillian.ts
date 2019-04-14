@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
 

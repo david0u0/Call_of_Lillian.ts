@@ -4,7 +4,7 @@ import { getEltSize } from "./get_screen_size";
 import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount } from "./draw_card";
 
 import { Player, GamePhase } from "../../game_core/enums";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { my_loader } from "./card_loader";
 import FrontendSelecter from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";

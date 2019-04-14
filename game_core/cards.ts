@@ -2,10 +2,11 @@
 
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard, Ability } from "./interface";
-import { GameMaster, PlayerMaster } from "./game_master";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
+import { PlayerMaster } from "./master/player_master";
+import { GameMaster } from "./master/game_master";
 
 abstract class KnownCard implements IKnownCard {
     public abstract readonly card_type: CardType;

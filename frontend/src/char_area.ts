@@ -4,10 +4,10 @@ import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";
 import { TypeGaurd, ICharacter, IEvent, IArena, ICard } from "../../game_core/interface";
-import { GameMaster } from "../../game_core/game_master";
 import { Player } from "../../game_core/enums";
 import { drawStrength, drawUpgradeCount } from "./draw_card";
 import FrontendSelecter from "./frontend_selecter";
+import { GameMaster } from "../../game_core/master/game_master";
 
 const H = 70, W = 50, MAX_CHAR = 9;
 
