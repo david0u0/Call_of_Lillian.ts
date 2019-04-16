@@ -46,6 +46,7 @@ async function setup() {
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
 
     app.stage.addChild(bg);
+    app.stage.addChild(selecter.cancel_view);
     
     let show_big_card: ShowBigCard = (x: number, y: number,
         card: ICard, ticker: PIXI.ticker.Ticker

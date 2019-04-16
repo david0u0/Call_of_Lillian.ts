@@ -76,6 +76,7 @@ export class WarMaster {
         } else if(this.t_master.cur_phase != GamePhase.InAction) {
             throw new BadOperationError("只能在主階段的行動中宣戰");
         } else {
+            this._atk_player = declarer;
             let has_target = false;
             for(let ch of arena.char_list) {
                 if(ch && ch.owner != declarer) {

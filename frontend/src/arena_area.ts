@@ -1,4 +1,4 @@
-import { IArena, ICharacter, TypeGaurd } from "../../game_core/interface";
+import { IArena, ICharacter, TypeGaurd as TG } from "../../game_core/interface";
 import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_screen_size";
 import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount, CharUI } from "./draw_card";
@@ -40,6 +40,12 @@ export class ArenaArea {
         });
         gm.getMyMaster(player).add_arena_chain.append(card => {
             return { after_effect: () => this.addArena(card) };
+        });
+        gm.w_master.declare_war_chain.append(({ declarer }) => {
+            if(declarer == player) {
+                // 確實是由我宣告的戰爭
+                this.selectAttack();
+            }
         });
     }
     addArena(card: IArena | IArena[]) {
@@ -123,8 +129,6 @@ export class ArenaArea {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
                 await this.gm.getMyMaster(char).exploit(arena, char, true);
-            } else if(this.gm.t_master.cur_phase == GamePhase.InWar) {
-                // TODO:
             }
         });
 
@@ -141,5 +145,46 @@ export class ArenaArea {
             }
         });
         this.selecter.registerCardObj(char, view);
+    }
+
+    private attacking = new Array<ICharacter>();
+    private async selectAttack() {
+        this.attacking = [];
+        let target: ICharacter = null;
+        while(true) {
+            let ch = await this.selecter.selectSingleCard(this.attacking, TG.isCharacter, _ch => {
+                if(this.gm.w_master.checkCanAttack(_ch)) {
+                    return true;
+                } else if(this.gm.w_master.checkCanAttack(this.attacking, _ch)) {
+                    return true;
+                }
+            });
+            if(ch) {
+                if(ch.owner == this.player) {
+                    // 是攻擊者
+                    this.attacking.push(ch);
+                } else {
+                    // 是目標
+                    target = ch;
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        if(target) {
+            if(this.attacking.length) {
+                // TODO: 衝突
+            }
+            this.selectAttack();
+        } else {
+            // 結束戰鬥 TODO: 應該跳個訊息問是不是真的要結束
+            let res = confirm("確定要結束戰鬥？");
+            if(res) {
+                this.gm.w_master.endWar();
+            } else {
+                this.selectAttack();
+            }
+        }
     }
 }
