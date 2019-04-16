@@ -12,7 +12,7 @@ export class GameMaster {
     public readonly card_table: { [index: number]: ICard } = {};
 
     public readonly t_master = new TimeMaster(p => this.getMyMaster(p).addMana(C.REST_MANA));
-    public readonly w_master = new WarMaster(this.t_master,
+    public readonly w_master = new WarMaster(this.t_master, this.selecter,
         this.getMyMaster.bind(this), this.getEnemyMaster.bind(this));
 
     private p_master1: PlayerMaster;
@@ -91,9 +91,6 @@ export class GameMaster {
             return this.p_master2;
         }
     }
-    repulse(loser: ICharacter, winner: ICharacter | null) {
-        // TODO:
-    }
     getAll<T extends IKnownCard>(guard: (c: ICard) => c is T, filter?: (c: T) => boolean) {
         let list = new Array<T>();
         for(let seq in this.card_table) {
@@ -108,15 +105,7 @@ export class GameMaster {
         }
         return list;
     }
-
-    public readonly battle_start_chain = new ActionChain<IArena>();
-    public readonly get_battle_cost_chain = new GetterChain<number, IArena>();
-    public readonly battle_end_chain = new ActionChain();
-
-    public readonly before_conflict_chain
-        = new ActionChain<{ def: ICharacter, atk: ICharacter, is_target: boolean }>();
-    public readonly conflict_chain
-        = new ActionChain<{ def: ICharacter, atk: ICharacter, is_target: boolean }>();
-    public readonly repluse_chain
-        = new ActionChain<{ loser: ICharacter, winner: ICharacter | null }>();
+    async playCard(card: IKnownCard, by_keeper=false) {
+        this.getMyMaster(card).playCard(card, by_keeper);
+    }
 }

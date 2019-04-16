@@ -123,7 +123,7 @@ export class PlayerMaster {
     public finish_chain = new ActionChain<{ char: ICharacter|null, event: IEvent }>();
 
     public get_strength_chain
-        = new GetterChain<number, ICharacter>();
+        = new GetterChain<number, { char: ICharacter, enemy?: ICharacter }>();
     public get_inconflict_strength_chain
         = new GetterChain<number, { me: ICharacter, enemy: ICharacter }>();
     public get_mana_cost_chain
@@ -186,13 +186,13 @@ export class PlayerMaster {
         return this.events_finished.reduce((sum, e) => sum + e.score, 0);
     }
 
-    getStrength(char: ICharacter) {
+    getStrength(char: ICharacter, enemy?: ICharacter) {
         let strength = char.basic_strength;
         for(let u of char.upgrade_list) {
             strength += u.basic_strength;
         }
-        return char.get_strength_chain.chain(this.get_strength_chain, char)
-        .trigger(strength, null);
+        return char.get_strength_chain.chain(this.get_strength_chain, { char, enemy })
+        .trigger(strength, enemy);
     }
 
     getBattleRole(char: ICharacter) {
@@ -487,10 +487,11 @@ export class PlayerMaster {
         let _arena = char.arena_entered;
         if(_arena) {
             let arena = _arena;
-            this.exit_chain.trigger({ char, arena }, () => {
+            this.exit_chain.trigger({ char, arena }, async () => {
                 char.char_status = CharStat.StandBy;
                 char.arena_entered = null;
                 arena.exit(char);
+                await this.changeCharTired(char, true);
             });
         } else {
             throw new BadOperationError("不在場所的角色還想離開？");

@@ -1,31 +1,52 @@
-import { IArena, ICharacter, ICard } from "../interface";
+import { IArena, ICharacter, ICard, ISelecter, TypeGaurd as TG } from "../interface";
 import { Player, GamePhase, CharStat } from "../enums";
 import { TimeMaster } from "./time_master";
-import { BadOperationError } from "../errors";
+import { BadOperationError, throwIfIsBackend } from "../errors";
 import { ActionChain, ActionFunc, GetterChain } from "../hook";
 import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
 
+function checkBasic(player: Player, stat: CharStat, char?: ICharacter) {
+    if(char) {
+        if(char.owner != player
+            || char.char_status != stat
+        ) {
+            return false;
+        }
+    }
+    return true;
+}
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
 export class WarMaster {
-    constructor(private t_master: TimeMaster,
-        private getMyMaster: (arg: Player|ICard) => PlayerMaster,
-        private getEnemyMaster: (arg: Player|ICard) => PlayerMaster
+    constructor(private t_master: TimeMaster, private selecter: ISelecter,
+        private getMyMaster: (arg: Player | ICard) => PlayerMaster,
+        private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };
 
     private _atk_player: Player = 0;
     private _def_player: Player = 0;
-    private _war_field: IArena = null;
+    private _war_field: IArena | null = null;
     public get atk_player() { return this._atk_player; }
     public get def_player() { return this._def_player; }
     public get war_field() { return this._war_field; }
 
-    public readonly declare_war_chain = new ActionChain<{ player: Player, arena: IArena }>();
-    public readonly end_war_chain = new ActionChain<{ player: Player, arena: IArena }>();
+    private _atk_win_count = 0;
+    private _def_win_count = 0;
+    public get atk_win_count() { return this._atk_win_count; }
+    public get def_win_count() { return this._def_win_count; }
+
     public readonly get_declare_cost_chain
         = new GetterChain<number, { player: Player, arena: IArena }>();
+    public readonly declare_war_chain = new ActionChain<{ player: Player, arena: IArena }>();
+    public readonly before_conflict_chain
+        = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
+    public readonly after_conflict_chain
+        = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
+    public readonly repluse_chain
+        = new ActionChain<{ loser: ICharacter, winner?: ICharacter }>();
+    public readonly end_war_chain = new ActionChain<{ player: Player, arena: IArena }>();
 
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
         let hook = chain.append(func, -1);
@@ -42,65 +63,191 @@ export class WarMaster {
         }
         let pm = this.getMyMaster(player);
         let cost = this.get_declare_cost_chain.trigger(Constant.WAR_COST, { player, arena });
-        if(pm.mana >= cost) {
+        if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ player, arena })) {
             pm.addMana(-cost);
-            this.declare_war_chain.triggerByKeeper(by_keeper, { player, arena }, () => {
-                this.t_master.setWarPhase(true);
+            let res = await this.declare_war_chain.triggerByKeeper(by_keeper, { player, arena }, () => {
+                this.t_master.setWarPhase(GamePhase.InWar);
                 this._atk_player = player;
-                this._def_player = 1-player;
+                this._def_player = 1 - player;
+                this._war_field = arena;
+                this._atk_win_count = this._def_win_count = 0;
                 this.setupWar();
             });
         }
     }
     private setupWar() {
         let arenas = [];
-        for(let a of this.getMyMaster(this.war_field).arenas) {
-            if(Math.abs(a.position-this.war_field.position) <= 1) {
-                arenas.push(a);
+        if(this.war_field) {
+            for(let a of this.getMyMaster(this.war_field).arenas) {
+                if(Math.abs(a.position - this.war_field.position) <= 1) {
+                    arenas.push(a);
+                }
             }
-        }
-        for(let a of this.getEnemyMaster(this.war_field.owner).arenas) {
-            if(Math.abs(a.position-this.war_field.position) == 0) {
-                arenas.push(a);
+            for(let a of this.getEnemyMaster(this.war_field.owner).arenas) {
+                if(Math.abs(a.position - this.war_field.position) == 0) {
+                    arenas.push(a);
+                }
             }
-        }
-        for(let a of arenas) {
-            for(let c of a.char_list) {
-                if(c && !c.way_worn) {
-                    // 角色不是剛上場所，就讓它不再疲勞
-                    this.getMyMaster(c).changeCharTired(c, false);
-                    c.char_status = CharStat.InBattle;
+            for(let a of arenas) {
+                for(let c of a.char_list) {
+                    if(c && !c.way_worn) {
+                        // 角色不是剛上場所，就讓它不再疲勞
+                        this.getMyMaster(c).changeCharTired(c, false);
+                        c.char_status = CharStat.InWar;
+                    }
                 }
             }
         }
     }
-
-    public checkCanAttack(atk: ICharacter, target: ICharacter) {
-        if(atk.owner != this.atk_player || target.owner != this.def_player || atk.is_tired) {
-            return false;
-        } else {
-            let atk_role = this.getMyMaster(atk).getBattleRole(atk);
-            let tar_role = this.getMyMaster(target).getBattleRole(target);
-            if(!atk_role.can_attack || tar_role.can_not_be_attacked) {
-                return false;
+    public checkCanAttack(atk: ICharacter|ICharacter[], target?: ICharacter) {
+        if(atk instanceof Array) {
+            for(let a of atk) {
+                if(!this.checkCanAttack(a, target)) {
+                    return false;
+                }
             }
+            return true;
+        } else {
+            if(!checkBasic(this.atk_player, CharStat.InWar, atk) || atk.is_tired) {
+                return false;
+            } else if(!checkBasic(this.def_player, CharStat.InWar, target)) {
+                return false;
+            } else {
+                let atk_role = this.getMyMaster(atk).getBattleRole(atk);
+                let can_not_be_attacked: boolean|undefined = false;
+                if(target) {
+                    ({ can_not_be_attacked } = this.getMyMaster(target).getBattleRole(target));
+                }
+                if(!atk_role.can_attack || can_not_be_attacked) {
+                    return false;
+                }
+            }
+            return true;
         }
-        return true;
     }
-    public checkCanBlock(blocker: ICharacter, atk: ICharacter) {
-        if(blocker.owner != this.def_player || blocker.is_tired) {
+    public checkCanBlock(blocker: ICharacter, atk?: ICharacter) {
+        if(!checkBasic(this.def_player, CharStat.InWar, blocker) || blocker.is_tired) {
+            return false;
+        } else if(!checkBasic(this.atk_player, CharStat.Attacking, atk)) {
             return false;
         } else {
-            let atk_role = this.getMyMaster(atk).getBattleRole(atk);
             let block_role = this.getMyMaster(blocker).getBattleRole(blocker);
-            if(atk_role.can_not_be_blocked || !block_role.can_block) {
+            let can_not_be_blocked: boolean | undefined = false;
+            if(atk) {
+                ({ can_not_be_blocked } = this.getMyMaster(atk).getBattleRole(atk));
+            }
+            if(can_not_be_blocked || !block_role.can_block) {
                 return false;
             }
         }
         return true;
     }
 
-    public startAttack(atks: ICharacter[], target: ICharacter) {
-        // NOTE: 檢查角色是否真的可以為戰鬥狀態
+    private atk_block_table: { [index: number]: ICharacter } = {};
+    private atk_chars = new Array<ICharacter>();
+    private target: ICharacter | null = null;
+    public async startAttack(atks: ICharacter[], target: ICharacter) {
+        // NOTE: 檢查角色是否真的可以戰鬥
+        if(this.t_master.cur_player != this.atk_player) {
+            throw new BadOperationError("還沒輪到你攻擊！");
+        }
+        if(!this.checkCanAttack(atks, target)) {
+            throwIfIsBackend("不可攻擊");
+        } else {
+            this.atk_chars = atks;
+            this.target = target;
+            for(let ch of atks) {
+                ch.char_status = CharStat.Attacking;
+            }
+            this.t_master.startTurn(this.def_player);
+            // 開始進行格擋
+            this.atk_block_table= {};
+            let blocker: ICharacter|null = null;
+            while(true) {
+                blocker = await this.selecter.selectSingleCardInteractive(this.def_player, null, 
+                    TG.isCharacter, c => {
+                        return this.checkCanBlock(c);
+                    }
+                );
+                if(blocker) {
+                    // TODO: 這裡目前還不能「取消選取」，一旦被選去格擋就結束了
+                    let _blocker = blocker;
+                    let atk_to_block = await this.selecter.selectSingleCardInteractive(
+                        this.def_player, null, TG.isCharacter, c => {
+                            return this.checkCanBlock(_blocker, c);
+                        }
+                    );
+                    if(atk_to_block) {
+                        this.atk_block_table[atk_to_block.seq] = blocker;
+                    }
+                } else {
+                    break;
+                }
+            }
+        }
+        await this.startConflict();
+        await this.t_master.startTurn(this.atk_player);
+    }
+    private async startConflict() {
+        // 逐一比較戰力
+        let rest_atkers = new Array<ICharacter>();
+        for(let char of this.atk_chars) {
+            if(char.seq in this.atk_block_table) {
+                await this.doSingleConflict([char], this.atk_block_table[char.seq], false);
+            } else {
+                rest_atkers.push(char);
+            }
+        }
+        if(this.target) {
+            await this.doSingleConflict(rest_atkers, this.target, true);
+        }
+    }
+    private async doSingleConflict(atk_chars: ICharacter[], def: ICharacter, is_target: boolean) {
+        let res = await this.before_conflict_chain.trigger({ atk: atk_chars, def, is_target });
+        if(res) {
+            // TODO: 應該由防守方來決定 atk_chars 的順序
+            let tar_strength = this.getMyMaster(def).getStrength(def);
+            for(let atk of atk_chars) {
+                let atk_strength = this.getMyMaster(atk).getStrength(atk, def);
+                if(atk_strength < tar_strength) {
+                    this.repulseChar(atk, def);
+                    tar_strength -= atk_strength;
+                    this._def_win_count++;
+                } else if(atk_strength > tar_strength) {
+                    this.repulseChar(def, atk);
+                    this._atk_win_count++;
+                    break;
+                } else {
+                    this.repulseChar(atk);
+                    this.repulseChar(def);
+                    break;
+                }
+            }
+        }
+        await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, () => {
+            // 令所有參戰者陷入疲勞
+            this.getMyMaster(def).changeCharTired(def, true);
+            for(let atk of atk_chars) {
+                this.getMyMaster(atk).changeCharTired(atk, true);
+            }
+        });
+    }
+    public repulseChar(loser: ICharacter, winner?: ICharacter) {
+        this.repluse_chain.trigger({ loser, winner }, () => {
+            this.getMyMaster(loser).exitArena(loser);
+        });
+    }
+    public isWinner(player: Player) {
+        if(player == this.atk_player) {
+            return (this.atk_win_count > this.def_win_count);
+        } else {
+            return (this.atk_win_count < this.def_win_count);
+        }
+    }
+    public endWar() {
+        this.t_master.setWarPhase(GamePhase.EndWar);
+        // TODO: 讓玩家可以執行某些行動
+        this.t_master.setWarPhase(GamePhase.InAction);
+        this.t_master.addActionPoint(-1);
     }
 }

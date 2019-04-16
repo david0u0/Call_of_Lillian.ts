@@ -160,9 +160,7 @@ abstract class Character extends KnownCard implements ICharacter {
     public charAction() { }
 
     public readonly change_char_tired_chain = new ActionChain<boolean>();
-    public readonly get_strength_chain = new GetterChain<number, null>();
-    public readonly get_inconflict_strength_chain
-        = new GetterChain<number, ICharacter>();
+    public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
     public readonly enter_arena_chain = new ActionChain<IArena>();
     public readonly attack_chain = new ActionChain<ICharacter>();

@@ -96,12 +96,10 @@ interface ICharacter extends IKnownCard {
     charAction(): void;
 
     readonly change_char_tired_chain: ActionChain<boolean>;
-    readonly get_strength_chain: GetterChain<number, null>;
+    readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
     readonly enter_arena_chain: ActionChain<IArena>;
     readonly attack_chain: ActionChain<ICharacter>;
     readonly get_battle_role_chain: GetterChain<BattleRole, null>;
-    readonly get_inconflict_strength_chain
-        : GetterChain<number, ICharacter>;
 
     readonly exploit_chain: ActionChain<IArena>;
     readonly enter_chain: ActionChain<IArena>;
@@ -208,11 +206,12 @@ class UnknownCard implements ICard {
 
 
 interface ISelecter {
-    selectSingleCard<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
+    selectSingleCard<T extends ICard>(caller: IKnownCard|null, guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    selectSingleCardInteractive<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
+    selectSingleCardInteractive<T extends ICard>(player: Player, caller: IKnownCard|null,
+        guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    selectText(caller: IKnownCard, text: string[]): Promise<number|null>;
+    selectText(caller: IKnownCard|null, text: string[]): Promise<number|null>;
     setCardTable(table: { [index: number]: ICard }): void;
 }
 

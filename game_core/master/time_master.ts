@@ -152,11 +152,7 @@ export class TimeMaster {
             }
         });
     }
-    public setWarPhase(inwar: boolean) {
-        if(inwar) {
-            this._cur_phase = GamePhase.InWar;
-        } else {
-            this._cur_phase = GamePhase.InAction;
-        }
+    public setWarPhase(phase: GamePhase.InWar|GamePhase.InAction|GamePhase.EndWar) {
+        this._cur_phase = phase;
     }
 }

@@ -2,7 +2,7 @@ export enum Player { Player1, Player2 };
 export enum CardStat { Retired, Hand, Deck, Onboard, Finished, Exile };
 export enum CardType { Character, Arena, Upgrade, Spell, Event, Unknown };
 export enum CardSeries { Testing, Cyber, War, Cosmic, Wasteland, Time, Hospital }
-export enum CharStat { StandBy, InArena, InBattle, Attacking, Blocking, Attacked };
+export enum CharStat { StandBy, InArena, InWar, Attacking, Blocking, Targetted };
 
 /** 只有 Sniper, Attacker, Defender 是會寫在卡牌上的關鍵字 */
 export type BattleRole = {
@@ -24,9 +24,7 @@ export enum GamePhase {
     BetweenActions,
 
     InWar,
-
-    PreConflict,
-    PostConflict, // 衝突是一個瞬間的結算戰力的動作，故沒有 Conflict 這個階段
+    EndWar, // 可以在這時執行某些特殊的瞬間行動
 
     PreExploit,
     Exploit,
