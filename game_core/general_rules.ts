@@ -32,20 +32,6 @@ export class SoftRule {
             if(phase == GamePhase.Setup) {
                 return { var_arg: true, break_chain: true };
             }
-            if(TG.isArena(card)) {
-                if(phase != GamePhase.Building) {
-                    throwIfIsBackend("只能在建築階段打出場所卡", card);
-                    return { var_arg: false };
-                }
-            } else if(card.instance) {
-                if(phase != GamePhase.InAction && phase != GamePhase.BetweenActions) {
-                    throwIfIsBackend("只能在主階段出牌", card);
-                    return { var_arg: false };
-                }
-            } else if(phase != GamePhase.InAction) {
-                throwIfIsBackend("只能在主階段的行動時出牌", card);
-                return { var_arg: false };
-            }
             // 對各類卡牌的檢查
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的限制

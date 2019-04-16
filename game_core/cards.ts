@@ -1,6 +1,6 @@
 // TODO: 為了達成斷線復原的功能，應該把入場曲跟在場效果分清楚（多一個 setAliveChain 方法）
 
-import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
+import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard, Ability } from "./interface";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
@@ -13,6 +13,7 @@ abstract class KnownCard implements IKnownCard {
     public abstract readonly name: string;
     public abstract readonly description: string;
     public abstract readonly basic_mana_cost: number;
+    public abstract can_play_phase: GamePhase[];
     public series: CardSeries[] = []
     public instance = false;
 
@@ -115,6 +116,7 @@ abstract class KnownCard implements IKnownCard {
 
 abstract class Upgrade extends KnownCard implements IUpgrade {
     public card_type = CardType.Upgrade;
+    public can_play_phase = [GamePhase.InAction];
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
     public readonly instance = true; // 升級卡不會暫用時間
@@ -145,6 +147,7 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
 
 abstract class Character extends KnownCard implements ICharacter {
     public readonly card_type = CardType.Character;
+    public can_play_phase = [GamePhase.InAction];
     public readonly abstract basic_strength: number;
     public readonly basic_battle_role: BattleRole = { can_attack: true, can_block: true };
 
@@ -202,6 +205,7 @@ abstract class Character extends KnownCard implements ICharacter {
 
 abstract class Arena extends KnownCard implements IArena {
     public readonly card_type = CardType.Arena;
+    public can_play_phase = [GamePhase.Building];
     public position = -1;
     public readonly abstract basic_exploit_cost: number;
 
@@ -269,6 +273,7 @@ abstract class Arena extends KnownCard implements IArena {
 
 abstract class Event extends KnownCard implements IEvent {
     public readonly card_type = CardType.Event;
+    public can_play_phase = [GamePhase.InAction];
     public abstract readonly is_ending: boolean;
     public abstract readonly score: number;
     public abstract readonly goal_progress_count: number;

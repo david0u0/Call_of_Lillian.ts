@@ -2,10 +2,10 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat, GamePhase } from "../enums";
-import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG } from "../interface";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability } from "../interface";
 import { ActionChain, GetterChain } from "../hook";
 import { throwIfIsBackend, BadOperationError } from "../errors";
-import { SoftRule as SR, HardRule as HR, Constant as C } from "../general_rules";
+import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
 import { TimeMaster } from "./time_master";
 
 export class PlayerMaster {
@@ -65,6 +65,19 @@ export class PlayerMaster {
         soft_rules.onEnter(this.enter_chain, (p, mana) => {
             this.getMaster(p).addMana(mana);
         });
+        this.card_play_chain.appendCheck((b, card) => {
+            if(card.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
+                // 如果現在不是能打該牌的階段，就不讓他打
+                throwIfIsBackend("在錯的時間做事");
+                return { var_arg: false };
+            }
+        });
+        this.ability_chain.appendCheck((b, { ability }) => {
+            if(ability.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
+                // 如果現在不是能打該牌的階段，就不讓他打
+                return { var_arg: false };
+            }
+        });
         t_master.start_building_chain.append(async () => {
             // 所有角色解除疲勞並離開場所
             for(let char of this.characters) {
@@ -115,7 +128,7 @@ export class PlayerMaster {
     public set_mana_chain = new ActionChain<{ mana: number, caller: IKnownCard[] }>();
     public set_emo_chain = new ActionChain<{ emo: number, caller: IKnownCard[] }>();
 
-    public ability_chain = new ActionChain<{ card: IKnownCard, a_index: number }>();
+    public ability_chain = new ActionChain<{ card: IKnownCard, ability: Ability }>();
 
     public fail_chain = new ActionChain<IEvent>();
     public get_push_cost_chain = new GetterChain<number, { char: ICharacter|null, event: IEvent }>();
@@ -228,9 +241,7 @@ export class PlayerMaster {
         // 支付代價
         await this.addMana(-this.getManaCost(card));
         if(!card.instance) {
-            if(this.t_master.cur_phase == GamePhase.InAction) {
-                await this.t_master.addActionPoint(-1);
-            }
+            await this.t_master.addActionPoint(-1);
         }
         // 實際行動
         return await card.card_play_chain.chain(this.card_play_chain, card)
@@ -272,11 +283,11 @@ export class PlayerMaster {
             throw new BadOperationError("想在別人的回合使用能力？");
         }
         let ability = card.abilities[a_index];
-        if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, a_index })) {
+        if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, ability })) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain
-                .triggerByKeeper(by_keeper, { card, a_index }, () => {
+                .triggerByKeeper(by_keeper, { card, ability }, () => {
                     this.t_master.addActionPoint(-1);
                     ability.func();
                 });

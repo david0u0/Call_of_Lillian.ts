@@ -1,5 +1,5 @@
 import { ActionChain, GetterChain, GetterFunc, ActionFunc } from "./hook";
-import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat } from "./enums";
+import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 
 interface IKeeper { };
 interface ICard {
@@ -11,6 +11,7 @@ interface ICard {
 
 type Ability = {
     description: string,
+    can_play_phase: GamePhase[];
     canTrigger: () => boolean,
     func: () => void|Promise<void>,
     cost?: number,
@@ -21,6 +22,7 @@ interface IKnownCard extends ICard {
     readonly description: string;
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
+    readonly can_play_phase: GamePhase[];
     readonly instance: boolean;
 
     readonly check_before_play_chain: GetterChain<boolean, null>;
