@@ -96,6 +96,17 @@ export class PlayerMaster {
             this.draw();
             // TODO: 換牌
         });
+        t_master.start_turn_chain.append(() => {
+            if(t_master.cur_phase == GamePhase.InAction) {
+                // 將所有場所中的角色從疲勞中恢復
+                let ch_in_arena = this.getAll(TG.isCharacter, c => {
+                    return c.card_status == CardStat.Onboard && c.char_status == CharStat.InArena;
+                });
+                for(let ch of ch_in_arena) {
+                    this.changeCharTired(ch, false);
+                }
+            }
+        });
         this.card_play_chain.append(card => {
             if(TG.isCharacter(card)) {
                 this._char_quota--;
@@ -200,7 +211,7 @@ export class PlayerMaster {
     }
 
     getStrength(char: ICharacter, enemy?: ICharacter) {
-        if(this.t_master.cur_phase == GamePhase.InWar && char.is_tired) {
+        if(char.char_status == CharStat.InWar && char.is_tired) {
             return 0;
         }
         let strength = char.basic_strength;
@@ -243,11 +254,8 @@ export class PlayerMaster {
         }
         // 支付代價
         await this.addMana(-this.getManaCost(card));
-        if(!card.instance) {
-            await this.t_master.addActionPoint(-1);
-        }
         // 實際行動
-        return await card.card_play_chain.chain(this.card_play_chain, card)
+        await card.card_play_chain.chain(this.card_play_chain, card)
         .triggerByKeeper(by_keeper, null, async () => {
             card.card_status = CardStat.Onboard;
             await Promise.resolve(card.onPlay());
@@ -257,6 +265,9 @@ export class PlayerMaster {
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
             card.recoverFields();
         });
+        if(!card.instance) {
+            await this.t_master.addActionPoint(-1);
+        }
     }
     /** 會跳過大多數的檢查、代價與行動鏈 */
     public async dangerouslyGenToBoard(card: IKnownCard) {
@@ -293,9 +304,11 @@ export class PlayerMaster {
             if(this.mana >= cost) {
                 await this.ability_chain
                 .triggerByKeeper(by_keeper, { card, ability }, () => {
-                    this.t_master.addActionPoint(-1);
                     ability.func();
                 });
+                if(!ability.instance) {
+                    this.t_master.addActionPoint(-1);
+                }
                 return true;
             } else {
                 return false;
@@ -398,14 +411,11 @@ export class PlayerMaster {
             }
             if(push_chain.checkCanTrigger(char)) {
                 await this.addMana(-cost);
-                if(this.t_master.cur_phase == GamePhase.InAction) {
-                    await this.t_master.addActionPoint(-1);
-                }
                 if(char) {
                     await this.changeCharTired(char, true);
                 }
 
-                return await push_chain.triggerByKeeper(by_keeper, char, async () => {
+                await push_chain.triggerByKeeper(by_keeper, char, async () => {
                     HR.onPushEvent(event);
                     await Promise.resolve(event.onPush(char));
                     if(event.cur_progress_count == event.goal_progress_count) {
@@ -413,6 +423,7 @@ export class PlayerMaster {
                         await this.finishEvent(char, event);
                     }
                 });
+                await this.t_master.addActionPoint(-1);
             }
         }
         throwIfIsBackend("取消推進事件");
@@ -440,14 +451,15 @@ export class PlayerMaster {
             .chain(this.enter_chain, { char, arena });
             if(enter_chain.checkCanTrigger(char)) {
                 await this.addMana(-cost);
-                if(this.t_master.cur_phase == GamePhase.InAction) {
-                    await this.t_master.addActionPoint(-1);
+                if(!char.assault) {
+                    await this.changeCharTired(char, true);
                 }
-                await this.changeCharTired(char, true);
                 
-                return await enter_chain.triggerByKeeper(by_keeper, char, () => {
+                await enter_chain.triggerByKeeper(by_keeper, char, () => {
                     HR.onEnter(char, arena);
                 });
+                await this.t_master.addActionPoint(-1);
+                return true;
             }
         }
         throwIfIsBackend("進入程序取消");
@@ -534,10 +546,10 @@ export class PlayerMaster {
             && this.incited_chain.checkCanTrigger(char)
         ) {
             enemy_master.addMana(-C.INCITE_COST);
-            this.t_master.addActionPoint(-1);
             this.incited_chain.triggerByKeeper(by_keeper, char, () => {
                 this.retireCard(char);
             });
+            this.t_master.addActionPoint(-1);
         }
     }
 

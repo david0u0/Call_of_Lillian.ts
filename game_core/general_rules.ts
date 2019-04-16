@@ -211,8 +211,6 @@ export class HardRule {
         char.char_status = CharStat.InArena;
         char.arena_entered = arena;
         arena.enter(char);
-        // 跟據角色有沒有突擊特性，決定她會不會陷入旅行疲勞
-        char.way_worn = char.assault;
     }
     /** 這裡的 char 可以是一個玩家 */
     public static checkExploit(arena: IArena, char: ICharacter | Player, mana: number, cost: number): boolean {

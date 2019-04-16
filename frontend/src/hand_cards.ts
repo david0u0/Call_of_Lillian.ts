@@ -51,9 +51,6 @@ class HandUI {
         gm.getMyMaster(player).draw_card_chain.append(card => {
             this.add(card);
         });
-        gm.getMyMaster(player).card_play_chain.append(card => {
-            return { after_effect: () => this.remove(card) };
-        });
     }
     private resize() {
         if(this.list.length > 8) {
@@ -162,6 +159,16 @@ class HandUI {
                         this.remove(card);
                     }
                 }
+            });
+            this.gm.getMyMaster(card).card_play_chain.append(card => {
+                return {
+                    after_effect: () => {
+                        if(destroy_big_card) {
+                            destroy_big_card();
+                        }
+                        this.remove(card);
+                    }
+                };
             });
         }
         this.selecter.registerCardObj(card, card_ui);

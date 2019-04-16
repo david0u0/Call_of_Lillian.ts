@@ -157,7 +157,7 @@ abstract class Character extends KnownCard implements ICharacter {
     public char_status = CharStat.StandBy;
     public is_tired = false;
     public way_worn = false;
-    public assault = true;
+    public assault = false;
 
     public has_char_action = false;
     public charAction() { }

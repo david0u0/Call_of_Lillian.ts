@@ -6,16 +6,6 @@ import { ActionChain, ActionFunc, GetterChain } from "../hook";
 import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
 
-function checkBasic(player: Player, stat: CharStat, char?: ICharacter) {
-    if(char) {
-        if(char.owner != player
-            || char.char_status != stat
-        ) {
-            return false;
-        }
-    }
-    return true;
-}
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
@@ -24,6 +14,18 @@ export class WarMaster {
         private getMyMaster: (arg: Player | ICard) => PlayerMaster,
         private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };
+
+    private checkBasic(player: Player, stat: CharStat, char?: ICharacter) {
+        if(char) {
+            if(char.owner != player) {
+                return false;
+            }
+            else if(char.char_status != stat && this.t_master.cur_phase == GamePhase.InWar) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     private _atk_player: Player = 0;
     private _def_player: Player = 0;
@@ -54,12 +56,51 @@ export class WarMaster {
             hook.active_countdown = 0;
         });
     }
-
-    public async declareWar(declarer: Player, arena: IArena, by_keeper: boolean) {
+    public getAllWarFields(arena: IArena) {
+        let arenas = [];
+        for(let a of this.getMyMaster(arena).arenas) {
+            if(Math.abs(a.position - arena.position) <= 1) {
+                arenas.push(a);
+            }
+        }
+        for(let a of this.getEnemyMaster(arena.owner).arenas) {
+            if(Math.abs(a.position - arena.position) == 0) {
+                arenas.push(a);
+            }
+        }
+        return arenas;
+    }
+    public checkCanDeclare(declarer: Player, arena: IArena) {
         if(this.t_master.cur_player != declarer) {
             throw new BadOperationError("想在別人的回合宣戰？");
         } else if(this.t_master.cur_phase != GamePhase.InAction) {
             throw new BadOperationError("只能在主階段的行動中宣戰");
+        } else {
+            let has_target = false;
+            for(let ch of arena.char_list) {
+                if(ch && ch.owner != declarer) {
+                    has_target = true;
+                    break;
+                }
+            }
+            if(!has_target) {
+                throwIfIsBackend("敵方沒有可被攻擊的目標");
+                return false;
+            }
+            for(let a of this.getAllWarFields(arena)) {
+                for(let ch of a.char_list) {
+                    if(ch && this.checkCanAttack(ch)) {
+                        return true;
+                    }
+                }
+            }
+            throwIfIsBackend("我方沒有可攻擊的角色");
+            return false;
+        }
+    }
+    public async declareWar(declarer: Player, arena: IArena, by_keeper: boolean) {
+        if(!this.checkCanDeclare(declarer, arena)) {
+            return;
         }
         let pm = this.getMyMaster(declarer);
         let cost = this.get_declare_cost_chain.trigger(Constant.WAR_COST, { declarer, arena });
@@ -76,30 +117,17 @@ export class WarMaster {
         }
     }
     private setupWar() {
-        let arenas = [];
         if(this.war_field) {
-            for(let a of this.getMyMaster(this.war_field).arenas) {
-                if(Math.abs(a.position - this.war_field.position) <= 1) {
-                    arenas.push(a);
-                }
-            }
-            for(let a of this.getEnemyMaster(this.war_field.owner).arenas) {
-                if(Math.abs(a.position - this.war_field.position) == 0) {
-                    arenas.push(a);
-                }
-            }
-            for(let a of arenas) {
+            for(let a of this.getAllWarFields(this.war_field)) {
                 for(let c of a.char_list) {
-                    if(c && !c.way_worn) {
-                        // 角色不是剛上場所，就讓它不再疲勞
-                        this.getMyMaster(c).changeCharTired(c, false);
+                    if(c && !c.is_tired) {
                         c.char_status = CharStat.InWar;
                     }
                 }
             }
         }
     }
-    public checkCanAttack(atk: ICharacter|ICharacter[], target?: ICharacter) {
+    public checkCanAttack(atk: ICharacter | ICharacter[], target?: ICharacter) {
         if(atk instanceof Array) {
             for(let a of atk) {
                 if(!this.checkCanAttack(a, target)) {
@@ -108,13 +136,13 @@ export class WarMaster {
             }
             return true;
         } else {
-            if(!checkBasic(this.atk_player, CharStat.InWar, atk) || atk.is_tired) {
+            if(!this.checkBasic(this.atk_player, CharStat.InWar, atk) || atk.is_tired) {
                 return false;
-            } else if(!checkBasic(this.def_player, CharStat.InWar, target)) {
+            } else if(!this.checkBasic(this.def_player, CharStat.InWar, target)) {
                 return false;
             } else {
                 let atk_role = this.getMyMaster(atk).getBattleRole(atk);
-                let can_not_be_attacked: boolean|undefined = false;
+                let can_not_be_attacked: boolean | undefined = false;
                 if(target) {
                     ({ can_not_be_attacked } = this.getMyMaster(target).getBattleRole(target));
                 }
@@ -126,9 +154,9 @@ export class WarMaster {
         }
     }
     public checkCanBlock(blocker: ICharacter, atk?: ICharacter) {
-        if(!checkBasic(this.def_player, CharStat.InWar, blocker) || blocker.is_tired) {
+        if(!this.checkBasic(this.def_player, CharStat.InWar, blocker) || blocker.is_tired) {
             return false;
-        } else if(!checkBasic(this.atk_player, CharStat.Attacking, atk)) {
+        } else if(!this.checkBasic(this.atk_player, CharStat.Attacking, atk)) {
             return false;
         } else {
             let block_role = this.getMyMaster(blocker).getBattleRole(blocker);
@@ -147,7 +175,7 @@ export class WarMaster {
     private atk_chars = new Array<ICharacter>();
     private target: ICharacter | null = null;
     public async startAttack(atks: ICharacter[], target: ICharacter) {
-        // NOTE: 檢查角色是否真的可以戰鬥
+        // NOTE: 檢查角色是否真的可以攻擊
         if(this.t_master.cur_player != this.atk_player) {
             throw new BadOperationError("還沒輪到你攻擊！");
         }
@@ -161,10 +189,10 @@ export class WarMaster {
             }
             this.t_master.startTurn(this.def_player);
             // 開始進行格擋
-            this.atk_block_table= {};
-            let blocker: ICharacter|null = null;
+            this.atk_block_table = {};
+            let blocker: ICharacter | null = null;
             while(true) {
-                blocker = await this.selecter.selectSingleCardInteractive(this.def_player, null, 
+                blocker = await this.selecter.selectSingleCardInteractive(this.def_player, null,
                     TG.isCharacter, c => {
                         return this.checkCanBlock(c);
                     }

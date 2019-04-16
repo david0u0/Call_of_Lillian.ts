@@ -14,6 +14,7 @@ type Ability = {
     can_play_phase: GamePhase[];
     canTrigger: () => boolean,
     func: () => void|Promise<void>,
+    instance?: boolean,
     cost?: number,
 };
 
@@ -89,9 +90,6 @@ interface ICharacter extends IKnownCard {
     char_status: CharStat;
     is_tired: boolean;
     
-    /** 剛進行移動的角色帶有旅行疲勞，下個回合才可攻擊。 */
-    way_worn: boolean;
-    /** 擁有突擊特性的角色不會陷入旅行疲勞 */
     readonly assault: boolean;
 
     readonly has_char_action: boolean;
