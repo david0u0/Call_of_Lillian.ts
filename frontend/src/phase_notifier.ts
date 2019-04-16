@@ -81,6 +81,10 @@ export class PhaseNotifier {
             anime("戰鬥開始");
             anime("請點選我方角色作為攻擊者\n再點選敵方角色作為攻擊目標");
         });
+        gm.w_master.end_war_chain.append(() => {
+            phase_txt.text = "主階段";
+            anime("戰鬥結束");
+        });
         gm.t_master.start_turn_chain.append(({ prev, next }) => {
             if(gm.t_master.cur_phase != GamePhase.Setup) {
                 if(prev != next || gm.t_master.cur_phase != GamePhase.InAction) {

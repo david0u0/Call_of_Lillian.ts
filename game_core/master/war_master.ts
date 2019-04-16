@@ -48,7 +48,7 @@ export class WarMaster {
         = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
     public readonly repluse_chain
         = new ActionChain<{ loser: ICharacter, winner?: ICharacter }>();
-    public readonly end_war_chain = new ActionChain<{ declarer: Player, arena: IArena }>();
+    public readonly end_war_chain = new ActionChain<null>();
 
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
         let hook = chain.append(func, -1);
@@ -277,6 +277,7 @@ export class WarMaster {
         this.t_master.setWarPhase(GamePhase.EndWar);
         // TODO: 讓玩家可以執行某些行動
         this.t_master.setWarPhase(GamePhase.InAction);
+        this.end_war_chain.trigger(null);
         this.t_master.addActionPoint(-1);
     }
 }

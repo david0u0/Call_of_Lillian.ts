@@ -17,6 +17,7 @@ import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { EventArea } from "./event_area";
 import { PhaseNotifier } from "./phase_notifier";
+import { FrontendWarMaste } from "./frontend_war_master";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -47,6 +48,7 @@ async function setup() {
 
     app.stage.addChild(bg);
     app.stage.addChild(selecter.cancel_view);
+    let frontend_w_master = new FrontendWarMaste(me, gm, selecter);
     
     let show_big_card: ShowBigCard = (x: number, y: number,
         card: ICard, ticker: PIXI.ticker.Ticker
