@@ -76,6 +76,11 @@ export class PhaseNotifier {
             anime(`第${this.cur_era}世代 - 收獲階段`);
             anime("如欲使用場所，請點選其上的角色");
         });
+        gm.w_master.declare_war_chain.append(() => {
+            phase_txt.text = "戰鬥中";
+            anime("戰鬥開始");
+            anime("請點選我方角色作為攻擊者，再點選敵方角色作為攻擊目標");
+        });
         gm.t_master.start_turn_chain.append(({ prev, next }) => {
             if(gm.t_master.cur_phase != GamePhase.Setup) {
                 if(prev != next || gm.t_master.cur_phase != GamePhase.InAction) {

@@ -3,8 +3,9 @@ import * as PIXI from "pixi.js";
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
 import { GameMaster } from "../../game_core/master/game_master";
-import { Player } from "../../game_core/enums";
+import { Player, CharStat } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
+import { ShowBigCard } from "./show_big_card";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -61,7 +62,7 @@ export function drawCardFace(card: ICard|string, width: number, height: number, 
     return img;
 }
 
-export function drawUpgradeCount(pm: PlayerMaster , card: ICharacter, size: number) {
+export function drawUpgradeCount(gm: GameMaster, card: ICharacter, size: number) {
     let view = new PIXI.Container();
     let img = new PIXI.Sprite(PIXI.loader.resources["upgrade_pop"].texture);
     img.height = img.width = size;
@@ -78,7 +79,7 @@ export function drawUpgradeCount(pm: PlayerMaster , card: ICharacter, size: numb
             view.visible = false;
         }
     };
-    pm.card_play_chain.append(() => {
+    gm.getMyMaster(card).card_play_chain.append(() => {
         return { after_effect: updateTxt };
     });
     updateTxt();
@@ -111,7 +112,7 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     s_txt.anchor.set(0.5, 0.5);
     s_txt.position.set(s_width / 2, s_height / 2);
     view.addChild(s_txt);
-    let formatStr = () => {
+    let updateStr = () => {
         let str = 0;
         if(TypeGaurd.isCharacter(card)) {
             str = pm.getStrength(card);
@@ -123,18 +124,18 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
         }
         s_txt.text = str.toString();
     };
-    formatStr();
+    updateStr();
     // 在任何牌被打出時更新戰力
     // TODO: 應該要在 getter 鏈上接一個回調，在該鏈被動到的時候通知我
     let destroy: () => void = null;
     if(need_upate) {
         let hook = pm.card_play_chain.append(c => {
-            return { after_effect: formatStr };
+            return { after_effect: updateStr };
         });
         destroy = () => { hook.active_countdown = 0; };
     }
 
-    return { view, destroy };
+    return { view, destroy, updateStr };
 }
 
 export function drawCard(gm: GameMaster, card: ICard, width: number, height: number, isbig = false) {
@@ -235,4 +236,132 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
 
 function truncateName(name: string, width: number) {
     return name.slice(0, width / 14);
+}
+
+export class CharUI {
+    public readonly view = new PIXI.Container();
+    private _onclick: (evt: PIXI.interaction.InteractionEvent) => void = null;
+    private destroy_big: () => void = null;
+
+    public static create(char: ICharacter, width: number, height: number,
+        gm: GameMaster, ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
+    ): Promise<CharUI> {
+        return new Promise<CharUI>(resolve => {
+            my_loader.add(char).load(() => {
+                resolve(new CharUI(char, width, height, gm, ticker, showBigCard));
+            });
+        });
+    }
+    private constructor(public readonly char: ICharacter,
+        private width: number, private height: number, gm: GameMaster,
+        private ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
+    ) {
+        let img = new PIXI.Sprite(my_loader.resources[char.name].texture);
+        let og_w = img.width;
+        let og_h = img.height;
+        img.scale.set(width / og_w, height / og_h);
+        this.view.addChild(img);
+        // 入場效果
+        img.alpha = 0;
+        let fade_in = () => {
+            if(img.alpha < 1) {
+                img.alpha += 0.1;
+            } else {
+                img.alpha = 1;
+                this.ticker.remove(fade_in);
+            }
+        };
+        this.ticker.add(fade_in);
+        // 大圖
+        img.interactive = true;
+        img.cursor = "pointer";
+        img.on("mouseover", () => {
+            this.destroy_big = showBigCard(
+                img.worldTransform.tx + img.width / 2, img.worldTransform.ty + img.height / 2,
+                char, this.ticker);
+        });
+        img.on("mouseout", () => {
+            if(this.destroy_big) {
+                this.destroy_big();
+                this.destroy_big = null;
+            }
+        });
+        // 點選
+        img.on("click", evt => this._onclick(evt));
+        // 升級
+        let upgrade_area = drawUpgradeCount(gm, char, img.height / 3);
+        upgrade_area.position.set(width, height / 3);
+        // 戰力
+        let s_area = drawStrength(gm, char, width * 0.6, true);
+        s_area.view.position.set(width * 0.2, height - s_area.view.height / 2);
+        // 疲勞
+        let tired_mask = new PIXI.Graphics();
+        tired_mask.beginFill(0);
+        tired_mask.drawRect(0, 0, width, height);
+        tired_mask.endFill();
+        tired_mask.alpha = char.is_tired ? 0.5 : 0;
+        let fade_in_tired = () => {
+            if(tired_mask.alpha < 0.5) {
+                tired_mask.alpha += 0.1;
+            } else {
+                tired_mask.alpha = 0.5;
+                this.ticker.remove(fade_in_tired);
+            }
+        };
+        let fade_out_tired = () => {
+            if(tired_mask.alpha > 0) {
+                tired_mask.alpha -= 0.1;
+            } else {
+                tired_mask.alpha = 0;
+                this.ticker.remove(fade_out_tired);
+            }
+        };
+        char.change_char_tired_chain.append(is_tired => {
+            this.ticker.remove(fade_in_tired);
+            this.ticker.remove(fade_out_tired);
+            if(is_tired) {
+                this.ticker.add(fade_in_tired);
+            } else {
+                this.ticker.add(fade_out_tired);
+            }
+        });
+        this.view.addChild(tired_mask);
+        // 角色行動或能力
+        if(char.abilities.length != 0) {
+            let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
+            icon.height = icon.width = img.height / 3;
+            icon.anchor.set(0.5, 0.5);
+            icon.interactive = true;
+            icon.cursor = "pointer";
+            icon.on("click", async evt => {
+                evt.stopPropagation();
+                // TODO: 支援多個角色行動
+                await gm.getMyMaster(char).triggerAbility(char, 0, true);
+            });
+            this.view.addChild(icon);
+        }
+        this.view.addChild(upgrade_area);
+        this.view.addChild(s_area.view);
+    }
+    highlight() {
+
+    }
+    setOnclick(func: (evt: PIXI.interaction.InteractionEvent) => void) {
+        this._onclick = func;
+    }
+    hide() {
+        if(this.destroy_big) {
+            this.destroy_big();
+        }
+        this.view.visible = false;
+    }
+    show() {
+        this.view.visible = true;
+    }
+    destroy() {
+        if(this.destroy_big) {
+            this.destroy_big();
+        }
+        this.view.destroy();
+    }
 }

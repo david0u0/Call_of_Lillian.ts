@@ -38,15 +38,15 @@ export class WarMaster {
     public get def_win_count() { return this._def_win_count; }
 
     public readonly get_declare_cost_chain
-        = new GetterChain<number, { player: Player, arena: IArena }>();
-    public readonly declare_war_chain = new ActionChain<{ player: Player, arena: IArena }>();
+        = new GetterChain<number, { declarer: Player, arena: IArena }>();
+    public readonly declare_war_chain = new ActionChain<{ declarer: Player, arena: IArena }>();
     public readonly before_conflict_chain
         = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
     public readonly after_conflict_chain
         = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
     public readonly repluse_chain
         = new ActionChain<{ loser: ICharacter, winner?: ICharacter }>();
-    public readonly end_war_chain = new ActionChain<{ player: Player, arena: IArena }>();
+    public readonly end_war_chain = new ActionChain<{ declarer: Player, arena: IArena }>();
 
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
         let hook = chain.append(func, -1);
@@ -55,20 +55,20 @@ export class WarMaster {
         });
     }
 
-    public async declareWar(player: Player, arena: IArena, by_keeper: boolean) {
-        if(this.t_master.cur_player != player) {
+    public async declareWar(declarer: Player, arena: IArena, by_keeper: boolean) {
+        if(this.t_master.cur_player != declarer) {
             throw new BadOperationError("想在別人的回合宣戰？");
         } else if(this.t_master.cur_phase != GamePhase.InAction) {
             throw new BadOperationError("只能在主階段的行動中宣戰");
         }
-        let pm = this.getMyMaster(player);
-        let cost = this.get_declare_cost_chain.trigger(Constant.WAR_COST, { player, arena });
-        if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ player, arena })) {
+        let pm = this.getMyMaster(declarer);
+        let cost = this.get_declare_cost_chain.trigger(Constant.WAR_COST, { declarer, arena });
+        if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ declarer, arena })) {
             pm.addMana(-cost);
-            let res = await this.declare_war_chain.triggerByKeeper(by_keeper, { player, arena }, () => {
+            let res = await this.declare_war_chain.triggerByKeeper(by_keeper, { declarer, arena }, () => {
                 this.t_master.setWarPhase(GamePhase.InWar);
-                this._atk_player = player;
-                this._def_player = 1 - player;
+                this._atk_player = declarer;
+                this._def_player = 1 - declarer;
                 this._war_field = arena;
                 this._atk_win_count = this._def_win_count = 0;
                 this.setupWar();

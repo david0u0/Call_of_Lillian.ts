@@ -51,6 +51,9 @@ class HandUI {
         gm.getMyMaster(player).draw_card_chain.append(card => {
             this.add(card);
         });
+        gm.getMyMaster(player).card_play_chain.append(card => {
+            return { after_effect: () => this.remove(card) };
+        });
     }
     private resize() {
         if(this.list.length > 8) {
@@ -97,7 +100,8 @@ class HandUI {
                 }
             }
             if(index == this.list.length) {
-                throw new BadOperationError("欲從手牌中移除不存在的牌");
+                //throw new BadOperationError("欲從手牌中移除不存在的牌");
+                return;
             }
             let goal_x = this.view.children[index].x;
             this.list = [...this.list.slice(0, index), ...this.list.slice(index+1)];

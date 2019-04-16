@@ -200,6 +200,9 @@ export class PlayerMaster {
     }
 
     getStrength(char: ICharacter, enemy?: ICharacter) {
+        if(this.t_master.cur_phase == GamePhase.InWar && char.is_tired) {
+            return 0;
+        }
         let strength = char.basic_strength;
         for(let u of char.upgrade_list) {
             strength += u.basic_strength;
@@ -281,6 +284,8 @@ export class PlayerMaster {
     async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false) {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合使用能力？");
+        } else if(card.card_status != CardStat.Onboard && card.card_status != CardStat.Finished) {
+            throw new BadOperationError("卡牌不在場上還想使用能力？");
         }
         let ability = card.abilities[a_index];
         if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, ability })) {
