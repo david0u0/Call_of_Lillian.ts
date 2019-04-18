@@ -225,7 +225,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
             } else if(label == "incite") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let char = await selecter.selectSingleCard(null, TypeGaurd.isCharacter, c => {
+                    let char = await selecter.selectCard(player, null, TypeGaurd.isCharacter, c => {
                         if(c.owner != player && c.card_status == CardStat.Onboard) {
                             return true;
                         } else {
@@ -239,7 +239,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
             } else if(label == "war") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let arena = await selecter.selectSingleCard(null, TypeGaurd.isArena, a => {
+                    let arena = await selecter.selectCard(player, null, TypeGaurd.isArena, a => {
                         return gm.w_master.checkCanDeclare(player, a);
                     });
                     if(arena) {

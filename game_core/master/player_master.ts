@@ -2,7 +2,7 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat, GamePhase } from "../enums";
-import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability } from "../interface";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, ISelecter } from "../interface";
 import { ActionChain, GetterChain } from "../hook";
 import { throwIfIsBackend, BadOperationError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
@@ -49,7 +49,7 @@ export class PlayerMaster {
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
     constructor(public readonly player: Player, private t_master: TimeMaster,
-        private getMaster: (card: ICard | Player)=> PlayerMaster
+        private selecter: ISelecter, private getMaster: (card: ICard | Player)=> PlayerMaster
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
         soft_rules.checkPlay(this.card_play_chain, () => this.char_quota);
@@ -243,6 +243,7 @@ export class PlayerMaster {
         }
     }
     async playCard(card: IKnownCard, by_keeper=false) {
+        this.selecter.clearMem();
         // 檢查
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
@@ -269,7 +270,7 @@ export class PlayerMaster {
             await this.t_master.addActionPoint(-1);
         }
     }
-    /** 會跳過大多數的檢查、代價與行動鏈 */
+    /** 會跳過大多數的檢查、設置、代價與行動鏈 */
     public async dangerouslyGenToBoard(card: IKnownCard) {
         await Promise.resolve(card.setupAliveeEffect());
         if(TG.isUpgrade(card)) {

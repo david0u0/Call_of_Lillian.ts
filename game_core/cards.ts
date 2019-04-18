@@ -124,7 +124,7 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     private mem_character_equipped: ICharacter | null = this.character_equipped;
 
     public async initialize() {
-        let char = await this.g_master.selecter.selectSingleCard(this, TypeGaurd.isCharacter, char => {
+        let char = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isCharacter, char => {
             this.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
             return can_play;
@@ -251,7 +251,7 @@ abstract class Arena extends KnownCard implements IArena {
     abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
 
     public async initialize() {
-        let old_arena = await this.g_master.selecter.selectSingleCard(this, TypeGaurd.isArena, arena => {
+        let old_arena = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isArena, arena => {
             if(arena.card_status != CardStat.Onboard || arena.owner != this.owner) {
                 return false;
             }

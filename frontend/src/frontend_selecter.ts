@@ -9,6 +9,7 @@ type CardLike = ICard|number|null;
 export default class FrontendSelecter implements ISelecter {
     public view = new PIXI.Container();
     public cancel_view = new PIXI.Graphics();
+    private _mem = new Array<number>();
     
     private resolve_card: (arg: CardLike|PromiseLike<CardLike>) => void = null;
     private card_table: { [index: number]: ICard } = {};
@@ -18,7 +19,7 @@ export default class FrontendSelecter implements ISelecter {
     private _selecting = false;
     public get selecting() { return this._selecting; };
 
-    constructor(private ticker: PIXI.ticker.Ticker) {
+    constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
         let { width, height } = getWinSize();
         this.cancel_view.beginFill(0);
         this.cancel_view.drawRect(0, 0, width, height);
@@ -27,13 +28,18 @@ export default class FrontendSelecter implements ISelecter {
         this.cancel_view.interactive = true;
         this.cancel_view.on("click", () => {
             if(this.resolve_card && this.selecting) {
-                this.endSelect();
+                this.endSelectUI();
                 this.resolve_card(null);
+                this._mem.push(-1);
             }
         });
         this.view.interactive = true;
     }
-    private endSelect() {
+    public clearMem() {
+        this._mem = [];
+    }
+
+    private endSelectUI() {
         this.view.removeAllListeners();
         this._selecting = false;
         for(let line of this.lines) {
@@ -45,7 +51,7 @@ export default class FrontendSelecter implements ISelecter {
         this.card_table = table;
     }
 
-    selectText(caller: ICard, text: string[]): Promise<number|null> {
+    selectText(player: Player, caller: ICard, text: string[]): Promise<number|null> {
         let pos = { x: 0, y: 0 }; // TODO: 預設應該是頭像的位置
         let caller_obj = this.card_obj_table[caller.seq];
         if(caller_obj) {
@@ -71,27 +77,36 @@ export default class FrontendSelecter implements ISelecter {
                 option_txt.on("click", () => {
                     tmp_view.destroy();
                     resolve(i);
+                    this._mem.push(i);
                 });
                 option_txt.position.set(pos.x, pos.y+i*eh*1.5);
                 tmp_view.addChild(option_txt);
             }
         });
     }
-    selectSingleCard<T extends ICard>(caller: IKnownCard|IKnownCard[]|null, guard: (c: ICard) => c is T,
+    selectCard<T extends ICard>(player: Player, caller: IKnownCard|IKnownCard[]|null,
+        guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
-        this._selecting = true;
-        this.filter_func = card => {
-            if(guard(card)) {
-                return check(card);
+        if(player != this.me) {
+            // TODO: 從佇列中拉出資料來回傳
+        } else {
+            this._selecting = true;
+            this.filter_func = card => {
+                if(guard(card)) {
+                    return check(card);
+                } else {
+                    return false;
+                }
+            };
+            let line_init_pos: { x: number, y: number }[];
+            let _caller: IKnownCard[];
+            if(caller) {
+                _caller = (caller instanceof Array) ? caller : [caller];
+                line_init_pos = [];
             } else {
-                return false;
+                line_init_pos = [this.init_pos];
             }
-        };
-        let line_init_pos = [this.init_pos];
-        if(caller) {
-            line_init_pos = [];
-            let _caller = (caller instanceof Array) ? caller : [caller];
             for(let card of _caller) {
                 let caller_obj = this.card_obj_table[card.seq];
                 if(caller_obj) {
@@ -99,33 +114,35 @@ export default class FrontendSelecter implements ISelecter {
                         x: caller_obj.worldTransform.tx,
                         y: caller_obj.worldTransform.ty
                     });
+                } else {
+                    // TODO: ??
                 }
             }
-        }
 
-        this.lines = [];
-        for(let pos of line_init_pos) {
-            let line = new PIXI.Graphics();
-            this.view.addChild(line);
-            this.lines.push(line);
-        }
-
-        this.view.on("mousemove", evt => {
-            for(let [i, line] of this.lines.entries()) {
-                line.clear();
-                line.lineStyle(4, 0xffffff, 1);
-                line.moveTo(line_init_pos[i].x, line_init_pos[i].y);
-                line.lineTo(evt.data.global.x, evt.data.global.y);
+            this.lines = [];
+            for(let pos of line_init_pos) {
+                let line = new PIXI.Graphics();
+                this.view.addChild(line);
+                this.lines.push(line);
             }
 
-        });
-        return new Promise<T|null>(resolve => {
-            this.resolve_card = resolve;
-        });
+            this.view.on("mousemove", evt => {
+                for(let [i, line] of this.lines.entries()) {
+                    line.clear();
+                    line.lineStyle(4, 0xffffff, 1);
+                    line.moveTo(line_init_pos[i].x, line_init_pos[i].y);
+                    line.lineTo(evt.data.global.x, evt.data.global.y);
+                }
+
+            });
+            return new Promise<T | null>(resolve => {
+                this.resolve_card = resolve;
+            });
+        }
     }
 
-    selectSingleCardInteractive<T extends ICard>(player: Player,
-        caller: IKnownCard|IKnownCard[], guard: (c: ICard) => c is T,
+    selectCardInteractive<T extends ICard>(player: Player,
+        caller: IKnownCard | IKnownCard[], guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
         throw "not implemented!";
@@ -137,8 +154,9 @@ export default class FrontendSelecter implements ISelecter {
     onCardClicked(card: IKnownCard): boolean {
         if(this.resolve_card && this.selecting) {
             if(this.filter_func(card)) {
-                this.endSelect();
+                this.endSelectUI();
                 this.resolve_card(card);
+                this._mem.push(card.seq);
                 return true;
             } else {
                 // this.resolve_card(null);

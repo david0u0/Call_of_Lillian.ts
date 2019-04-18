@@ -101,7 +101,7 @@ export class CharArea {
                 function guard(c: ICard): c is IEvent | IArena {
                     return TypeGaurd.isEvent(c) || TypeGaurd.isArena(c);
                 }
-                let c_selected = await this.selecter.selectSingleCard(char, guard, card => true);
+                let c_selected = await this.selecter.selectCard(this.player, char, guard, card => true);
                 if(TypeGaurd.isCard(c_selected)) {
                     if(TypeGaurd.isArena(c_selected)) {
                         let result = await this.gm.getMyMaster(this.player)

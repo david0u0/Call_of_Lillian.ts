@@ -193,7 +193,7 @@ export class WarMaster {
             this.atk_block_table = {};
             let blocker: ICharacter | null = null;
             while(true) {
-                blocker = await this.selecter.selectSingleCardInteractive(this.def_player, null,
+                blocker = await this.selecter.selectCard(this.def_player, null,
                     TG.isCharacter, c => {
                         return this.checkCanBlock(c);
                     }
@@ -201,7 +201,7 @@ export class WarMaster {
                 if(blocker) {
                     // TODO: 這裡目前還不能「取消選取」，一旦被選去格擋就結束了
                     let _blocker = blocker;
-                    let atk_to_block = await this.selecter.selectSingleCardInteractive(
+                    let atk_to_block = await this.selecter.selectCard(
                         this.def_player, null, TG.isCharacter, c => {
                             return this.checkCanBlock(_blocker, c);
                         }

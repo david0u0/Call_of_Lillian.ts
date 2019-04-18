@@ -40,7 +40,7 @@ PIXI.loader
 async function setup() {
     let me = Player.Player1;
     let { width, height } = getWinSize();
-    let selecter = new FrontendSelecter(app.ticker);
+    let selecter = new FrontendSelecter(me, app.ticker);
     let gm = new GameMaster(selecter, generateCard);
 
     let { ew, eh } = getEltSize();

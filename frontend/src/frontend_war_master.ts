@@ -18,7 +18,7 @@ export class FrontendWarMaste {
         this.attacking = [];
         let target: ICharacter = null;
         while(true) {
-            let ch = await this.selecter.selectSingleCard(this.attacking, TG.isCharacter, _ch => {
+            let ch = await this.selecter.selectCard(this.me, this.attacking, TG.isCharacter, _ch => {
                 if(w_master.checkCanAttack(_ch)) {
                     return true;
                 } else if(w_master.checkCanAttack(this.attacking, _ch)) {
