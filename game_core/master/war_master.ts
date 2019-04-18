@@ -50,6 +50,11 @@ export class WarMaster {
         = new ActionChain<{ loser: ICharacter, winner?: ICharacter }>();
     public readonly end_war_chain = new ActionChain<null>();
 
+    public readonly start_attack_chain
+        = new ActionChain<{ atk_chars: ICharacter[], target: ICharacter }>();
+    public readonly start_block_chain
+        = new ActionChain<{ atk_chars: ICharacter[], atk_block_table: { [index: number]: ICharacter }}>();
+
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
         let hook = chain.append(func, -1);
         this.end_war_chain.append(() => {
@@ -107,7 +112,8 @@ export class WarMaster {
         let cost = this.get_declare_cost_chain.trigger(Constant.WAR_COST, { declarer, arena });
         if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ declarer, arena })) {
             pm.addMana(-cost);
-            let res = await this.declare_war_chain.triggerByKeeper(by_keeper, { declarer, arena }, () => {
+            let res = await this.declare_war_chain.byKeeper(by_keeper)
+            .trigger({ declarer, arena }, () => {
                 this.t_master.setWarPhase(GamePhase.InWar);
                 this._atk_player = declarer;
                 this._def_player = 1 - declarer;
@@ -175,17 +181,18 @@ export class WarMaster {
     private atk_block_table: { [index: number]: ICharacter } = {};
     private atk_chars = new Array<ICharacter>();
     private target: ICharacter | null = null;
-    public async startAttack(atks: ICharacter[], target: ICharacter) {
+    public async startAttack(atk_chars: ICharacter[], target: ICharacter) {
         // NOTE: 檢查角色是否真的可以攻擊
+        await this.start_attack_chain.byKeeper().trigger({ atk_chars, target });
         if(this.t_master.cur_player != this.atk_player) {
             throw new BadOperationError("還沒輪到你攻擊！");
         }
-        if(!this.checkCanAttack(atks, target)) {
+        if(!this.checkCanAttack(atk_chars, target)) {
             throwIfIsBackend("不可攻擊");
         } else {
-            this.atk_chars = atks;
+            this.atk_chars = atk_chars;
             this.target = target;
-            for(let ch of atks) {
+            for(let ch of atk_chars) {
                 ch.char_status = CharStat.Attacking;
             }
             this.t_master.startTurn(this.def_player);
@@ -214,6 +221,8 @@ export class WarMaster {
                 }
             }
         }
+        await this.start_block_chain.byKeeper()
+        .trigger({ atk_chars: this.atk_chars, atk_block_table: this.atk_block_table });
         await this.startConflict();
         await this.t_master.startTurn(this.atk_player);
     }

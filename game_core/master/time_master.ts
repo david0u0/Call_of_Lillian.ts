@@ -68,7 +68,7 @@ export class TimeMaster {
             throw new BadOperationError("已經在休息了");
         }
         if(this._cur_phase == GamePhase.InAction) {
-            await this.rest_chain.triggerByKeeper(by_keeper, player, () => {
+            await this.rest_chain.byKeeper(by_keeper).trigger(player, () => {
                 if(!this.someoneResting()) {
                     // 下個世代的起始玩家
                     this.firstRestReward(player);

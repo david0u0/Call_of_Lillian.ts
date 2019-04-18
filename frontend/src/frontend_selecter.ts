@@ -51,12 +51,8 @@ export default class FrontendSelecter implements ISelecter {
         this.card_table = table;
     }
 
-    selectText(player: Player, caller: ICard, text: string[]): Promise<number|null> {
-        let pos = { x: 0, y: 0 }; // TODO: 預設應該是頭像的位置
-        let caller_obj = this.card_obj_table[caller.seq];
-        if(caller_obj) {
-            pos = { x: caller_obj.worldTransform.tx, y: caller_obj.worldTransform.ty };
-        }
+    selectText(player: Player, caller: IKnownCard, text: string[]): Promise<number|null> {
+        let pos = this.getPos(caller)[0]; 
         let { height, width } = getWinSize();
         let tmp_view = new PIXI.Container();
         let mask = new PIXI.Graphics();
@@ -100,25 +96,11 @@ export default class FrontendSelecter implements ISelecter {
                 }
             };
             let line_init_pos: { x: number, y: number }[];
-            let _caller: IKnownCard[];
             if(caller) {
-                _caller = (caller instanceof Array) ? caller : [caller];
-                line_init_pos = [];
+                line_init_pos = this.getPos(caller);
             } else {
                 line_init_pos = [this.init_pos];
             }
-            for(let card of _caller) {
-                let caller_obj = this.card_obj_table[card.seq];
-                if(caller_obj) {
-                    line_init_pos.push({
-                        x: caller_obj.worldTransform.tx,
-                        y: caller_obj.worldTransform.ty
-                    });
-                } else {
-                    // TODO: ??
-                }
-            }
-
             this.lines = [];
             for(let pos of line_init_pos) {
                 let line = new PIXI.Graphics();
@@ -179,5 +161,22 @@ export default class FrontendSelecter implements ISelecter {
     private init_pos = { x: 0, y: 0 };
     setInitPos(x, y) {
         this.init_pos = { x, y };
+    }
+
+    getPos(cards: IKnownCard[]|IKnownCard) {
+        if(cards instanceof Array) {
+            let pos = new Array<{ x: number, y: number }>();
+            for(let c of cards) {
+                let obj = this.card_obj_table[c.seq];
+                if(obj) {
+                    pos.push({ x: obj.worldTransform.tx, y: obj.worldTransform.ty });
+                } else {
+                    // TODO: ??
+                }
+            }
+            return pos;
+        } else {
+            return this.getPos([cards]);
+        }
     }
 }

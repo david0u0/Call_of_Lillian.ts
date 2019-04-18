@@ -2,7 +2,6 @@ import { throwDevError } from "./errors";
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
-// TODO: 要不要把鏈分為不需要檢查的（如取得戰力）和需要檢查的？
 
 type GetterFunc<T, U>
     = (var_arg: T, const_arg: U) => { var_arg?: T, break_chain?: boolean, was_passed?: boolean }|void;
@@ -92,6 +91,11 @@ class ActionChain<U> {
         return this.check_chain.dominant(func, active_countdown);
     }
     private async triggerFullActionResult(const_arg: U): Promise<ActionResult> {
+        if(this.by_keeper) {
+            this.keeperCallback(const_arg);
+        }
+        this.by_keeper = false;
+
         let after_effect = new Array<() => void|Promise<void>>();
         let break_chain = false;
         let intercept_effect = false;
@@ -161,10 +165,12 @@ class ActionChain<U> {
             return next_chain.check_chain.triggerFullResult(var_arg, next_arg);
         });
         new_chain.append(const_arg => {
-            return this.triggerFullActionResult(const_arg);
+            return this.byKeeper(this.by_keeper)
+            .triggerFullActionResult(const_arg);
         });
         new_chain.append(const_arg => {
-            return next_chain.triggerFullActionResult(next_arg);
+            return next_chain.byKeeper(this.by_keeper)
+            .triggerFullActionResult(next_arg);
         });
         return new_chain;
     }
@@ -173,13 +179,12 @@ class ActionChain<U> {
     public setKeeperCallback(callback: (const_arg: U) => void) {
         this.keeperCallback = callback;
     }
-    public async triggerByKeeper(by_keeper: boolean, const_arg: U,
-        callback?: CallBack, cleanup?: CallBack
-    ) {
-        if(by_keeper) {
-            this.keeperCallback(const_arg);
-        }
-        return await this.trigger(const_arg, callback, cleanup);
+
+    private by_keeper = false;
+
+    public byKeeper(by_keeper=true) {
+        this.by_keeper = true;
+        return this;
     }
 }
 

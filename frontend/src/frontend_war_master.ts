@@ -12,6 +12,12 @@ export class FrontendWarMaste {
             this.selectAttack();
             //}
         });
+        gm.w_master.start_attack_chain.append(({ atk_chars, target }) => {
+            
+        });
+        gm.w_master.start_block_chain.append(({ atk_chars, atk_block_table }) => {
+
+        });
     }
     private async selectAttack() {
         let w_master = this.gm.w_master;
@@ -40,7 +46,8 @@ export class FrontendWarMaste {
         }
         if(target) {
             if(this.attacking.length) {
-                // TODO: 衝突
+                // 開始攻擊
+                this.gm.w_master.startAttack(this.attacking, target);
             }
             this.selectAttack();
         } else {

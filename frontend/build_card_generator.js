@@ -5,7 +5,7 @@ let path = require("path");
 
 let txt = 
 `import { BadOperationError } from "../../game_core/errors";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
 let card_class_table:

@@ -226,6 +226,7 @@ export class PlayerMaster {
         return char.get_battle_role_chain.chain(this.get_battle_role_chain, char)
         .trigger(char.basic_battle_role, null);
     }
+    /** 主要用於UI上的檢查 */
     checkBeforePlay(card: IKnownCard) {
         if(this.t_master.cur_player != this.player) {
             return false;
@@ -234,7 +235,7 @@ export class PlayerMaster {
         return card.check_before_play_chain.chain(this.check_before_play_chain, card)
         .trigger(can_play, null);
     }
-    checkCanPlay(card: IKnownCard) {
+    checkCanPlay(card: IKnownCard, test: boolean) {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
             return card.card_play_chain.chain(this.card_play_chain, card)
             .checkCanTrigger(null);
@@ -249,15 +250,15 @@ export class PlayerMaster {
             throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
-        if(!(await card.initialize()) || !this.checkCanPlay(card)) {
+        if(!(await card.initialize()) || !this.checkCanPlay(card, true)) {
             card.recoverFields();
             return false;
         }
         // 支付代價
         await this.addMana(-this.getManaCost(card));
         // 實際行動
-        await card.card_play_chain.chain(this.card_play_chain, card)
-        .triggerByKeeper(by_keeper, null, async () => {
+        await card.card_play_chain.chain(this.card_play_chain, card).byKeeper(by_keeper)
+        .trigger(null, async () => {
             card.card_status = CardStat.Onboard;
             await Promise.resolve(card.onPlay());
             await this.dangerouslyGenToBoard(card);
@@ -303,8 +304,8 @@ export class PlayerMaster {
         if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, ability })) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
-                await this.ability_chain
-                .triggerByKeeper(by_keeper, { card, ability }, () => {
+                await this.ability_chain.byKeeper(by_keeper)
+                .trigger({ card, ability }, () => {
                     ability.func();
                 });
                 if(!ability.instance) {
@@ -416,7 +417,7 @@ export class PlayerMaster {
                     await this.changeCharTired(char, true);
                 }
 
-                await push_chain.triggerByKeeper(by_keeper, char, async () => {
+                await push_chain.byKeeper(by_keeper).trigger(char, async () => {
                     HR.onPushEvent(event);
                     await Promise.resolve(event.onPush(char));
                     if(event.cur_progress_count == event.goal_progress_count) {
@@ -456,7 +457,7 @@ export class PlayerMaster {
                     await this.changeCharTired(char, true);
                 }
                 
-                await enter_chain.triggerByKeeper(by_keeper, char, () => {
+                await enter_chain.byKeeper(by_keeper).trigger(char, () => {
                     HR.onEnter(char, arena);
                 });
                 await this.t_master.addActionPoint(-1);
@@ -497,7 +498,7 @@ export class PlayerMaster {
             }
             if(exploit_chain.checkCanTrigger(char)) {
                 await this.addMana(-cost);
-                await exploit_chain.triggerByKeeper(by_keeper, char, async () => {
+                await exploit_chain.byKeeper(by_keeper).trigger(char, async () => {
                     let caller = [];
                     if(TG.isCard(char)) {
                         caller.push(char);
@@ -547,7 +548,7 @@ export class PlayerMaster {
             && this.incited_chain.checkCanTrigger(char)
         ) {
             enemy_master.addMana(-C.INCITE_COST);
-            this.incited_chain.triggerByKeeper(by_keeper, char, () => {
+            this.incited_chain.byKeeper(by_keeper).trigger(char, () => {
                 this.retireCard(char);
             });
             this.t_master.addActionPoint(-1);
