@@ -61,6 +61,17 @@ export class WarMaster {
             hook.active_countdown = 0;
         });
     }
+    public inMainField(char?: ICharacter) {
+        if(this.war_field) {
+            if(char) {
+                return this.war_field.isEqual(char.arena_entered);
+            } else {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    } 
     public getAllWarFields(arena: IArena) {
         let arenas = [];
         for(let a of this.getMyMaster(arena).arenas) {
@@ -82,6 +93,7 @@ export class WarMaster {
             throw new BadOperationError("只能在主階段的行動中宣戰");
         } else {
             this._atk_player = declarer;
+            this._war_field = arena;
             let has_target = false;
             for(let ch of arena.char_list) {
                 if(ch && ch.owner != declarer) {
@@ -145,7 +157,7 @@ export class WarMaster {
         } else {
             if(!this.checkBasic(this.atk_player, CharStat.InWar, atk) || atk.is_tired) {
                 return false;
-            } else if(!this.checkBasic(this.def_player, CharStat.InWar, target)) {
+            } else if(!this.checkBasic(this.def_player, CharStat.InWar, target) || !this.inMainField(target)) {
                 return false;
             } else {
                 let atk_role = this.getMyMaster(atk).getBattleRole(atk);
@@ -183,13 +195,13 @@ export class WarMaster {
     private target: ICharacter | null = null;
     public async startAttack(atk_chars: ICharacter[], target: ICharacter) {
         // NOTE: 檢查角色是否真的可以攻擊
-        await this.start_attack_chain.byKeeper().trigger({ atk_chars, target });
         if(this.t_master.cur_player != this.atk_player) {
             throw new BadOperationError("還沒輪到你攻擊！");
         }
         if(!this.checkCanAttack(atk_chars, target)) {
             throwIfIsBackend("不可攻擊");
         } else {
+            await this.start_attack_chain.byKeeper().trigger({ atk_chars, target });
             this.atk_chars = atk_chars;
             this.target = target;
             for(let ch of atk_chars) {
@@ -200,7 +212,7 @@ export class WarMaster {
             this.atk_block_table = {};
             let blocker: ICharacter | null = null;
             while(true) {
-                blocker = await this.selecter.selectCard(this.def_player, null,
+                blocker = await this.selecter.selectCard(this.def_player, [],
                     TG.isCharacter, c => {
                         return this.checkCanBlock(c);
                     }
@@ -209,7 +221,7 @@ export class WarMaster {
                     // TODO: 這裡目前還不能「取消選取」，一旦被選去格擋就結束了
                     let _blocker = blocker;
                     let atk_to_block = await this.selecter.selectCard(
-                        this.def_player, null, TG.isCharacter, c => {
+                        this.def_player, _blocker, TG.isCharacter, c => {
                             return this.checkCanBlock(_blocker, c);
                         }
                     );

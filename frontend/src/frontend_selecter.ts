@@ -84,6 +84,7 @@ export default class FrontendSelecter implements ISelecter {
         guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
+        player = this.me; // FIXME: 這行要拿掉
         if(player != this.me) {
             // TODO: 從佇列中拉出資料來回傳
         } else {
@@ -149,8 +150,8 @@ export default class FrontendSelecter implements ISelecter {
         }
     }
 
-    private card_obj_table: { [index: number]: PIXI.DisplayObject } = {};
-    registerCardObj(card: ICard, obj?: PIXI.DisplayObject) {
+    private card_obj_table: { [index: number]: PIXI.Container } = {};
+    registerCardObj(card: ICard, obj?: PIXI.Container) {
         if(obj) {
             this.card_obj_table[card.seq] = obj;
         } else if(card.seq in this.card_obj_table) {
@@ -169,7 +170,11 @@ export default class FrontendSelecter implements ISelecter {
             for(let c of cards) {
                 let obj = this.card_obj_table[c.seq];
                 if(obj) {
-                    pos.push({ x: obj.worldTransform.tx, y: obj.worldTransform.ty });
+                    let p = {
+                        x: obj.worldTransform.tx + (obj.width)/2,
+                        y: obj.worldTransform.ty,
+                    };
+                    pos.push(p);
                 } else {
                     // TODO: ??
                 }
