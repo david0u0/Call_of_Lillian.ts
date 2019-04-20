@@ -164,7 +164,7 @@ export default class FrontendSelecter implements ISelecter {
         this.init_pos = { x, y };
     }
 
-    getPos(cards: IKnownCard[]|IKnownCard) {
+    getPos(cards: IKnownCard[] | IKnownCard): { x: number, y: number }[] {
         if(cards instanceof Array) {
             let pos = new Array<{ x: number, y: number }>();
             for(let c of cards) {
@@ -176,7 +176,7 @@ export default class FrontendSelecter implements ISelecter {
                     };
                     pos.push(p);
                 } else {
-                    // TODO: ??
+                    // TODO: 秀大圖出來讓人知道是被誰選中？
                 }
             }
             return pos;

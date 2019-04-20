@@ -52,8 +52,8 @@ export class WarMaster {
 
     public readonly start_attack_chain
         = new ActionChain<{ atk_chars: ICharacter[], target: ICharacter }>();
-    public readonly start_block_chain
-        = new ActionChain<{ atk_chars: ICharacter[], atk_block_table: { [index: number]: ICharacter }}>();
+    public readonly set_block_chain
+        = new ActionChain<{ atk_char: ICharacter, block_char: ICharacter }>();
 
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
         let hook = chain.append(func, -1);
@@ -173,7 +173,10 @@ export class WarMaster {
         }
     }
     public checkCanBlock(blocker: ICharacter, atk?: ICharacter) {
-        if(!this.checkBasic(this.def_player, CharStat.InWar, blocker) || blocker.is_tired) {
+        if(!this.checkBasic(this.def_player, CharStat.InWar, blocker)
+            || blocker.isEqual(this.target)
+            || blocker.is_tired
+        ) {
             return false;
         } else if(!this.checkBasic(this.atk_player, CharStat.Attacking, atk)) {
             return false;
@@ -194,12 +197,12 @@ export class WarMaster {
     private atk_chars = new Array<ICharacter>();
     private target: ICharacter | null = null;
     public async startAttack(atk_chars: ICharacter[], target: ICharacter) {
-        // NOTE: 檢查角色是否真的可以攻擊
+        // TODO: 應該把戰鬥切分成更多步驟，不該只用 cur_player 來判斷輪到誰攻擊
         if(this.t_master.cur_player != this.atk_player) {
             throw new BadOperationError("還沒輪到你攻擊！");
         }
         if(!this.checkCanAttack(atk_chars, target)) {
-            throwIfIsBackend("不可攻擊");
+            throw new BadOperationError("不可攻擊");
         } else {
             await this.start_attack_chain.byKeeper().trigger({ atk_chars, target });
             this.atk_chars = atk_chars;
@@ -211,34 +214,24 @@ export class WarMaster {
             // 開始進行格擋
             this.atk_block_table = {};
             let blocker: ICharacter | null = null;
-            while(true) {
-                blocker = await this.selecter.selectCard(this.def_player, [],
-                    TG.isCharacter, c => {
-                        return this.checkCanBlock(c);
-                    }
-                );
-                if(blocker) {
-                    // TODO: 這裡目前還不能「取消選取」，一旦被選去格擋就結束了
-                    let _blocker = blocker;
-                    let atk_to_block = await this.selecter.selectCard(
-                        this.def_player, _blocker, TG.isCharacter, c => {
-                            return this.checkCanBlock(_blocker, c);
-                        }
-                    );
-                    if(atk_to_block) {
-                        this.atk_block_table[atk_to_block.seq] = blocker;
-                    }
-                } else {
-                    break;
-                }
-            }
         }
-        await this.start_block_chain.byKeeper()
-        .trigger({ atk_chars: this.atk_chars, atk_block_table: this.atk_block_table });
-        await this.startConflict();
-        await this.t_master.startTurn(this.atk_player);
+        await this.t_master.startTurn(this.def_player);
     }
-    private async startConflict() {
+    public async setBlock(atk_char: ICharacter, block_char: ICharacter) {
+        if(this.t_master.cur_player != this.def_player) {
+            throw new BadOperationError("還沒輪到你格擋！");
+        } else if(!this.checkCanBlock(block_char, atk_char)) {
+            throw new BadOperationError("不可格擋");
+        } else {
+            await this.set_block_chain.byKeeper()
+            .trigger({ atk_char, block_char }, () => {
+                this.atk_block_table[atk_char.seq] = block_char;
+            });
+        }
+    }
+
+    public async startConflict() {
+        await this.t_master.startTurn(this.atk_player);
         // 逐一比較戰力
         let rest_atkers = new Array<ICharacter>();
         for(let char of this.atk_chars) {
