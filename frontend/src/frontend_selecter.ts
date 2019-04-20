@@ -15,6 +15,8 @@ export default class FrontendSelecter implements ISelecter {
     private card_table: { [index: number]: ICard } = {};
     private filter_func: (c: IKnownCard) => boolean;
     private lines: PIXI.Graphics[] = [];
+    private cancel_btn = new PIXI.Container();
+    private cancel_txt: PIXI.Text;
 
     private _selecting = false;
     public get selecting() { return this._selecting; };
@@ -27,23 +29,57 @@ export default class FrontendSelecter implements ISelecter {
         this.cancel_view.alpha = 0;
         this.cancel_view.interactive = true;
         this.cancel_view.on("click", () => {
-            if(this.resolve_card && this.selecting) {
-                this.endSelectUI();
-                this.resolve_card(null);
-                this._mem.push(-1);
+            if(this.resolve_card && this.selecting && this.show_cancel_ui == null) {
+                this.endSelect(null);
             }
         });
         this.view.interactive = true;
+
+        let { ew, eh } = getEltSize();
+        this.cancel_btn.interactive = true;
+        this.cancel_btn.cursor = "pointer";
+        this.view.addChild(this.cancel_btn);
+        this.cancel_btn.position.set(ew, 39*eh);
+        this.cancel_btn.visible = false;
+
+        let cancel_btn_bg = new PIXI.Graphics();
+        cancel_btn_bg.beginFill(0x6298f3);
+        cancel_btn_bg.drawRect(0, 0, ew * 4, eh * 2);
+        cancel_btn_bg.endFill();
+        this.cancel_btn.addChild(cancel_btn_bg);
+
+        this.cancel_txt = new PIXI.Text("", new PIXI.TextStyle({
+            fill: 0,
+            fontSize: eh*1.5
+        }));
+        this.cancel_txt.anchor.set(0.5, 0.5);
+        this.cancel_btn.addChild(this.cancel_txt);
+        this.cancel_txt.position.set(ew * 2, eh);
+
+        this.cancel_btn.on("click", () => {
+            this.endSelect(null);
+        });
     }
     public clearMem() {
         this._mem = [];
     }
 
-    private endSelectUI() {
+    private endSelect(arg: CardLike) {
         this.view.removeAllListeners();
         this._selecting = false;
         for(let line of this.lines) {
             line.destroy();
+        }
+        this.cancel_btn.visible = false;
+        this.show_cancel_ui = null;
+
+        this.resolve_card(arg);
+        if(arg == null) {
+            this._mem.push(-1);
+        } else if(typeof(arg) == "number") {
+            this._mem.push(arg);
+        } else {
+            this._mem.push(arg.seq);
         }
     }
 
@@ -71,6 +107,7 @@ export default class FrontendSelecter implements ISelecter {
                 option_txt.interactive = true;
                 option_txt.cursor = "pointer";
                 option_txt.on("click", () => {
+                    // TODO: 應該使用 this.endSelect
                     tmp_view.destroy();
                     resolve(i);
                     this._mem.push(i);
@@ -88,6 +125,7 @@ export default class FrontendSelecter implements ISelecter {
         if(player != this.me) {
             // TODO: 從佇列中拉出資料來回傳
         } else {
+            this.showCancelUI();
             this._selecting = true;
             this.filter_func = card => {
                 if(guard(card)) {
@@ -137,7 +175,7 @@ export default class FrontendSelecter implements ISelecter {
     onCardClicked(card: IKnownCard): boolean {
         if(this.resolve_card && this.selecting) {
             if(this.filter_func(card)) {
-                this.endSelectUI();
+                this.endSelect(card);
                 this.resolve_card(card);
                 this._mem.push(card.seq);
                 return true;
@@ -182,6 +220,18 @@ export default class FrontendSelecter implements ISelecter {
             return pos;
         } else {
             return this.getPos([cards]);
+        }
+    }
+
+    private show_cancel_ui: string|null = null;
+    public cancelUI(cancel_msg: string) {
+        this.show_cancel_ui = cancel_msg;
+        return this;
+    }
+    private showCancelUI() {
+        if(this.show_cancel_ui) {
+            this.cancel_txt.text = this.show_cancel_ui;
+            this.cancel_btn.visible = true;
         }
     }
 }

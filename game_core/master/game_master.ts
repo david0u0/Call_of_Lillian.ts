@@ -12,7 +12,7 @@ export class GameMaster {
     public readonly card_table: { [index: number]: ICard } = {};
 
     public readonly t_master = new TimeMaster(p => this.getMyMaster(p).addMana(C.REST_MANA));
-    public readonly w_master = new WarMaster(this.t_master, this.selecter,
+    public readonly w_master = new WarMaster(this.t_master,
         this.getMyMaster.bind(this), this.getEnemyMaster.bind(this));
 
     private p_master1: PlayerMaster;

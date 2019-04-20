@@ -10,7 +10,7 @@ import { PlayerMaster } from "./player_master";
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
 export class WarMaster {
-    constructor(private t_master: TimeMaster, private selecter: ISelecter,
+    constructor(private t_master: TimeMaster,
         private getMyMaster: (arg: Player | ICard) => PlayerMaster,
         private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };

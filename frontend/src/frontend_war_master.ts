@@ -58,7 +58,9 @@ export class FrontendWarMaste {
         this.attacking = [];
         let target: ICharacter = null;
         while(true) {
-            let ch = await this.selecter.selectCard(this.me, this.attacking, TG.isCharacter, _ch => {
+            let ch = await this.selecter
+            .cancelUI("結束戰鬥")
+            .selectCard(this.me, this.attacking, TG.isCharacter, _ch => {
                 if(w_master.checkCanAttack(_ch)) {
                     return true;
                 } else if(w_master.checkCanAttack(this.attacking, _ch)) {
@@ -86,18 +88,15 @@ export class FrontendWarMaste {
             this.selectBlock();
         } else {
             // 結束戰鬥 TODO: 應該跳個訊息問是不是真的要結束
-            let res = confirm("確定要結束戰鬥？");
-            if(res) {
-                w_master.endWar();
-            } else {
-                this.selectAttack();
-            }
+            w_master.endWar();
         }
     }
     private async selectBlock() {
         let wm = this.gm.w_master;
         while(true) {
-            let block_char = await this.selecter.selectCard(wm.def_player, [],
+            let block_char = await this.selecter
+            .cancelUI("進入衝突階段")
+            .selectCard(wm.def_player, [],
                 TG.isCharacter, c => {
                     return wm.checkCanBlock(c);
                 }
