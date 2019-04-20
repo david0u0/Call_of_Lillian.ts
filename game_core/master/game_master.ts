@@ -9,10 +9,10 @@ import { WarMaster } from "./war_master";
 
 export class GameMaster {
     private _cur_seq = 1;
-    public readonly card_table: { [index: number]: ICard } = {};
+    public readonly card_table: { [seq: number]: ICard } = {};
 
     public readonly t_master = new TimeMaster(p => this.getMyMaster(p).addMana(C.REST_MANA));
-    public readonly w_master = new WarMaster(this.t_master,
+    public readonly w_master = new WarMaster(this.t_master, this.card_table,
         this.getMyMaster.bind(this), this.getEnemyMaster.bind(this));
 
     private p_master1: PlayerMaster;

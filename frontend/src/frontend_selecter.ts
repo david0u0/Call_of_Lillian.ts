@@ -50,7 +50,7 @@ export default class FrontendSelecter implements ISelecter {
 
         this.cancel_txt = new PIXI.Text("", new PIXI.TextStyle({
             fill: 0,
-            fontSize: eh*1.5
+            fontSize: eh * 1.5
         }));
         this.cancel_txt.anchor.set(0.5, 0.5);
         this.cancel_btn.addChild(this.cancel_txt);

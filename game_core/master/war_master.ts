@@ -10,7 +10,7 @@ import { PlayerMaster } from "./player_master";
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
 export class WarMaster {
-    constructor(private t_master: TimeMaster,
+    constructor(private t_master: TimeMaster, private card_table: { [seq: number]: ICard },
         private getMyMaster: (arg: Player | ICard) => PlayerMaster,
         private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };
@@ -51,9 +51,9 @@ export class WarMaster {
     public readonly end_war_chain = new ActionChain<null>();
 
     public readonly start_attack_chain
-        = new ActionChain<{ atk_chars: ICharacter[], target: ICharacter }>();
+        = new ActionChain<null>();
     public readonly set_block_chain
-        = new ActionChain<{ atk_char: ICharacter, block_char: ICharacter }>();
+        = new ActionChain<null>();
 
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
         let hook = chain.append(func, -1);
@@ -193,9 +193,10 @@ export class WarMaster {
         return true;
     }
 
-    private atk_block_table: { [index: number]: ICharacter } = {};
-    private atk_chars = new Array<ICharacter>();
-    private target: ICharacter | null = null;
+    private _conflict_table: { [atk_seq: number]: ICharacter } = {};
+    public get conflict_table() { return this._conflict_table; }
+    private _target: ICharacter | null = null;
+    public get target() { return this._target; }
     public async startAttack(atk_chars: ICharacter[], target: ICharacter) {
         // TODO: 應該把戰鬥切分成更多步驟，不該只用 cur_player 來判斷輪到誰攻擊
         if(this.t_master.cur_player != this.atk_player) {
@@ -204,29 +205,37 @@ export class WarMaster {
         if(!this.checkCanAttack(atk_chars, target)) {
             throw new BadOperationError("不可攻擊");
         } else {
-            await this.start_attack_chain.byKeeper().trigger({ atk_chars, target });
-            this.atk_chars = atk_chars;
-            this.target = target;
+            this._target = target;
             for(let ch of atk_chars) {
                 ch.char_status = CharStat.Attacking;
+                this._conflict_table[ch.seq] = target;
             }
             this.t_master.startTurn(this.def_player);
             // 開始進行格擋
-            this.atk_block_table = {};
-            let blocker: ICharacter | null = null;
+            await this.start_attack_chain.byKeeper().trigger(null);
+            await this.t_master.startTurn(this.def_player);
         }
-        await this.t_master.startTurn(this.def_player);
     }
-    public async setBlock(atk_char: ICharacter, block_char: ICharacter) {
+    
+    private clearBlock(block_char: ICharacter) {
+        for(let atk_seq in this._conflict_table) {
+            if(this._conflict_table[atk_seq].isEqual(block_char) && this.target) {
+                this._conflict_table[atk_seq] = this.target;
+            }
+        }
+    }
+    public async setBlock(atk_char: ICharacter | null, block_char: ICharacter) {
         if(this.t_master.cur_player != this.def_player) {
             throw new BadOperationError("還沒輪到你格擋！");
-        } else if(!this.checkCanBlock(block_char, atk_char)) {
+        } else if(atk_char && !this.checkCanBlock(block_char, atk_char)) {
             throw new BadOperationError("不可格擋");
         } else {
-            await this.set_block_chain.byKeeper()
-            .trigger({ atk_char, block_char }, () => {
-                this.atk_block_table[atk_char.seq] = block_char;
-            });
+            // 避免一個角色格擋多個進攻者
+            this.clearBlock(block_char);
+            if(atk_char) {
+                this._conflict_table[atk_char.seq] = block_char;
+            }
+            await this.set_block_chain.byKeeper().trigger(null);
         }
     }
 
@@ -234,11 +243,17 @@ export class WarMaster {
         await this.t_master.startTurn(this.atk_player);
         // 逐一比較戰力
         let rest_atkers = new Array<ICharacter>();
-        for(let char of this.atk_chars) {
-            if(char.seq in this.atk_block_table) {
-                await this.doSingleConflict([char], this.atk_block_table[char.seq], false);
+        for(let atk_seq in this.conflict_table) {
+            let def = this.conflict_table[atk_seq];
+            let atk = this.card_table[atk_seq];
+            if(TG.isCharacter(atk)) {
+                if(def.isEqual(this.target)) {
+                    rest_atkers.push(atk);
+                } else {
+                    await this.doSingleConflict([atk], def, false);
+                }
             } else {
-                rest_atkers.push(char);
+                throw new BadOperationError("不是角色卡", atk);
             }
         }
         if(this.target) {

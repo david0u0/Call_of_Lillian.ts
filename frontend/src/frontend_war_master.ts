@@ -8,7 +8,33 @@ import FrontendSelecter from "./frontend_selecter";
 export class FrontendWarMaste {
     public view = new PIXI.Container();
 
-    private line_table: { [atk_seq: number]: PIXI.Graphics } = {};
+    private lines = new Array<PIXI.Graphics>();
+
+    private drawConflictLine() {
+        let table = this.gm.w_master.conflict_table;
+        for(let line of this.lines) {
+            line.destroy();
+        }
+        this.lines = [];
+        for(let atk_seq in table) {
+            let atk = this.gm.card_table[atk_seq];
+            let def = table[atk_seq];
+            if(TG.isCharacter(atk)) {
+                let atk_pos = this.selecter.getPos(atk)[0];
+                let def_pos = this.selecter.getPos(def)[0];
+                let line = new PIXI.Graphics();
+                if(def.isEqual(this.gm.w_master.target)) {
+                    line.lineStyle(4, 0xf36299, 1);
+                } else {
+                    line.lineStyle(4, 0xf3d762, 1);
+                }
+                line.moveTo(atk_pos.x, atk_pos.y);
+                line.lineTo(def_pos.x, def_pos.y);
+                this.view.addChild(line);
+                this.lines.push(line);
+            }
+        }
+    }
 
     constructor(private me: Player, private gm: GameMaster, private selecter: FrontendSelecter) {
         gm.w_master.declare_war_chain.append(({ declarer }) => {
@@ -17,38 +43,17 @@ export class FrontendWarMaste {
             this.selectAttack();
             //}
         });
-        gm.w_master.start_attack_chain.append(({ atk_chars, target }) => {
-            let atk_pos = selecter.getPos(atk_chars);
-            let target_pos = selecter.getPos(target)[0];
-            this.line_table = {};
-            for(let [i, pos] of atk_pos.entries()) {
-                let line = new PIXI.Graphics();
-                line.lineStyle(4, 0xf36299, 1);
-                line.moveTo(pos.x, pos.y);
-                line.lineTo(target_pos.x, target_pos.y);
-                this.view.addChild(line);
-                this.line_table[atk_chars[i].seq] = line;
-            }
-
+        gm.w_master.start_attack_chain.append(() => {
+            this.drawConflictLine();
         });
-        gm.w_master.set_block_chain.append(({ atk_char, block_char }) => {
-            let atk_pos = selecter.getPos(atk_char)[0];
-            let blocker_pos = selecter.getPos(block_char)[0];
-
-            let line = this.line_table[atk_char.seq];
-            if(line) {
-                line.clear();
-                line.lineStyle(4, 0xf3d762, 1);
-                line.moveTo(atk_pos.x, atk_pos.y);
-                line.lineTo(blocker_pos.x, blocker_pos.y);
-                this.view.addChild(line);
-            }
+        gm.w_master.set_block_chain.append(() => {
+            this.drawConflictLine();
         });
         gm.w_master.before_conflict_chain.append(() => {
-            for(let seq in this.line_table) {
-                this.line_table[seq].clear();
-                delete this.line_table[seq];
+            for(let line of this.lines) {
+                line.destroy();
             }
+            this.lines = [];
         });
     }
 
@@ -102,16 +107,13 @@ export class FrontendWarMaste {
                 }
             );
             if(block_char) {
-                // TODO: 這裡目前還不能「取消選取」，一旦被選去格擋就結束了
                 let _block_char = block_char;
                 let atk_char = await this.selecter.selectCard(
                     wm.def_player, _block_char, TG.isCharacter, c => {
                         return wm.checkCanBlock(_block_char, c);
                     }
                 );
-                if(atk_char) {
-                    wm.setBlock(atk_char, block_char);
-                }
+                wm.setBlock(atk_char, block_char);
             } else {
                 break;
             }
