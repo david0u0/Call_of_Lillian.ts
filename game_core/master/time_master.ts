@@ -144,10 +144,8 @@ export class TimeMaster {
     public async startTurn(next_player: Player) {
         await this.start_turn_chain.trigger({ prev: this._cur_player, next: next_player }, async () => {
             this._cur_player = next_player;
-            this._action_point = 0;
-            if(this.cur_phase == GamePhase.Building) {
-                await this.addActionPoint(BUILDING_ACTION_P);
-            } else if(this.cur_phase == GamePhase.InAction) {
+            if(this.cur_phase == GamePhase.InAction) {
+                this._action_point = 0;
                 await this.addActionPoint(MAIN_DEFAULT_ACTION_P);
             }
         });

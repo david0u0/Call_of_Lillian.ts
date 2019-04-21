@@ -6,6 +6,7 @@ import { GameMaster } from "../../game_core/master/game_master";
 import { Player, CharStat } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
+import { ActionHook } from "../../game_core/hook";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -126,13 +127,30 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     };
     updateStr();
     // 在任何牌被打出時更新戰力
-    // TODO: 應該要在 getter 鏈上接一個回調，在該鏈被動到的時候通知我
     let destroy: () => void = null;
     if(need_upate) {
-        let hook = pm.card_play_chain.append(c => {
+        let hooks = new Array<ActionHook<any>>();
+        hooks.push(pm.card_play_chain.append(() => {
             return { after_effect: updateStr };
-        });
-        destroy = () => { hook.active_countdown = 0; };
+        }));
+        hooks.push(pm.change_char_tired_chain.append(() => {
+            return { after_effect: updateStr };
+        }));
+        hooks.push(pm.ability_chain.append(() => {
+            return { after_effect: updateStr };
+        }));
+        hooks.push(gm.w_master.declare_war_chain.append(() => {
+            return { after_effect: updateStr };
+        }));
+        hooks.push(gm.w_master.end_war_chain.append(() => {
+            return { after_effect: updateStr };
+        }));
+        destroy = () => {
+            for(let h of hooks) {
+                h.active_countdown = 0;
+            }
+            view.destroy();
+        };
     }
 
     return { view, destroy, updateStr };

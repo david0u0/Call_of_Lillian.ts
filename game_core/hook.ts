@@ -188,4 +188,4 @@ class ActionChain<U> {
     }
 }
 
-export { ActionChain, GetterChain, GetterFunc, ActionFunc };
+export { ActionChain, GetterChain, GetterFunc, ActionFunc, GetterHook, ActionHook };

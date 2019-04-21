@@ -69,7 +69,11 @@ export class FrontendWarMaste {
                 if(w_master.checkCanAttack(_ch)) {
                     return true;
                 } else if(w_master.checkCanAttack(this.attacking, _ch)) {
-                    return true;
+                    if(this.attacking.length > 0) {
+                        return true;
+                    } else {
+                        return false;
+                    }
                 }
             });
             if(ch) {

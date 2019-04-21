@@ -6,6 +6,7 @@ import { ActionChain, ActionFunc, GetterChain } from "../hook";
 import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
 
+enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
@@ -15,16 +16,37 @@ export class WarMaster {
         private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };
 
-    private checkBasic(player: Player, stat: CharStat, char?: ICharacter) {
+    private checkBasic(player: Player, char?: ICharacter, conflict_stat?: ConflictEnum) {
         if(char) {
             if(char.owner != player) {
                 return false;
-            }
-            else if(char.char_status != stat && this.t_master.cur_phase == GamePhase.InWar) {
-                return false;
+            } else if(this.t_master.cur_phase == GamePhase.InWar) {
+                if(char.char_status != CharStat.InWar) {
+                    return false;
+                } else if(typeof (conflict_stat) != "undefined"
+                    && this.getConflictEnum(char) != conflict_stat
+                ) {
+                    return false;
+                }
             }
         }
         return true;
+    }
+    public getConflictEnum(char: ICharacter) {
+        if(char.char_status != CharStat.InWar) {
+            return ConflictEnum.OutOfWar;
+        } else if(char.seq in this.conflict_table) {
+            return ConflictEnum.Attacking;
+        } else if(char.isEqual(this.target)) {
+            return ConflictEnum.Targeted;
+        } else {
+            for(let atk_seq in this.conflict_table) {
+                if(char.isEqual(this.conflict_table[atk_seq])) {
+                    return ConflictEnum.Blokcing;
+                }
+            }
+        }
+        return ConflictEnum.OutOfConflict;
     }
 
     private _atk_player: Player = 0;
@@ -139,7 +161,7 @@ export class WarMaster {
         if(this.war_field) {
             for(let a of this.getAllWarFields(this.war_field)) {
                 for(let c of a.char_list) {
-                    if(c && !c.is_tired) {
+                    if(c) {
                         c.char_status = CharStat.InWar;
                     }
                 }
@@ -155,9 +177,9 @@ export class WarMaster {
             }
             return true;
         } else {
-            if(!this.checkBasic(this.atk_player, CharStat.InWar, atk) || atk.is_tired) {
+            if(!this.checkBasic(this.atk_player, atk) || atk.is_tired) {
                 return false;
-            } else if(!this.checkBasic(this.def_player, CharStat.InWar, target) || !this.inMainField(target)) {
+            } else if(!this.checkBasic(this.def_player, target) || !this.inMainField(target)) {
                 return false;
             } else {
                 let atk_role = this.getMyMaster(atk).getBattleRole(atk);
@@ -173,12 +195,12 @@ export class WarMaster {
         }
     }
     public checkCanBlock(blocker: ICharacter, atk?: ICharacter) {
-        if(!this.checkBasic(this.def_player, CharStat.InWar, blocker)
-            || blocker.isEqual(this.target)
+        if(!this.checkBasic(this.def_player, blocker)
+            || blocker.isEqual(this.target) // 被當作目標的角色無法格擋
             || blocker.is_tired
         ) {
             return false;
-        } else if(!this.checkBasic(this.atk_player, CharStat.Attacking, atk)) {
+        } else if(!this.checkBasic(this.atk_player, atk, ConflictEnum.Attacking)) {
             return false;
         } else {
             let block_role = this.getMyMaster(blocker).getBattleRole(blocker);
@@ -207,7 +229,6 @@ export class WarMaster {
         } else {
             this._target = target;
             for(let ch of atk_chars) {
-                ch.char_status = CharStat.Attacking;
                 this._conflict_table[ch.seq] = target;
             }
             this.t_master.startTurn(this.def_player);
@@ -256,9 +277,11 @@ export class WarMaster {
                 throw new BadOperationError("不是角色卡", atk);
             }
         }
-        if(this.target) {
+        if(this.target && rest_atkers.length > 0) {
             await this.doSingleConflict(rest_atkers, this.target, true);
         }
+        this._conflict_table = {};
+        this._target = null;
     }
     private async doSingleConflict(atk_chars: ICharacter[], def: ICharacter, is_target: boolean) {
         let res = await this.before_conflict_chain.trigger({ atk: atk_chars, def, is_target });
@@ -268,31 +291,31 @@ export class WarMaster {
             for(let atk of atk_chars) {
                 let atk_strength = this.getMyMaster(atk).getStrength(atk, def);
                 if(atk_strength < tar_strength) {
-                    this.repulseChar(atk, def);
+                    await this.repulseChar(atk, def);
                     tar_strength -= atk_strength;
                     this._def_win_count++;
                 } else if(atk_strength > tar_strength) {
-                    this.repulseChar(def, atk);
+                    await this.repulseChar(def, atk);
                     this._atk_win_count++;
                     break;
                 } else {
-                    this.repulseChar(atk);
-                    this.repulseChar(def);
+                    await this.repulseChar(atk);
+                    await this.repulseChar(def);
                     break;
                 }
             }
         }
-        await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, () => {
+        await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, async () => {
             // 令所有參戰者陷入疲勞
-            this.getMyMaster(def).changeCharTired(def, true);
+            await this.getMyMaster(def).changeCharTired(def, true);
             for(let atk of atk_chars) {
-                this.getMyMaster(atk).changeCharTired(atk, true);
+                await this.getMyMaster(atk).changeCharTired(atk, true);
             }
         });
     }
-    public repulseChar(loser: ICharacter, winner?: ICharacter) {
-        this.repluse_chain.trigger({ loser, winner }, () => {
-            this.getMyMaster(loser).exitArena(loser);
+    public async repulseChar(loser: ICharacter, winner?: ICharacter) {
+        await this.repluse_chain.trigger({ loser, winner }, async () => {
+            await this.getMyMaster(loser).exitArena(loser);
         });
     }
     public isWinner(player: Player) {
@@ -305,6 +328,15 @@ export class WarMaster {
     public endWar() {
         this.t_master.setWarPhase(GamePhase.EndWar);
         // TODO: 讓玩家可以執行某些行動
+        this.t_master.startTurn(this.atk_player);
+        // 所有參與的角色從疲勞中恢復，且角色狀態改回 InArena
+        for(let p of [Player.Player1, Player.Player2]) {
+            let pm = this.getMyMaster(p);
+            for(let c of pm.getAll(TG.isCharacter, c => c.char_status == CharStat.InWar)) {
+                c.char_status = CharStat.InArena;
+                pm.changeCharTired(c, false);
+            }
+        }
         this.t_master.setWarPhase(GamePhase.InAction);
         this.end_war_chain.trigger(null);
         this.t_master.addActionPoint(-1);

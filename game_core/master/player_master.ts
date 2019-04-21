@@ -235,7 +235,7 @@ export class PlayerMaster {
         return card.check_before_play_chain.chain(this.check_before_play_chain, card)
         .trigger(can_play, null);
     }
-    checkCanPlay(card: IKnownCard, test: boolean) {
+    checkCanPlay(card: IKnownCard) {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
             return card.card_play_chain.chain(this.card_play_chain, card)
             .checkCanTrigger(null);
@@ -250,7 +250,7 @@ export class PlayerMaster {
             throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
-        if(!(await card.initialize()) || !this.checkCanPlay(card, true)) {
+        if(!(await card.initialize()) || !this.checkCanPlay(card)) {
             card.recoverFields();
             return false;
         }
