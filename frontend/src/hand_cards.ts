@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
 import { getEltSize, getWinSize } from "./get_screen_size";
 import { ShowBigCard } from "./show_big_card";
@@ -97,7 +97,8 @@ class HandUI {
                 }
             }
             if(index == this.list.length) {
-                throw new BadOperationError("欲從手牌中移除不存在的牌");
+                //throw new BadOperationError("欲從手牌中移除不存在的牌");
+                return;
             }
             let goal_x = this.view.children[index].x;
             this.list = [...this.list.slice(0, index), ...this.list.slice(index+1)];
@@ -150,8 +151,7 @@ class HandUI {
                 if(this.selecter.selecting) {
                     this.selecter.onCardClicked(card);
                 } else {
-                    let pm = this.gm.getMyMaster(card);
-                    if(await pm.playCard(card, true)) {
+                    if(await this.gm.playCard(card, true)) {
                         if(destroy_big_card) {
                             destroy_big_card();
                             destroy_big_card = null;
@@ -159,6 +159,16 @@ class HandUI {
                         this.remove(card);
                     }
                 }
+            });
+            this.gm.getMyMaster(card).card_play_chain.append(card => {
+                return {
+                    after_effect: () => {
+                        if(destroy_big_card) {
+                            destroy_big_card();
+                        }
+                        this.remove(card);
+                    }
+                };
             });
         }
         this.selecter.registerCardObj(card, card_ui);

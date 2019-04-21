@@ -4,6 +4,7 @@ import { CardStat, CharStat, BattleRole, Player, GamePhase } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
 export const Constant = {
+    WAR_COST: 1,
     INCITE_EMO: 7,
     INCITE_COST: 2,
     REST_MANA: 1,
@@ -30,20 +31,6 @@ export class SoftRule {
             // 針對遊戲階段的檢查
             if(phase == GamePhase.Setup) {
                 return { var_arg: true, break_chain: true };
-            }
-            if(TG.isArena(card)) {
-                if(phase != GamePhase.Building) {
-                    throwIfIsBackend("只能在建築階段打出場所卡", card);
-                    return { var_arg: false };
-                }
-            } else if(card.instance) {
-                if(phase != GamePhase.InAction && phase != GamePhase.BetweenActions) {
-                    throwIfIsBackend("只能在主階段出牌", card);
-                    return { var_arg: false };
-                }
-            } else if(phase != GamePhase.InAction) {
-                throwIfIsBackend("只能在主階段的行動時出牌", card);
-                return { var_arg: false };
             }
             // 對各類卡牌的檢查
             if(TG.isUpgrade(card)) {
@@ -224,8 +211,6 @@ export class HardRule {
         char.char_status = CharStat.InArena;
         char.arena_entered = arena;
         arena.enter(char);
-        // 跟據角色有沒有突擊特性，決定她會不會陷入旅行疲勞
-        char.way_worn = char.assault;
     }
     /** 這裡的 char 可以是一個玩家 */
     public static checkExploit(arena: IArena, char: ICharacter | Player, mana: number, cost: number): boolean {

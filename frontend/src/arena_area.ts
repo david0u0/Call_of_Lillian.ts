@@ -1,10 +1,10 @@
-import { IArena, ICharacter, TypeGaurd } from "../../game_core/interface";
+import { IArena, ICharacter, TypeGaurd as TG } from "../../game_core/interface";
 import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_screen_size";
-import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount } from "./draw_card";
+import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount, CharUI } from "./draw_card";
 
 import { Player, GamePhase } from "../../game_core/enums";
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { my_loader } from "./card_loader";
 import FrontendSelecter from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
@@ -30,12 +30,12 @@ export class ArenaArea {
 
         gm.getMyMaster(this.player).enter_chain.append(({ arena, char }) => {
             if(arena.owner == player) {
-                return { after_effect: () => this.enterChar(arena, char) };
+                return { after_effect: async () => await this.enterChar(arena, char) };
             }
         });
         gm.getEnemyMaster(this.player).enter_chain.append(({ arena, char }) => {
             if(arena.owner == player) {
-                return { after_effect: () => this.enterChar(arena, char) };
+                return { after_effect: async () => await this.enterChar(arena, char) };
             }
         });
         gm.getMyMaster(player).add_arena_chain.append(card => {
@@ -95,24 +95,20 @@ export class ArenaArea {
             }
         });
     }
-    private enterChar(arena: IArena, char: ICharacter) {
+    private async enterChar(arena: IArena, char: ICharacter) {
         let index = arena.position;
-        let view = new PIXI.Container();
-        let char_img = drawCardFace(char, this.card_gap * 0.6, this.card_h * 1.1);
-        view.addChild(char_img);
 
-        let s_area = drawStrength(this.gm, char, view.width * 0.8, true);
-        s_area.view.position.set(view.width * 0.1, view.height - s_area.view.height / 2);
-        view.addChild(s_area.view);
+        let { width, height } = getCardSize(this.card_gap * 0.6, this.card_h * 1.1);
 
-        let upgrade_area = drawUpgradeCount(this.gm.getMyMaster(char), char, view.height/3);
-        upgrade_area.position.set(view.width, view.height/3);
-        view.addChild(upgrade_area);
+        let char_ui = await CharUI.create(char, width, height,
+            this.gm, this.ticker, this.showBigCard);
+        this.view.addChild(char_ui.view);
+        let view = char_ui.view;
 
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;
         if(arena.find(char) == 0) {
-            offset -= view.width;
+            offset -= char_ui.view.width;
             view.position.set(offset, this.card_h - view.width * 0.5);
         } else if(arena.find(char) == 1) {
             offset += this.card_w * 0.7;
@@ -122,44 +118,26 @@ export class ArenaArea {
             view.position.set(offset, view.width * 0.35);
         }
 
-        view.interactive = true;
-        let destroy_big: () => void = null;
-        view.on("mouseover", () => {
-            this.hovering_char = true;
-            destroy_big = this.showBigCard(view.worldTransform.tx, view.worldTransform.ty, char, this.ticker);
-        });
-        view.on("mouseout", () => {
-            this.hovering_char = false;
-            if(destroy_big) {
-                destroy_big();
-            }
-        });
-        view.on("click", async () => {
+        char_ui.setOnclick(async () => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
                 await this.gm.getMyMaster(char).exploit(arena, char, true);
             }
         });
+
         this.gm.getMyMaster(this.player).exit_chain.append(arg => {
             if(char.isEqual(arg.char)) {
-                this.removeChar(view, destroy_big);
+                char_ui.destroy();
+                this.hovering_char = false;
             }
         });
         this.gm.getEnemyMaster(this.player).exit_chain.append(arg => {
             if(char.isEqual(arg.char)) {
-                this.removeChar(view, destroy_big);
+                char_ui.destroy();
+                this.hovering_char = false;
             }
         });
         this.selecter.registerCardObj(char, view);
-
-        this.view.addChild(view);
-    }
-    private removeChar(char_view: PIXI.Container, destroy_big: () => void) {
-        char_view.destroy();
-        if(destroy_big) {
-            destroy_big();
-        }
-        this.hovering_char = false;
     }
 }

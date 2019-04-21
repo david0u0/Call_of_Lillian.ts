@@ -11,7 +11,12 @@
         "quotes": ["error", "double"],
         "semi": "error",
         "keyword-spacing": ["error", {
-            "overrides": { "if": { "after": false }, "for": { "after": false }, "catch": {"after": false} }
+            "overrides": {
+                "if": { "after": false },
+                "for": { "after": false },
+                "while": { "after": false },
+                "catch": {"after": false}
+            }
         }]
     }
 }

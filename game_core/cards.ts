@@ -1,17 +1,19 @@
 // TODO: 為了達成斷線復原的功能，應該把入場曲跟在場效果分清楚（多一個 setAliveChain 方法）
 
-import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat } from "./enums";
+import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard, Ability } from "./interface";
-import { GameMaster, PlayerMaster } from "./game_master";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
+import { PlayerMaster } from "./master/player_master";
+import { GameMaster } from "./master/game_master";
 
 abstract class KnownCard implements IKnownCard {
     public abstract readonly card_type: CardType;
     public abstract readonly name: string;
     public abstract readonly description: string;
     public abstract readonly basic_mana_cost: number;
+    public abstract can_play_phase: GamePhase[];
     public series: CardSeries[] = []
     public instance = false;
 
@@ -114,6 +116,7 @@ abstract class KnownCard implements IKnownCard {
 
 abstract class Upgrade extends KnownCard implements IUpgrade {
     public card_type = CardType.Upgrade;
+    public can_play_phase = [GamePhase.InAction];
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
     public readonly instance = true; // 升級卡不會暫用時間
@@ -121,7 +124,7 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     private mem_character_equipped: ICharacter | null = this.character_equipped;
 
     public async initialize() {
-        let char = await this.g_master.selecter.selectSingleCard(this, TypeGaurd.isCharacter, char => {
+        let char = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isCharacter, char => {
             this.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
             return can_play;
@@ -144,6 +147,7 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
 
 abstract class Character extends KnownCard implements ICharacter {
     public readonly card_type = CardType.Character;
+    public can_play_phase = [GamePhase.InAction];
     public readonly abstract basic_strength: number;
     public readonly basic_battle_role: BattleRole = { can_attack: true, can_block: true };
 
@@ -153,15 +157,13 @@ abstract class Character extends KnownCard implements ICharacter {
     public char_status = CharStat.StandBy;
     public is_tired = false;
     public way_worn = false;
-    public assault = true;
+    public assault = false;
 
     public has_char_action = false;
     public charAction() { }
 
     public readonly change_char_tired_chain = new ActionChain<boolean>();
-    public readonly get_strength_chain = new GetterChain<number, null>();
-    public readonly get_inconflict_strength_chain
-        = new GetterChain<number, ICharacter>();
+    public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
     public readonly enter_arena_chain = new ActionChain<IArena>();
     public readonly attack_chain = new ActionChain<ICharacter>();
@@ -203,6 +205,7 @@ abstract class Character extends KnownCard implements ICharacter {
 
 abstract class Arena extends KnownCard implements IArena {
     public readonly card_type = CardType.Arena;
+    public can_play_phase = [GamePhase.Building];
     public position = -1;
     public readonly abstract basic_exploit_cost: number;
 
@@ -248,7 +251,7 @@ abstract class Arena extends KnownCard implements IArena {
     abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
 
     public async initialize() {
-        let old_arena = await this.g_master.selecter.selectSingleCard(this, TypeGaurd.isArena, arena => {
+        let old_arena = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isArena, arena => {
             if(arena.card_status != CardStat.Onboard || arena.owner != this.owner) {
                 return false;
             }
@@ -270,6 +273,7 @@ abstract class Arena extends KnownCard implements IArena {
 
 abstract class Event extends KnownCard implements IEvent {
     public readonly card_type = CardType.Event;
+    public can_play_phase = [GamePhase.InAction];
     public abstract readonly is_ending: boolean;
     public abstract readonly score: number;
     public abstract readonly goal_progress_count: number;

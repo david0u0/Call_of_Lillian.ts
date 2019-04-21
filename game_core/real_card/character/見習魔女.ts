@@ -1,4 +1,5 @@
 import { Character } from "../../cards";
+import { GamePhase, CharStat } from "../../enums";
 
 let name = "見習魔女";
 let description = "**啟程時刻**：（角色行動）你可以從牌庫抽一張牌。";
@@ -17,8 +18,9 @@ export default class C extends Character {
             this.my_master.changeCharTired(this, true);
         },
         canTrigger: () => {
-            return !this.is_tired;
-        }
+            return !this.is_tired && this.char_status == CharStat.StandBy;
+        },
+        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit]
     }];
     // TODO: 塞入角色行動
 }

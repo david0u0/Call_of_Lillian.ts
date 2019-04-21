@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { GameMaster } from "../../game_core/game_master";
+import { GameMaster } from "../../game_core/master/game_master";
 import { Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
 
@@ -17,6 +17,7 @@ import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { EventArea } from "./event_area";
 import { PhaseNotifier } from "./phase_notifier";
+import { FrontendWarMaste } from "./frontend_war_master";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -39,13 +40,15 @@ PIXI.loader
 async function setup() {
     let me = Player.Player1;
     let { width, height } = getWinSize();
-    let selecter = new FrontendSelecter(app.ticker);
+    let selecter = new FrontendSelecter(me, app.ticker);
     let gm = new GameMaster(selecter, generateCard);
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
 
     app.stage.addChild(bg);
+    app.stage.addChild(selecter.cancel_view);
+    let frontend_w_master = new FrontendWarMaste(me, gm, selecter);
     
     let show_big_card: ShowBigCard = (x: number, y: number,
         card: ICard, ticker: PIXI.ticker.Ticker
@@ -103,6 +106,7 @@ async function setup() {
     app.stage.addChild(hands_ui1_obj.view);
     app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(selecter.view);
+    app.stage.addChild(frontend_w_master.view);
     app.stage.addChild(phase_notifier.view);
 }
 

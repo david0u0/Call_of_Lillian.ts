@@ -14,12 +14,12 @@ export default class A extends Arena implements IArena {
     max_capacity = 3;
     series = [ CardSeries.Hospital ];
 
-    onExploit(char: ICharacter|Player) {
+    async onExploit(char: ICharacter|Player) {
         let caller = new Array<IKnownCard>();
         if(TypeGaurd.isCard(char)) {
             caller.push(char);
         }
-        this.g_master.getMyMaster(char).addEmo(1, caller);
+        await this.g_master.getMyMaster(char).addEmo(1, caller);
         return 3;
     }
 }

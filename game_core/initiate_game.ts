@@ -1,7 +1,7 @@
-import { GameMaster } from "./game_master";
 import { Player } from "./enums";
 import { BadOperationError } from "./errors";
 import { Constant } from "./general_rules";
+import { GameMaster } from "./master/game_master";
 
 const basic_deck = [
     "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",
@@ -37,14 +37,14 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
                 gm.genUnknownToDeck(p);
             }
         }
-        gm.genArenaToBoard(p, 0, Constant.DUMMY_NAME);
-        gm.genArenaToBoard(p, 1, Constant.DUMMY_NAME);
-        gm.genArenaToBoard(p, 2, "M市立綜合醫院");
-        gm.genArenaToBoard(p, 3, Constant.DUMMY_NAME);
-        gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
+        await gm.genArenaToBoard(p, 0, Constant.DUMMY_NAME);
+        await gm.genArenaToBoard(p, 1, Constant.DUMMY_NAME);
+        await gm.genArenaToBoard(p, 2, "M市立綜合醫院");
+        await gm.genArenaToBoard(p, 3, Constant.DUMMY_NAME);
+        await gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
 
-        gm.genCharToBoard(p, "見習魔女");
-        gm.genCharToBoard(p, "見習魔女");
+        await gm.genCharToBoard(p, "見習魔女");
+        await gm.genCharToBoard(p, "見習魔女");
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
             await pm.draw();

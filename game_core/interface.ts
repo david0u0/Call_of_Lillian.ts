@@ -1,5 +1,5 @@
 import { ActionChain, GetterChain, GetterFunc, ActionFunc } from "./hook";
-import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat } from "./enums";
+import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 
 interface IKeeper { };
 interface ICard {
@@ -11,8 +11,10 @@ interface ICard {
 
 type Ability = {
     description: string,
+    can_play_phase: GamePhase[];
     canTrigger: () => boolean,
     func: () => void|Promise<void>,
+    instance?: boolean,
     cost?: number,
 };
 
@@ -21,6 +23,7 @@ interface IKnownCard extends ICard {
     readonly description: string;
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
+    readonly can_play_phase: GamePhase[];
     readonly instance: boolean;
 
     readonly check_before_play_chain: GetterChain<boolean, null>;
@@ -87,21 +90,16 @@ interface ICharacter extends IKnownCard {
     char_status: CharStat;
     is_tired: boolean;
     
-    /** 剛進行移動的角色帶有旅行疲勞，下個回合才可攻擊。 */
-    way_worn: boolean;
-    /** 擁有突擊特性的角色不會陷入旅行疲勞 */
     readonly assault: boolean;
 
     readonly has_char_action: boolean;
     charAction(): void;
 
     readonly change_char_tired_chain: ActionChain<boolean>;
-    readonly get_strength_chain: GetterChain<number, null>;
+    readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
     readonly enter_arena_chain: ActionChain<IArena>;
     readonly attack_chain: ActionChain<ICharacter>;
     readonly get_battle_role_chain: GetterChain<BattleRole, null>;
-    readonly get_inconflict_strength_chain
-        : GetterChain<number, ICharacter>;
 
     readonly exploit_chain: ActionChain<IArena>;
     readonly enter_chain: ActionChain<IArena>;
@@ -208,12 +206,17 @@ class UnknownCard implements ICard {
 
 
 interface ISelecter {
-    selectSingleCard<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
+    selectCard<T extends ICard>(player: Player,
+        caller: IKnownCard|IKnownCard[]|null,
+        guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    selectSingleCardInteractive<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
+    selectCardInteractive<T extends ICard>(player: Player,
+        caller: IKnownCard|IKnownCard[]|null,
+        guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
-    selectText(caller: IKnownCard, text: string[]): Promise<number|null>;
+    selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     setCardTable(table: { [index: number]: ICard }): void;
+    clearMem(): void;
 }
 
 export {

@@ -1,12 +1,12 @@
 import * as PIXI from "pixi.js";
-import { PlayerMaster, GameMaster } from "../../game_core/game_master";
 import { getEltSize } from "./get_screen_size";
 import { Player, CardStat } from "../../game_core/enums";
 import FS from "./frontend_selecter";
-import { TypeGaurd } from "../../game_core/interface";
+import { TypeGaurd, IArena } from "../../game_core/interface";
+import { GameMaster } from "../../game_core/master/game_master";
+import { PlayerMaster } from "../../game_core/master/player_master";
 
 let W = 60, H = 50;
-
 function numericStyle(size: number) {
     return new PIXI.TextStyle({
         fontSize: size,
@@ -221,11 +221,11 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
     for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
         let func = (() => {
             if(label == "rest") {
-                return async (x: number, y: number) => await gm.t_master.rest(player, true);
+                return async () => await gm.t_master.rest(player, true);
             } else if(label == "incite") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let char = await selecter.selectSingleCard(null, TypeGaurd.isCharacter, c => {
+                    let char = await selecter.selectCard(player, null, TypeGaurd.isCharacter, c => {
                         if(c.owner != player && c.card_status == CardStat.Onboard) {
                             return true;
                         } else {
@@ -233,7 +233,17 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                         }
                     });
                     if(char) {
-                        gm.getMyMaster(char).incite(char, player, true);
+                        await gm.getMyMaster(char).incite(char, player, true);
+                    }
+                };
+            } else if(label == "war") {
+                return async (x: number, y: number) => {
+                    selecter.setInitPos(x, y);
+                    let arena = await selecter.selectCard(player, null, TypeGaurd.isArena, a => {
+                        return gm.w_master.checkCanDeclare(player, a);
+                    });
+                    if(arena) {
+                        await gm.w_master.declareWar(player, arena, true);
                     }
                 };
             } else {

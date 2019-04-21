@@ -19,7 +19,7 @@ export default class C2 extends Character {
     }
 
     async initialize(): Promise<boolean> {
-        let evt = await this.g_master.selecter.selectSingleCard(this, TypeGaurd.isEvent, evt => {
+        let evt = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isEvent, evt => {
             return evt.owner == this.owner;
         });
         this.event_to_pay = evt;

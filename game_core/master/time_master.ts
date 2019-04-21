@@ -1,6 +1,6 @@
-import { Player, GamePhase } from "./enums";
-import { ActionChain } from "./hook";
-import { BadOperationError } from "./errors";
+import { Player, GamePhase } from "../enums";
+import { ActionChain } from "../hook";
+import { BadOperationError } from "../errors";
 
 const BUILDING_ACTION_P = 1;
 const MAIN_FIRST_ACTION_P = 1;
@@ -68,7 +68,7 @@ export class TimeMaster {
             throw new BadOperationError("已經在休息了");
         }
         if(this._cur_phase == GamePhase.InAction) {
-            await this.rest_chain.triggerByKeeper(by_keeper, player, () => {
+            await this.rest_chain.byKeeper(by_keeper).trigger(player, () => {
                 if(!this.someoneResting()) {
                     // 下個世代的起始玩家
                     this.firstRestReward(player);
@@ -121,6 +121,9 @@ export class TimeMaster {
     }
 
     public async addActionPoint(n: number) {
+        if(this.cur_phase != GamePhase.InAction) {
+            return;
+        }
         let new_action_point = Math.max(0, this._action_point + n);
         await this.set_action_point_chain.trigger(new_action_point, async () => {
             this._action_point = new_action_point;
@@ -141,12 +144,13 @@ export class TimeMaster {
     public async startTurn(next_player: Player) {
         await this.start_turn_chain.trigger({ prev: this._cur_player, next: next_player }, async () => {
             this._cur_player = next_player;
-            this._action_point = 0;
-            if(this.cur_phase == GamePhase.Building) {
-                await this.addActionPoint(BUILDING_ACTION_P);
-            } else if(this.cur_phase == GamePhase.InAction) {
+            if(this.cur_phase == GamePhase.InAction) {
+                this._action_point = 0;
                 await this.addActionPoint(MAIN_DEFAULT_ACTION_P);
             }
         });
+    }
+    public setWarPhase(phase: GamePhase.InWar|GamePhase.InAction|GamePhase.EndWar) {
+        this._cur_phase = phase;
     }
 }
