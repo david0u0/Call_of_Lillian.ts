@@ -75,7 +75,18 @@ export class FrontendWarMaste {
             if(ch) {
                 if(w_master.checkCanAttack(ch)) {
                     // 是攻擊者
-                    this.attacking.push(ch);
+                    let cancel = false;
+                    for(let i = 0; i < this.attacking.length; i++) {
+                        if(this.attacking[i].isEqual(ch)) {
+                            // 取消該角色的攻擊
+                            this.attacking = [...this.attacking.slice(0, i), ...this.attacking.slice(i+1)];
+                            cancel = true;
+                            break;
+                        }
+                    }
+                    if(!cancel) {
+                        this.attacking.push(ch);
+                    }
                 } else {
                     // 是目標
                     target = ch;
@@ -92,7 +103,6 @@ export class FrontendWarMaste {
             }
             this.selectBlock();
         } else {
-            // 結束戰鬥 TODO: 應該跳個訊息問是不是真的要結束
             w_master.endWar();
         }
     }
