@@ -16,6 +16,8 @@ export class WarMaster {
         private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };
 
+    private _war_seq = 0;
+
     private checkBasic(player: Player, char?: ICharacter, conflict_stat?: ConflictEnum) {
         if(char) {
             if(char.owner != player) {
@@ -78,9 +80,9 @@ export class WarMaster {
         = new ActionChain<null>();
 
     public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
-        let hook = chain.append(func, -1);
-        this.end_war_chain.append(() => {
-            hook.active_countdown = 0;
+        let war_seq = this._war_seq;
+        let hook = chain.append(func, () => {
+            return (war_seq == this._war_seq);
         });
     }
     public inMainField(char?: ICharacter) {
@@ -325,20 +327,21 @@ export class WarMaster {
             return (this.atk_win_count < this.def_win_count);
         }
     }
-    public endWar() {
+    public async endWar() {
         this.t_master.setWarPhase(GamePhase.EndWar);
         // TODO: 讓玩家可以執行某些行動
-        this.t_master.startTurn(this.atk_player);
+        await this.t_master.startTurn(this.atk_player);
         // 所有參與的角色從疲勞中恢復，且角色狀態改回 InArena
         for(let p of [Player.Player1, Player.Player2]) {
             let pm = this.getMyMaster(p);
             for(let c of pm.getAll(TG.isCharacter, c => c.char_status == CharStat.InWar)) {
                 c.char_status = CharStat.InArena;
-                pm.changeCharTired(c, false);
+                await pm.changeCharTired(c, false);
             }
         }
         this.t_master.setWarPhase(GamePhase.InAction);
-        this.end_war_chain.trigger(null);
-        this.t_master.addActionPoint(-1);
+        this._war_seq++; // 每次戰鬥的編號都會增加
+        await this.end_war_chain.trigger(null);
+        await this.t_master.addActionPoint(-1);
     }
 }

@@ -6,7 +6,6 @@ import { GameMaster } from "../../game_core/master/game_master";
 import { Player, CharStat } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
-import { ActionHook } from "../../game_core/hook";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -129,27 +128,24 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     // 在任何牌被打出時更新戰力
     let destroy: () => void = null;
     if(need_upate) {
-        let hooks = new Array<ActionHook<any>>();
-        hooks.push(pm.card_play_chain.append(() => {
+        pm.card_play_chain.append(() => {
             return { after_effect: updateStr };
-        }));
-        hooks.push(pm.change_char_tired_chain.append(() => {
+        }, () => view != null);
+        pm.change_char_tired_chain.append(() => {
             return { after_effect: updateStr };
-        }));
-        hooks.push(pm.ability_chain.append(() => {
+        }, () => view != null);
+        pm.ability_chain.append(() => {
             return { after_effect: updateStr };
-        }));
-        hooks.push(gm.w_master.declare_war_chain.append(() => {
+        }, () => view != null);
+        gm.w_master.declare_war_chain.append(() => {
             return { after_effect: updateStr };
-        }));
-        hooks.push(gm.w_master.end_war_chain.append(() => {
+        }, () => view != null);
+        gm.w_master.end_war_chain.append(() => {
             return { after_effect: updateStr };
-        }));
+        }, () => view != null);
         destroy = () => {
-            for(let h of hooks) {
-                h.active_countdown = 0;
-            }
             view.destroy();
+            view = null;
         };
     }
 

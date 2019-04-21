@@ -62,14 +62,11 @@ abstract class KnownCard implements IKnownCard {
         } else {
             let hook = (() => {
                 if(append) {
-                    return chain.append(func);
+                    return chain.append(func, () => (this.card_status == CardStat.Onboard));
                 } else {
-                    return chain.dominant(func);
+                    return chain.dominant(func, () => (this.card_status == CardStat.Onboard));
                 }
             })();
-            this.card_leave_chain.append(() => {
-                hook.active_countdown = 0;
-            });
         }
     }
     addCheckWhileAlive<U>(append: boolean,
@@ -82,14 +79,11 @@ abstract class KnownCard implements IKnownCard {
         } else {
             let hook = (() => {
                 if(append) {
-                    return chain.appendCheck(func);
+                    return chain.appendCheck(func, () => (this.card_status == CardStat.Onboard));
                 } else {
-                    return chain.dominantCheck(func);
+                    return chain.dominantCheck(func, () => (this.card_status == CardStat.Onboard));
                 }
             })();
-            this.card_leave_chain.append(() => {
-                hook.active_countdown = 0;
-            });
         }
     }
     addActionWhileAlive<U>(append: boolean,
@@ -102,14 +96,11 @@ abstract class KnownCard implements IKnownCard {
         } else {
             let hook = (() => {
                 if(append) {
-                    return chain.append(func);
+                    return chain.append(func, () => (this.card_status == CardStat.Onboard));
                 } else {
-                    return chain.dominant(func);
+                    return chain.dominant(func, () => (this.card_status == CardStat.Onboard));
                 }
             })();
-            this.card_leave_chain.append(() => {
-                hook.active_countdown = 0;
-            });
         }
     }
 }

@@ -4,32 +4,27 @@ import { throwDevError } from "./errors";
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
 
 type GetterFunc<T, U>
-    = (var_arg: T, const_arg: U) => { var_arg?: T, break_chain?: boolean, was_passed?: boolean }|void;
+    = (var_arg: T, const_arg: U) => { var_arg?: T, break_chain?: boolean }|void;
 type GetterHook<T, U> = {
-    active_countdown: number, // 0代表無活性，-1代表永久
-    func: GetterFunc<T, U>
+    isActive: () => boolean;
+    func: GetterFunc<T, U>;
 };
 
 class GetterChain<T, U> {
     private list = new Array<GetterHook<T, U>>();
-    public append(func: GetterFunc<T, U>, active_countdown=-1) {
-        let h = { active_countdown, func };
+    public append(func: GetterFunc<T, U>, isActive=() => true) {
+        let h = { isActive, func };
         this.list.push(h);
-        return h;
     }
-    public dominant(func: GetterFunc<T, U>, active_countdown=-1) {
-        let h = { active_countdown, func };
+    public dominant(func: GetterFunc<T, U>, isActive=() => true) {
+        let h = { isActive, func };
         this.list = [h, ...this.list];
-        return h;
     }
     public triggerFullResult(var_arg: T, const_arg: U) {
         for(let hook of this.list) {
-            if(hook.active_countdown != 0) {
+            if(hook.isActive()) {
                 let result = hook.func(var_arg, const_arg);
-                if(result && !result.was_passed) {
-                    if(hook.active_countdown > 0) {
-                        hook.active_countdown--;
-                    }
+                if(result) {
                     if(typeof result.var_arg != "undefined") {
                         var_arg = result.var_arg;
                     }
@@ -61,12 +56,11 @@ type ActionResult = {
     intercept_effect?: boolean
     after_effect?: (() => void|Promise<void>)|Array<() => void|Promise<void>>,
     break_chain?: boolean,
-    was_passed?: boolean
 };
 type ActionFunc<U>
     = (const_arg: U) => void | ActionResult | Promise<ActionResult|void>
 type ActionHook<U> = {
-    active_countdown: number, // 0代表無活性，-1代表永久
+    isActive: () => boolean;
     func: ActionFunc<U>
 };
 
@@ -74,21 +68,19 @@ class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
     private check_chain = new GetterChain<boolean, U>();
 
-    public append(func: ActionFunc<U>, active_countdown=-1) {
-        let h = { func, active_countdown };
+    public append(func: ActionFunc<U>, isActive=() => true) {
+        let h = { func, isActive };
         this.action_list.push(h);
-        return h;
     }
-    public dominant(func: ActionFunc<U>, active_countdown=-1) {
-        let h = { func, active_countdown };
+    public dominant(func: ActionFunc<U>, isActive=() => true) {
+        let h = { func, isActive };
         this.action_list = [h, ...this.action_list];
-        return h;
     }
-    public appendCheck(func: GetterFunc<boolean, U>, active_countdown=-1) {
-        return this.check_chain.append(func, active_countdown);
+    public appendCheck(func: GetterFunc<boolean, U>, isActive=() => true) {
+        this.check_chain.append(func, isActive);
     }
-    public dominantCheck(func: GetterFunc<boolean, U>, active_countdown=-1) {
-        return this.check_chain.dominant(func, active_countdown);
+    public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true) {
+        this.check_chain.dominant(func, isActive);
     }
     private async triggerFullActionResult(const_arg: U): Promise<ActionResult> {
         if(this.by_keeper) {
@@ -100,14 +92,11 @@ class ActionChain<U> {
         let break_chain = false;
         let intercept_effect = false;
         for(let hook of this.action_list) {
-            if(hook.active_countdown != 0) {
+            if(hook.isActive()) {
                 let _result = hook.func(const_arg);
                 if(_result) {
                     let result = await Promise.resolve(_result);
-                    if(result && !result.was_passed) {
-                        if(hook.active_countdown > 0) {
-                            hook.active_countdown--;
-                        }
+                    if(result) {
                         if(result.after_effect) {
                             if(result.after_effect instanceof Array) {
                                 after_effect = [...after_effect, ...result.after_effect];
@@ -188,4 +177,4 @@ class ActionChain<U> {
     }
 }
 
-export { ActionChain, GetterChain, GetterFunc, ActionFunc, GetterHook, ActionHook };
+export { ActionChain, GetterChain, GetterFunc, ActionFunc };

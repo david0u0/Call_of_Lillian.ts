@@ -426,6 +426,7 @@ export class PlayerMaster {
                     }
                 });
                 await this.t_master.addActionPoint(-1);
+                return true;
             }
         }
         throwIfIsBackend("取消推進事件");
