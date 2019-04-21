@@ -23,9 +23,7 @@ export class BadOperationError {
 
 /** 這個錯誤不一定會影響遊戲進行，但可能代表了潛在的問題 */
 export function throwDevError(msg: string, obj_with_name?: any) {
-    if(process.env.MODE != "DEV") {
-        throw new BadOperationError(msg, obj_with_name);
-    }
+    throw new BadOperationError(msg, obj_with_name);
 }
 
 /** 如果是後端就噴錯誤，如果是前端就只是擋下UI */

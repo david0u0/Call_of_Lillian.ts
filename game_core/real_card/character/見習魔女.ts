@@ -22,5 +22,4 @@ export default class C extends Character {
         },
         can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit]
     }];
-    // TODO: 塞入角色行動
 }

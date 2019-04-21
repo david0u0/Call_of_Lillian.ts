@@ -21,10 +21,8 @@ export class GameMaster {
     constructor(public readonly selecter: ISelecter,
         private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
     ) {
-        this.p_master1 = new PlayerMaster(Player.Player1, this.t_master,
-            this.selecter, c => this.getMyMaster(c));
-        this.p_master2 = new PlayerMaster(Player.Player2, this.t_master,
-            this.selecter, c => this.getMyMaster(c));
+        this.p_master1 = new PlayerMaster(Player.Player1, this.t_master, c => this.getMyMaster(c));
+        this.p_master2 = new PlayerMaster(Player.Player2, this.t_master, c => this.getMyMaster(c));
         selecter.setCardTable(this.card_table);
     }
 

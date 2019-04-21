@@ -1,10 +1,10 @@
 import { Player } from "./enums";
-import { BadOperationError } from "./errors";
 import { Constant } from "./general_rules";
 import { GameMaster } from "./master/game_master";
 
 const basic_deck = [
     "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",
+    "工作狂小紅", "工作狂小紅", "工作狂小紅",
     "u_test0", "u_test0",
     "雨季的魔女．語霽", "雨季的魔女．語霽", "雨季的魔女．語霽",
     "迷糊工程師．八喵", "迷糊工程師．八喵", "迷糊工程師．八喵",

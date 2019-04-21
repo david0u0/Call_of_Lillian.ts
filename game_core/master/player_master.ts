@@ -1,8 +1,8 @@
 // NOTE: 所有的鏈在觸發時，先觸發卡片事件（特例），再觸發世界事件（通則）。
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
-import { Player, CardStat, BattleRole, CharStat, GamePhase } from "../enums";
-import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, ISelecter } from "../interface";
+import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability } from "../interface";
 import { ActionChain, GetterChain } from "../hook";
 import { throwIfIsBackend, BadOperationError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
@@ -49,7 +49,7 @@ export class PlayerMaster {
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
     constructor(public readonly player: Player, private t_master: TimeMaster,
-        private selecter: ISelecter, private getMaster: (card: ICard | Player)=> PlayerMaster
+        private getMaster: (card: ICard | Player)=> PlayerMaster
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
         soft_rules.checkPlay(this.card_play_chain, () => this.char_quota);
@@ -65,6 +65,15 @@ export class PlayerMaster {
         soft_rules.onEnter(this.enter_chain, (p, mana) => {
             this.getMaster(p).addMana(mana);
         });
+        this.exploit_chain.append(({ char }) => {
+            return {
+                after_effect: () => {
+                    if(TG.isCard(char)) {
+                        this.exitArena(char);
+                    }
+                }
+            };
+        }, undefined, RuleEnums.ExitAfterExploit);
         this.card_play_chain.appendCheck((b, card) => {
             if(card.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
                 // 如果現在不是能打該牌的階段，就不讓他打
@@ -244,7 +253,6 @@ export class PlayerMaster {
         }
     }
     async playCard(card: IKnownCard, by_keeper=false) {
-        this.selecter.clearMem();
         // 檢查
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
@@ -403,14 +411,14 @@ export class PlayerMaster {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
         }
-        let push_chain = new ActionChain<ICharacter | null>();
         let cost = this.getPushCost(char, event);
 
         if(HR.checkPush(event, char, this.mana, cost)) {
-            push_chain = event.push_chain.chain(this.push_chain, { event, char });
+            let push_chain = event.push_chain;
             if(TG.isCard(char)) {
-                push_chain.chain(char.push_chain, event);
+                push_chain = push_chain.chain(char.push_chain, event);
             }
+            push_chain = push_chain.chain(this.push_chain, { event, char });
             if(push_chain.checkCanTrigger(char)) {
                 await this.addMana(-cost);
                 if(char) {
@@ -492,18 +500,17 @@ export class PlayerMaster {
         // TODO: 這裡應該要有一條 pre-exploit 動作鏈
         let cost = this.getExploitCost(arena, char);
         if(HR.checkExploit(arena, char, this.mana, cost)) {
-            let exploit_chain = arena.exploit_chain
-            .chain(this.exploit_chain, { arena, char });
+            let exploit_chain = arena.exploit_chain;
             if(TG.isCard(char)) {
-                exploit_chain.chain(char.exploit_chain, arena);
+                exploit_chain = exploit_chain.chain(char.exploit_chain, arena);
             }
+            exploit_chain = exploit_chain.chain(this.exploit_chain, { arena, char });
             if(exploit_chain.checkCanTrigger(char)) {
                 await this.addMana(-cost);
                 await exploit_chain.byKeeper(by_keeper).trigger(char, async () => {
                     let caller = [];
                     if(TG.isCard(char)) {
                         caller.push(char);
-                        this.exitArena(char);
                     }
                     let income = await Promise.resolve(arena.onExploit(char));
                     if(income) {

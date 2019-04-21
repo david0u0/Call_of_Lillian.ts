@@ -84,7 +84,7 @@ export class ArenaArea {
             }
         }
     }
-    private setupArenaUI(obj: PIXI.DisplayObject, card: IArena) {
+    private setupArenaUI(obj: PIXI.Container, card: IArena) {
         obj.interactive = true;
         this.selecter.registerCardObj(card, obj);
         obj.on("click", () => {

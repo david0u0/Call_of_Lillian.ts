@@ -26,9 +26,11 @@ export enum GamePhase {
     InWar,
     EndWar, // 可以在這時執行某些特殊的瞬間行動
 
-    PreExploit,
     Exploit,
-    PostExploit,
 
     EndGame
 };
+
+export enum RuleEnums {
+    ExitAfterExploit
+}
