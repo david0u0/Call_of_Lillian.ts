@@ -2,7 +2,7 @@ import { IArena, ICharacter, ICard, ISelecter, TypeGaurd as TG } from "../interf
 import { Player, GamePhase, CharStat } from "../enums";
 import { TimeMaster } from "./time_master";
 import { BadOperationError, throwIfIsBackend } from "../errors";
-import { ActionChain, ActionFunc, GetterChain } from "../hook";
+import { ActionChain, ActionFunc, GetterChain, GetterFunc } from "../hook";
 import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
 
@@ -17,6 +17,8 @@ export class WarMaster {
     ) { };
 
     private _war_seq = 0;
+    /** 避免開戰後完全不攻擊就結束 */
+    private _attacked = false;
 
     private checkBasic(player: Player, char?: ICharacter, conflict_stat?: ConflictEnum) {
         if(char) {
@@ -79,11 +81,21 @@ export class WarMaster {
     public readonly set_block_chain
         = new ActionChain<null>();
 
-    public addActionForThisWar<U>(chain: ActionChain<U>, func: ActionFunc<U>) {
+    public addActionForThisWar<U>(append: boolean, chain: ActionChain<U>, func: ActionFunc<U>) {
         let war_seq = this._war_seq;
-        let hook = chain.append(func, () => {
-            return (war_seq == this._war_seq);
-        });
+        if(append) {
+            chain.append(func, () => (war_seq == this._war_seq));
+        } else {
+            chain.dominant(func, () => (war_seq == this._war_seq));
+        }
+    }
+    public addGetterForThisWar<T, U>(append: boolean, chain: GetterChain<T, U>, func: GetterFunc<T, U>) {
+        let war_seq = this._war_seq;
+        if(append) {
+            chain.append(func, () => (war_seq == this._war_seq));
+        } else {
+            chain.dominant(func, () => (war_seq == this._war_seq));
+        }
     }
     public inMainField(char?: ICharacter) {
         if(this.war_field) {
@@ -160,6 +172,7 @@ export class WarMaster {
         }
     }
     private setupWar() {
+        this._attacked = false;
         if(this.war_field) {
             for(let a of this.getAllWarFields(this.war_field)) {
                 for(let c of a.char_list) {
@@ -229,6 +242,7 @@ export class WarMaster {
         if(!this.checkCanAttack(atk_chars, target)) {
             throw new BadOperationError("不可攻擊");
         } else {
+            this._attacked = true;
             this._target = target;
             for(let ch of atk_chars) {
                 this._conflict_table[ch.seq] = target;
@@ -327,21 +341,27 @@ export class WarMaster {
             return (this.atk_win_count < this.def_win_count);
         }
     }
-    public async endWar() {
-        this.t_master.setWarPhase(GamePhase.EndWar);
-        // TODO: 讓玩家可以執行某些行動
-        await this.t_master.startTurn(this.atk_player);
-        // 所有參與的角色從疲勞中恢復，且角色狀態改回 InArena
-        for(let p of [Player.Player1, Player.Player2]) {
-            let pm = this.getMyMaster(p);
-            for(let c of pm.getAll(TG.isCharacter, c => c.char_status == CharStat.InWar)) {
-                c.char_status = CharStat.InArena;
-                await pm.changeCharTired(c, false);
+    public async endWar(by_keeper: boolean): Promise<boolean> {
+        if(!this._attacked) {
+            throwIfIsBackend("至少要攻擊一次才可停戰");
+            return false;
+        } else {
+            this.t_master.setWarPhase(GamePhase.EndWar);
+            // TODO: 讓玩家可以執行某些行動
+            await this.t_master.startTurn(this.atk_player);
+            // 所有參與的角色從疲勞中恢復，且角色狀態改回 InArena
+            for(let p of [Player.Player1, Player.Player2]) {
+                let pm = this.getMyMaster(p);
+                for(let c of pm.getAll(TG.isCharacter, c => c.char_status == CharStat.InWar)) {
+                    c.char_status = CharStat.InArena;
+                    await pm.changeCharTired(c, false);
+                }
             }
+            this.t_master.setWarPhase(GamePhase.InAction);
+            this._war_seq++; // 每次戰鬥的編號都會增加
+            await this.end_war_chain.byKeeper(by_keeper).trigger(null);
+            await this.t_master.addActionPoint(-1);
+            return true;
         }
-        this.t_master.setWarPhase(GamePhase.InAction);
-        this._war_seq++; // 每次戰鬥的編號都會增加
-        await this.end_war_chain.trigger(null);
-        await this.t_master.addActionPoint(-1);
     }
 }

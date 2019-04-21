@@ -107,7 +107,10 @@ export class FrontendWarMaste {
             }
             this.selectBlock();
         } else {
-            w_master.endWar();
+            let res = await w_master.endWar(true);
+            if(!res) {
+                this.selectAttack();
+            }
         }
     }
     private async selectBlock() {
