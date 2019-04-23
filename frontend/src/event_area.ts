@@ -24,8 +24,10 @@ export class EventArea {
         this.view.addChild(mask);
 
         let pm = gm.getMyMaster(player);
-        pm.add_event_chain.append(card => {
-            return { after_effect: () => this.addEvent(card) };
+        pm.add_card_chain.append(card => {
+            if(TypeGaurd.isEvent(card)) {
+                return { after_effect: () => this.addEvent(card) };
+            }
         });
 
         let score_icon = this.drawTotalScore(eh*2);

@@ -169,6 +169,8 @@ export class WarMaster {
                 this._atk_win_count = this._def_win_count = 0;
                 this.setupWar();
             });
+        } else {
+            throwIfIsBackend("取消宣戰");
         }
     }
     private setupWar() {

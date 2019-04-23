@@ -166,7 +166,8 @@ export default class FrontendSelecter implements ISelecter {
         caller: IKnownCard | IKnownCard[], guard: (c: ICard) => c is T,
         check: (card: T) => boolean
     ): Promise<T | null> {
-        throw "not implemented!";
+        // FIXME: 
+        return this.selectCard(player, caller, guard, check);
     }
 
     /**
@@ -207,7 +208,7 @@ export default class FrontendSelecter implements ISelecter {
             let pos = new Array<{ x: number, y: number }>();
             for(let c of cards) {
                 let obj = this.card_obj_table[c.seq];
-                if(obj) {
+                if(obj && obj.transform) { // 該物件已登記，且沒有被銷毀
                     let p = {
                         x: obj.worldTransform.tx + (obj.width)/2,
                         y: obj.worldTransform.ty,

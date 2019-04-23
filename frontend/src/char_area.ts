@@ -34,8 +34,10 @@ export class CharArea {
         this.view.addChild(dummy);
 
         // 向主持人註冊事件
-        this.gm.getMyMaster(player).add_char_chain.append(card => {
-            return { after_effect: () => this.addChar(card) };
+        this.gm.getMyMaster(player).add_card_chain.append(card => {
+            if(TypeGaurd.isCharacter(card)) {
+                return { after_effect: () => this.addChar(card) };
+            }
         });
     }
 

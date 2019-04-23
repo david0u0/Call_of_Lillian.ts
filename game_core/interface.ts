@@ -81,6 +81,7 @@ interface ISpell extends IKnownCard { };
 interface IUpgrade extends IKnownCard {
     readonly basic_strength: number;
     readonly character_equipped: ICharacter|null;
+    readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
 }
 interface ICharacter extends IKnownCard {
     readonly basic_strength: number;
@@ -91,9 +92,6 @@ interface ICharacter extends IKnownCard {
     is_tired: boolean;
     
     readonly assault: boolean;
-
-    readonly has_char_action: boolean;
-    charAction(): void;
 
     readonly change_char_tired_chain: ActionChain<boolean>;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
@@ -111,8 +109,8 @@ interface ICharacter extends IKnownCard {
     readonly finish_chain: ActionChain<IEvent>;
 
     /** 不可覆寫！ */
-    addUpgrade(upgrade: IUpgrade): void;
-    distroyUpgrade(u: IUpgrade): void;
+    setUpgrade(upgrade: IUpgrade): void;
+    unsetUpgrade(u: IUpgrade): void;
 }
 
 interface IArena extends IKnownCard {
@@ -217,6 +215,7 @@ interface ISelecter {
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     setCardTable(table: { [index: number]: ICard }): void;
     clearMem(): void;
+    cancelUI(msg: string): ISelecter;
 }
 
 export {

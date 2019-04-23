@@ -80,7 +80,7 @@ export function drawUpgradeCount(gm: GameMaster, card: ICharacter, size: number)
             view.visible = false;
         }
     };
-    gm.getMyMaster(card).card_play_chain.append(() => {
+    gm.getMyMaster(card).add_card_chain.append(() => {
         return { after_effect: updateTxt };
     });
     updateTxt();
@@ -109,12 +109,7 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     s_txt.position.set(s_width / 2, s_height / 2);
     view.addChild(s_txt);
     let updateStr = () => {
-        let str = 0;
-        if(TypeGaurd.isCharacter(card)) {
-            str = pm.getStrength(card);
-        } else {
-            str = card.basic_strength;
-        }
+        let str = pm.getStrength(card);
         if(str != card.basic_strength) {
             s_txt.style.fill = 0x0f70d2;
         }
@@ -125,6 +120,9 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     let destroy: () => void = null;
     if(need_upate) {
         pm.card_play_chain.append(() => {
+            return { after_effect: updateStr };
+        }, () => view != null);
+        pm.add_card_chain.append(() => {
             return { after_effect: updateStr };
         }, () => view != null);
         pm.change_char_tired_chain.append(() => {
@@ -363,7 +361,7 @@ export class CharUI {
         this.view.addChild(s_area.view);
     }
     highlight() {
-
+        
     }
     setOnclick(func: (evt: PIXI.interaction.InteractionEvent) => void) {
         this._onclick = func;

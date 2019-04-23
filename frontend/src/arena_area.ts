@@ -38,8 +38,10 @@ export class ArenaArea {
                 return { after_effect: async () => await this.enterChar(arena, char) };
             }
         });
-        gm.getMyMaster(player).add_arena_chain.append(card => {
-            return { after_effect: () => this.addArena(card) };
+        gm.getMyMaster(player).add_card_chain.append(card => {
+            if(TG.isArena(card)) {
+                return { after_effect: () => this.addArena(card) };
+            }
         });
     }
     addArena(card: IArena | IArena[]) {

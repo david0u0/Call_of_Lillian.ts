@@ -54,7 +54,7 @@ export class GameMaster {
             arena.card_status = CardStat.Onboard;
             await this.getMyMaster(owner).addCard(arena);
             arena.position = pos;
-            await this.getMyMaster(owner).dangerouslyGenToBoard(arena);
+            await this.getMyMaster(owner).dangerouslySetToBoard(arena);
             return arena;
         } else {
             throw new BadOperationError("嘗試將非場所卡加入建築區");
@@ -65,7 +65,7 @@ export class GameMaster {
         if(TG.isCharacter(char)) {
             char.card_status = CardStat.Onboard;
             await this.getMyMaster(owner).addCard(char);
-            await this.getMyMaster(owner).dangerouslyGenToBoard(char);
+            await this.getMyMaster(owner).dangerouslySetToBoard(char);
             await this.getMyMaster(owner).changeCharTired(char, true);
             return char;
         } else {

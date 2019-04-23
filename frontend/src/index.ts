@@ -22,7 +22,7 @@ import { FrontendWarMaste } from "./frontend_war_master";
 let app = new PIXI.Application(getWinSize());
 
 PIXI.loader
-.add("background", require("../assets/background.jpg"))
+.add("background", require("../assets/background.png"))
 .add("card_back", require("../assets/card_back.png"))
 .add("avatar", require("../assets/avatar.jpg"))
 .add("incite", require("../assets/incite.png"))
@@ -45,6 +45,8 @@ async function setup() {
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
+    let ratio = width / bg.width; 
+    bg.scale.set(ratio);
 
     app.stage.addChild(bg);
     app.stage.addChild(selecter.cancel_view);

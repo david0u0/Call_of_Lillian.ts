@@ -120,6 +120,8 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public abstract readonly basic_strength: number;
     public character_equipped: ICharacter | null = null;
     public readonly instance = true; // 升級卡不會暫用時間
+    
+    public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
 
     private mem_character_equipped: ICharacter | null = this.character_equipped;
 
@@ -159,9 +161,6 @@ abstract class Character extends KnownCard implements ICharacter {
     public way_worn = false;
     public assault = false;
 
-    public has_char_action = false;
-    public charAction() { }
-
     public readonly change_char_tired_chain = new ActionChain<boolean>();
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
@@ -178,10 +177,10 @@ abstract class Character extends KnownCard implements ICharacter {
     public readonly push_chain = new ActionChain<IEvent>();
     public readonly finish_chain = new ActionChain<IEvent>();
 
-    addUpgrade(u: IUpgrade) {
+    setUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
     }
-    distroyUpgrade(u: IUpgrade) {
+    unsetUpgrade(u: IUpgrade) {
         let i = 0;
         let list = this._upgrade_list;
         for(i = 0; i < list.length; i++) {

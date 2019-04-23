@@ -2,7 +2,7 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
-import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability } from "../interface";
+import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, IUpgrade } from "../interface";
 import { ActionChain, GetterChain } from "../hook";
 import { throwIfIsBackend, BadOperationError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
@@ -156,7 +156,7 @@ export class PlayerMaster {
     public finish_chain = new ActionChain<{ char: ICharacter|null, event: IEvent }>();
 
     public get_strength_chain
-        = new GetterChain<number, { char: ICharacter, enemy?: ICharacter }>();
+        = new GetterChain<number, { card: ICharacter|IUpgrade, enemy?: ICharacter }>();
     public get_inconflict_strength_chain
         = new GetterChain<number, { me: ICharacter, enemy: ICharacter }>();
     public get_mana_cost_chain
@@ -219,15 +219,17 @@ export class PlayerMaster {
         return this.events_finished.reduce((sum, e) => sum + e.score, 0);
     }
 
-    getStrength(char: ICharacter, enemy?: ICharacter) {
-        if(char.char_status == CharStat.InWar && char.is_tired) {
-            return 0;
+    getStrength(card: ICharacter|IUpgrade, enemy?: ICharacter) {
+        let strength = card.basic_strength;
+        if(TG.isCharacter(card)) {
+            if(card.char_status == CharStat.InWar && card.is_tired) {
+                return 0;
+            }
+            for(let u of card.upgrade_list) {
+                strength += this.getStrength(u);
+            }
         }
-        let strength = char.basic_strength;
-        for(let u of char.upgrade_list) {
-            strength += u.basic_strength;
-        }
-        return char.get_strength_chain.chain(this.get_strength_chain, { char, enemy })
+        return card.get_strength_chain.chain(this.get_strength_chain, { card, enemy })
         .trigger(strength, enemy);
     }
 
@@ -267,9 +269,8 @@ export class PlayerMaster {
         // 實際行動
         await card.card_play_chain.chain(this.card_play_chain, card).byKeeper(by_keeper)
         .trigger(null, async () => {
-            card.card_status = CardStat.Onboard;
             await Promise.resolve(card.onPlay());
-            await this.dangerouslyGenToBoard(card);
+            await this.dangerouslySetToBoard(card);
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -280,26 +281,27 @@ export class PlayerMaster {
         }
     }
     /** 會跳過大多數的檢查、設置、代價與行動鏈 */
-    public async dangerouslyGenToBoard(card: IKnownCard) {
-        await Promise.resolve(card.setupAliveeEffect());
-        if(TG.isUpgrade(card)) {
-            // 把這件升級加入角色的裝備欄
-            if(card.character_equipped) {
-                card.character_equipped.addUpgrade(card);
-            }
-        } else if(TG.isCharacter(card)) {
-            await this.addCharacter(card);
-        } else if(TG.isArena(card)) {
-            // 打出場所的規則（把之前的建築拆了）
-            for(let a of this.arenas) {
-                if(!a.isEqual(card) && a.position == card.position) {
-                    await this.retireCard(a);
+    public readonly add_card_chain = new ActionChain<IKnownCard>();
+    public async dangerouslySetToBoard(card: IKnownCard) {
+        await this.add_card_chain.trigger(card, async () => {
+            if(TG.isUpgrade(card)) {
+                // 把這件升級加入角色的裝備欄
+                if(card.character_equipped) {
+                    card.character_equipped.setUpgrade(card);
+                }
+            } else if(TG.isArena(card)) {
+                // 打出場所的規則（把之前的建築拆了）
+                for(let a of this.arenas) {
+                    if(!a.isEqual(card) && a.position == card.position) {
+                        await this.retireCard(a);
+                    }
                 }
             }
-            await this.addArena(card, card.position);
-        } else if(TG.isEvent(card)) {
-            await this.addEvent(card);
-        }
+            if(card.card_status != CardStat.Onboard) {
+                card.card_status = CardStat.Onboard;
+                await Promise.resolve(card.setupAliveeEffect());
+            }
+        });
     }
 
     async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false) {
@@ -358,19 +360,6 @@ export class PlayerMaster {
     async exileCard(card: IKnownCard) {
         await this._leaveCard(card);
         card.card_status = CardStat.Exile;
-    }
-
-    public readonly add_char_chain = new ActionChain<ICharacter>();
-    private async addCharacter(char: ICharacter) {
-        await this.add_char_chain.trigger(char);
-    }
-    public readonly add_event_chain = new ActionChain<IEvent>();
-    private async addEvent(event: IEvent) {
-        await this.add_event_chain.trigger(event);
-    }
-    public readonly add_arena_chain = new ActionChain<IArena>();
-    private async addArena(card: IArena, position: number) {
-        await this.add_arena_chain.trigger(card);
     }
 
     // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況

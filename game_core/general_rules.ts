@@ -54,7 +54,7 @@ export class SoftRule {
         getStrength: (c: ICharacter) => number
     ) {
         get_battle_role_chain.append((role, char) => {
-            if(getStrength(char) == 0) {
+            if(getStrength(char) <= 0) {
                 return { var_arg: { ...role, can_attack: false, can_block: false } };
             }
         });
@@ -273,7 +273,7 @@ export class HardRule {
     private static onLeaveUpgrade(u: IUpgrade) {
         if(u.character_equipped) {
             // 升級卡離場時，通知角色修改裝備欄
-            u.character_equipped.distroyUpgrade(u);
+            u.character_equipped.unsetUpgrade(u);
         }
     }
     private static onLeaveCharacter(c: ICharacter, retireCard: (c: IKnownCard) => void) {
