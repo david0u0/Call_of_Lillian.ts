@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build_card": "node build_card_generator.js", 
+    "build_card": "node build_card_generator.js",
     "watch": "parcel watch static/index.html"
   },
   "author": "",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@babel/runtime-corejs2": "^7.4.2",
+    "pixi-filters": "^2.7.1",
     "pixi.js": "^4.8.7"
   }
 }

@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 
 import { GameMaster } from "../../game_core/master/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
-import { getEltSize, getWinSize } from "./get_screen_size";
+import { getEltSize, getWinSize } from "./get_constant";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";

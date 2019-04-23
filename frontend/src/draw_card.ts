@@ -6,6 +6,7 @@ import { GameMaster } from "../../game_core/master/game_master";
 import { Player, CharStat } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
+import { getPlayerColor } from "./get_constant";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -93,13 +94,8 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     let view = new PIXI.Container();
 
     let s_area = new PIXI.Graphics();
-    if(pm.player == Player.Player1) {
-        s_area.lineStyle(2, 0x48e0cf);
-        s_area.beginFill(0xdefdf9, 2);
-    } else {
-        s_area.lineStyle(2, 0xf86390);
-        s_area.beginFill(0xfcb6cb, 2);
-    }
+    s_area.lineStyle(2, getPlayerColor(pm.player, true));
+    s_area.beginFill(getPlayerColor(pm.player, false), 2);
     s_area.drawRoundedRect(0, 0, s_width, s_height, s_height/2);
     //s_area.drawEllipse(s_width/2, s_height/2, s_width/2, s_height/2);
     s_area.endFill();
@@ -341,19 +337,28 @@ export class CharUI {
         });
         this.view.addChild(tired_mask);
         // 角色行動或能力
+        let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
+        icon.height = icon.width = img.height / 3;
+        icon.anchor.set(0.5, 0.5);
+        icon.interactive = true;
+        icon.cursor = "pointer";
+        icon.on("click", async evt => {
+            evt.stopPropagation();
+            if(gm.t_master.cur_player == char.owner) {
+                let a_index = 0;
+                if(char.abilities.length != 1) {
+                    let txt = char.abilities.map(a => a.description);
+                    a_index = await gm.selecter.selectText(char.owner, char, txt);
+                }
+                await gm.getMyMaster(char).triggerAbility(char, a_index, true);
+            }
+        });
+        this.view.addChild(icon);
         if(char.abilities.length != 0) {
-            let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
-            icon.height = icon.width = img.height / 3;
-            icon.anchor.set(0.5, 0.5);
-            icon.interactive = true;
-            icon.cursor = "pointer";
-            icon.on("click", async evt => {
-                evt.stopPropagation();
-                // TODO: 支援多個角色行動
-                await gm.getMyMaster(char).triggerAbility(char, 0, true);
-            });
-            this.view.addChild(icon);
+            icon.visible = true;
         }
+        // TODO: 即時更新 icon 的 visibile
+
         this.view.addChild(upgrade_area);
         this.view.addChild(s_area.view);
     }

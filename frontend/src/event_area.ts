@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { getEltSize } from "./get_screen_size";
+import { getEltSize } from "./get_constant";
 import { drawCard, drawCardFace } from "./draw_card";
 import { my_loader } from "./card_loader";
 import { Player } from "../../game_core/enums";

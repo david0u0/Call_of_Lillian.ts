@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { ICard, TypeGaurd } from "../../game_core/interface";
-import { getEltSize, getWinSize } from "./get_screen_size";
+import { getEltSize, getWinSize } from "./get_constant";
 import { drawCard, getCardSize } from "./draw_card";
 import { GameMaster } from "../../game_core/master/game_master";
 

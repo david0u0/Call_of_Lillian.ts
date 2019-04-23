@@ -1,6 +1,6 @@
 import { IArena, ICharacter, TypeGaurd as TG } from "../../game_core/interface";
 import * as PIXI from "pixi.js";
-import { getEltSize } from "./get_screen_size";
+import { getEltSize } from "./get_constant";
 import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount, CharUI } from "./draw_card";
 
 import { Player, GamePhase } from "../../game_core/enums";

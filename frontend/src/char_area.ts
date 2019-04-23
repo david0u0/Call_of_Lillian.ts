@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { getEltSize } from "./get_screen_size";
+import { getEltSize } from "./get_constant";
 import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";

@@ -4,7 +4,7 @@ import { GameMaster } from "../../game_core/master/game_master";
 import { Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
 
-import { getWinSize, getEltSize } from "./get_screen_size";
+import { getWinSize, getEltSize } from "./get_constant";
 import { constructHandUI } from "./hand_cards";
 import { drawPlayerArea } from "./player_area";
 

@@ -28,7 +28,16 @@ abstract class KnownCard implements IKnownCard {
     public readonly my_master: PlayerMaster;
     public readonly enemy_master: PlayerMaster;
 
-    public readonly abilities = new Array<Ability>();
+    protected _abilities = new Array<Ability>();
+    public get abilities() {
+        let a = [...this._abilities];
+        if(TypeGaurd.isCharacter(this)) {
+            for(let upgrade of this.upgrade_list) {
+                a = [...a, ...upgrade.abilities];
+            }
+        }
+        return a;
+    }
 
     public async initialize() { return true; }
     public onPlay() { }

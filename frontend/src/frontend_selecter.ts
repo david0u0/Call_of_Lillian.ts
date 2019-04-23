@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { IKnownCard, ISelecter, ICard } from "../../game_core/interface";
-import { getWinSize, getEltSize } from "./get_screen_size";
+import { getWinSize, getEltSize } from "./get_constant";
 import { BadOperationError } from "../../game_core/errors";
 import { Player } from "../../game_core/enums";
 

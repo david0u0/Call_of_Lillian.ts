@@ -1,5 +1,7 @@
 import * as PIXI from "pixi.js";
-import { getEltSize } from "./get_screen_size";
+import * as Filters from "pixi-filters";
+
+import { getEltSize, getPlayerColor } from "./get_constant";
 import { Player, CardStat } from "../../game_core/enums";
 import FS from "./frontend_selecter";
 import { TypeGaurd, IArena } from "../../game_core/interface";
@@ -65,18 +67,17 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
     container.addChild(emo_label_txt);
     container.addChild(emo_txt);
 
-    let round_txt = new PIXI.Text("輪到你囉^Q^", labelStyle(0.15 * height));
-    round_txt.anchor.set(1, 1);
-    round_txt.x = width;
-    round_txt.alpha = 0;
-    container.addChild(round_txt);
+    let filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(pm.player, true), 0.5);
+    avatar.filters = [filter];
     gm.t_master.start_turn_chain.append(({ prev, next }) => {
         return {
             after_effect: () => {
                 if(next == pm.player) {
-                    round_txt.alpha = 1;
+                    avatar.alpha = 1;
+                    filter.enabled = true;
                 } else {
-                    round_txt.alpha = 0;
+                    avatar.alpha = 0.6;
+                    filter.enabled = false;
                 }
             }
         };
@@ -102,7 +103,6 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
         mana_txt.position.set(0.2 * width, 0.6 * height + mana_label_txt.height);
         emo_label_txt.position.set(0.8 * width, 0.6 * height);
         emo_txt.position.set(0.8 * width, 0.6 * height + mana_label_txt.height);
-        round_txt.position.set(width, height);
         rest_txt.position.set(width, height);
     }
 
