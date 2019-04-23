@@ -108,4 +108,8 @@ export class GameMaster {
     async playCard(card: IKnownCard, by_keeper=false) {
         this.getMyMaster(card).playCard(card, by_keeper);
     }
+    async exposeCard(card: ICard): Promise<IKnownCard> {
+        // FIXME: 前後端溝通
+        return card as IKnownCard;
+    }
 }

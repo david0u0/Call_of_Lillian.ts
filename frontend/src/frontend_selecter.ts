@@ -71,7 +71,6 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     private endSelect(arg?: CardLike) {
-        this.view.removeAllListeners();
         this._selecting = false;
         for(let line of this.lines) {
             line.destroy();
@@ -79,9 +78,11 @@ export default class FrontendSelecter implements ISelecter {
         this.lines = [];
         this.cancel_btn.visible = false;
         this.show_cancel_ui = null;
-
-        for(let func of this.cleanup) {
-            func();
+        if(!this._freeze) {
+            for(let func of this.cleanup) {
+                func();
+            }
+            this.cleanup = [];
         }
         if(this.resolve_card) {
             this.resolve_card(arg);
@@ -123,9 +124,8 @@ export default class FrontendSelecter implements ISelecter {
                 option_txt.cursor = "pointer";
                 option_txt.on("click", () => {
                     tmp_view.destroy();
-                    this.endSelect();
+                    this.endSelect(i);
                     resolve(i);
-                    this._mem.push(i);
                 });
                 option_txt.position.set(pos.x, pos.y+i*eh*1.5);
                 tmp_view.addChild(option_txt);
@@ -193,7 +193,9 @@ export default class FrontendSelecter implements ISelecter {
         if(this.resolve_card && this.selecting) {
             if(this.filter_func(card)) {
                 this.endSelect(card);
-                this._mem.push(card.seq);
+                if(this._freeze) {
+                    this.startSelect(card);
+                }
                 return true;
             } else {
                 // this.resolve_card(null);
@@ -221,7 +223,6 @@ export default class FrontendSelecter implements ISelecter {
 
     private async startSelect(cards: IKnownCard[] | IKnownCard): Promise<{ x: number, y: number }[]> {
         if(cards instanceof Array) {
-            this.cleanup = [];
             let pos = new Array<{ x: number, y: number }>();
             for(let c of cards) {
                 let func = this.start_select_talbe[c.seq];
@@ -243,7 +244,7 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     private show_cancel_ui: string | null = null;
-    public cancelUI(cancel_msg: string) {
+    public cancelUI(cancel_msg="略過") {
         this.show_cancel_ui = cancel_msg;
         return this;
     }
@@ -251,6 +252,13 @@ export default class FrontendSelecter implements ISelecter {
         if(this.show_cancel_ui) {
             this.cancel_txt.text = this.show_cancel_ui;
             this.cancel_btn.visible = true;
+        }
+    }
+    private _freeze = false;
+    public freeze(should_freeze=true) {
+        this._freeze = should_freeze;
+        if(!should_freeze) {
+            this.endSelect();
         }
     }
 }

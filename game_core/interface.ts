@@ -7,6 +7,7 @@ interface ICard {
     readonly seq: number;
     readonly owner: Player;
     card_status: CardStat;
+    isEqual(card: ICard|null): boolean;
 }
 
 type Ability = {
@@ -35,8 +36,6 @@ interface IKnownCard extends ICard {
     readonly card_retire_chain: ActionChain<null>;
 
     readonly abilities: Array<Ability>;
-
-    isEqual(card: IKnownCard|null): boolean;
 
     /**
      * 在打牌之前執行，內部會呼叫選擇器，將該設置的變數設起來。
@@ -170,6 +169,9 @@ interface ISpell extends IKnownCard {
 }
 
 const TypeGaurd = {
+    isUnknown: function (c: ICard): c is UnknownCard {
+        return c.card_type == CardType.Unknown;
+    },
     isKnown: function(c: ICard): c is IKnownCard {
         return c.card_type != CardType.Unknown;
     },
@@ -201,6 +203,13 @@ class UnknownCard implements ICard {
     public readonly card_type = CardType.Unknown;
     public card_status = CardStat.Deck;
     constructor(public readonly seq: number, public readonly owner: Player) { }
+    isEqual(card: ICard|null) {
+        if(card) {
+            return this.seq == card.seq;
+        } else {
+            return false;
+        }
+    }
 }
 
 
@@ -210,13 +219,13 @@ interface ISelecter {
         guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
     selectCardInteractive<T extends ICard>(player: Player,
-        caller: IKnownCard|IKnownCard[]|null,
+        caller: ICard|ICard[]|null,
         guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     setCardTable(table: { [index: number]: ICard }): void;
-    clearMem(): void;
-    cancelUI(msg: string): ISelecter;
+    freeze(should_freeze?: boolean): void;
+    cancelUI(msg?: string): ISelecter;
 }
 
 export {

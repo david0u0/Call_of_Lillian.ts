@@ -74,8 +74,8 @@ export class WarMaster {
         = this.acf.new<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
     public readonly after_conflict_chain
         = this.acf.new<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
-    public readonly repluse_chain
-        = this.acf.new<{ loser: ICharacter, winner?: ICharacter }>();
+    public readonly repulse_chain
+        = this.acf.new<{ loser: ICharacter, winner: ICharacter[] }>();
     public readonly end_war_chain = this.acf.new<null>();
 
     public readonly start_attack_chain
@@ -308,21 +308,20 @@ export class WarMaster {
         if(res) {
             // TODO: 應該由防守方來決定 atk_chars 的順序
             let tar_strength = this.getMyMaster(def).getStrength(def);
+            let atk_strength = 0;
             for(let atk of atk_chars) {
-                let atk_strength = this.getMyMaster(atk).getStrength(atk, def);
-                if(atk_strength < tar_strength) {
-                    await this.repulseChar(atk, def);
-                    tar_strength -= atk_strength;
-                    this._def_win_count++;
-                } else if(atk_strength > tar_strength) {
-                    await this.repulseChar(def, atk);
-                    this._atk_win_count++;
-                    break;
-                } else {
-                    await this.repulseChar(atk);
-                    await this.repulseChar(def);
-                    break;
-                }
+                atk_strength += this.getMyMaster(atk).getStrength(atk, def);
+            }
+            if(atk_strength < tar_strength) {
+                await this.repulseChar(atk_chars, [def]);
+                tar_strength -= atk_strength;
+                this._def_win_count++;
+            } else if(atk_strength > tar_strength) {
+                await this.repulseChar(def, atk_chars);
+                this._atk_win_count++;
+            } else {
+                await this.repulseChar(atk_chars);
+                await this.repulseChar(def);
             }
         }
         await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, async () => {
@@ -333,10 +332,16 @@ export class WarMaster {
             }
         });
     }
-    public async repulseChar(loser: ICharacter, winner?: ICharacter) {
-        await this.repluse_chain.trigger({ loser, winner }, async () => {
-            await this.getMyMaster(loser).exitArena(loser);
-        });
+    public async repulseChar(loser: ICharacter|ICharacter[], winner: ICharacter[]=[]) {
+        if(loser instanceof Array) {
+            for(let char of loser) {
+                await this.repulseChar(char);
+            }
+        } else {
+            await this.repulse_chain.trigger({ loser, winner }, async () => {
+                await this.getMyMaster(loser).exitArena(loser);
+            });
+        }
     }
     public isWinner(player: Player) {
         if(player == this.atk_player) {
