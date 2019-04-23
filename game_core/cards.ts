@@ -283,6 +283,8 @@ abstract class Event extends KnownCard implements IEvent {
     public get cur_time_count() { return this.init_time_count - this._time_count_upward; }
     public readonly push_cost = C.PUSH_COST;
 
+    public is_finished = false;
+
     public readonly push_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
         let chain = new ActionChain<ICharacter|null>();

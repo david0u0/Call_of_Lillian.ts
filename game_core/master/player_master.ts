@@ -45,7 +45,7 @@ export class PlayerMaster {
         return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard);
     }
     public get events_finished() {
-        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Finished);
+        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard && c.is_finished);
     }
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
@@ -69,9 +69,9 @@ export class PlayerMaster {
         });
         this.exploit_chain.append(({ char }) => {
             return {
-                after_effect: () => {
+                after_effect: async () => {
                     if(TG.isCard(char)) {
-                        this.exitArena(char);
+                        await this.exitArena(char);
                     }
                 }
             };
@@ -92,10 +92,10 @@ export class PlayerMaster {
         t_master.start_building_chain.append(async () => {
             // 所有角色解除疲勞並離開場所
             for(let char of this.characters) {
-                await this.changeCharTired(char, false);
                 if(char.arena_entered) {
                     await this.exitArena(char);
                 }
+                await this.changeCharTired(char, false);
             }
             // 所有事件倒數減1
             for(let event of this.events_ongoing) {
@@ -311,7 +311,7 @@ export class PlayerMaster {
     async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false) {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合使用能力？");
-        } else if(card.card_status != CardStat.Onboard && card.card_status != CardStat.Finished) {
+        } else if(card.card_status != CardStat.Onboard) {
             throw new BadOperationError("卡牌不在場上還想使用能力？");
         }
         let ability = card.abilities[a_index];
@@ -341,10 +341,20 @@ export class PlayerMaster {
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
-        if(TG.isCharacter(card) && card.arena_entered) {
-            await this.exitArena(card);
+        if(TG.isCharacter(card)) {
+            if(card.arena_entered) {
+                await this.exitArena(card);
+            }
+            // 銷毀所有升級
+            for(let u of card.upgrade_list) {
+                await this.retireCard(u);
+            }
+        } else if(TG.isUpgrade(card)) {
+            if(card.character_equipped) {
+                // 升級卡離場時，通知角色修改裝備欄
+                card.character_equipped.unsetUpgrade(card);
+            }
         }
-        HR.onLeave(card, this.retireCard.bind(this));
         await card.card_leave_chain.trigger(null);
     }
     async retireCard(card: IKnownCard) {
@@ -385,7 +395,7 @@ export class PlayerMaster {
         // 應該不太需要 checkCanTrigger 啦 @@
         await event.finish_chain.chain(this.finish_chain, { event, char })
         .trigger(char, async () => {
-            event.card_status = CardStat.Finished;
+            event.is_finished = true;
             this._leaveCard(event);
             await Promise.resolve(event.onFinish(char));
             await Promise.resolve(event.setupFinishEffect(char));
@@ -518,7 +528,7 @@ export class PlayerMaster {
         let _arena = char.arena_entered;
         if(_arena) {
             let arena = _arena;
-            this.exit_chain.trigger({ char, arena }, async () => {
+            await this.exit_chain.trigger({ char, arena }, async () => {
                 char.char_status = CharStat.StandBy;
                 char.arena_entered = null;
                 arena.exit(char);

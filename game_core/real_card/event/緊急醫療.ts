@@ -15,7 +15,7 @@ export default class E extends Event implements IEvent {
     readonly goal_progress_count = 3;
     readonly init_time_count = 2;
 
-    basic_mana_cost = 4;
+    basic_mana_cost = 3;
 
     checkCanPush(_char: ICharacter|null) {
         let list = this.g_master.getAll(TG.isCharacter, char => {
@@ -43,7 +43,9 @@ export default class E extends Event implements IEvent {
     onFinish() { }
 
     setupFinishEffect() {
+        alert(888)
         this.addActionWhileAlive(true, this.g_master.t_master.start_exploit_chain, () => {
+            alert(123)
             this.my_master.addMana(2, [this]);
         });
     }

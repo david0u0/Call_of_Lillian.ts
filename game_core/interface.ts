@@ -142,6 +142,7 @@ interface IEvent extends IKnownCard {
     readonly push_cost: number;
     readonly score: number;
     readonly is_ending: boolean;
+    is_finished: boolean;
 
     readonly get_push_cost_chain:  GetterChain<number, ICharacter|null>
     readonly push_chain: ActionChain<ICharacter|null>

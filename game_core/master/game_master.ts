@@ -64,7 +64,6 @@ export class GameMaster {
     async genCharToBoard(owner: Player, name: string): Promise<ICharacter> {
         let char = this.genCard(owner, name);
         if(TG.isCharacter(char)) {
-            char.card_status = CardStat.Onboard;
             await this.getMyMaster(owner).addCard(char);
             await this.getMyMaster(owner).dangerouslySetToBoard(char);
             await this.getMyMaster(owner).changeCharTired(char, true);

@@ -4,7 +4,7 @@ import { TypeGaurd } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "九世軍魂";
-let description = `當本裝備被銷毀時，可以改為將其裝備至任意角色，並使本裝備戰力+2。
+let description = `每世代開始時，本裝備的戰力增加1。當本裝備即將被銷毀，可以改為將其裝備至任意角色。
 裝備者獲得角色行動：銷毀*九世軍魂*。`;
 
 export default class U extends Upgrade {
@@ -40,6 +40,9 @@ export default class U extends Upgrade {
         this.get_strength_chain.append(str => {
             return { var_arg: str + this.modifier };
         });
+        this.g_master.t_master.start_building_chain.append(() => {
+            this.modifier += 1;
+        });
         this.card_retire_chain.append(async () => {
             if(this.character_equipped) {
                 let new_char = await this.g_master.selecter
@@ -48,7 +51,6 @@ export default class U extends Upgrade {
                     return char.owner == this.owner && char.card_status == CardStat.Onboard;
                 });
                 if(new_char) {
-                    this.modifier += 2;
                     // 把自己附到別人身上，然後打斷這條退場鏈
                     this.character_equipped.unsetUpgrade(this);
                     this.character_equipped = new_char;

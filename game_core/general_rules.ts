@@ -187,13 +187,6 @@ export class HardRule {
 
         return true;
     }
-    public static onLeave(card: IKnownCard, retireCard: (c: IKnownCard) => void) {
-        if(TG.isUpgrade(card)) {
-            HardRule.onLeaveUpgrade(card);
-        } else if(TG.isCharacter(card)) {
-            HardRule.onLeaveCharacter(card, retireCard);
-        }
-    }
     public static checkEnter(char: ICharacter, arena: IArena, mana: number, cost: number): boolean {
         if(char.card_status != CardStat.Onboard) {
             throw new BadOperationError("欲進入場所的角色不在場上");
@@ -269,19 +262,5 @@ export class HardRule {
         } else {
             return true;
         }
-    }
-    private static onLeaveUpgrade(u: IUpgrade) {
-        if(u.character_equipped) {
-            // 升級卡離場時，通知角色修改裝備欄
-            u.character_equipped.unsetUpgrade(u);
-        }
-    }
-    private static onLeaveCharacter(c: ICharacter, retireCard: (c: IKnownCard) => void) {
-        // 銷毀所有裝備
-        for(let u of c.upgrade_list) {
-            retireCard(u);
-        }
-        // TODO: 通知場所更新角色列表
-
     }
 }
