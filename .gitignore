@@ -9,5 +9,6 @@
 *.gif
 
 **/generate_card.ts
+**/assets/
 
 *.swp
