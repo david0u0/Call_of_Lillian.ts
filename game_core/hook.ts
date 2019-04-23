@@ -46,7 +46,7 @@ class GetterChain<T, U> {
         let h = { isActive, func, id };
         this.list = [h, ...this.list];
     }
-    private triggerFullResult(var_arg: T, const_arg: U) {
+    public triggerFullResult(var_arg: T, const_arg: U) {
         let break_chain = false;
         let mask_id: { [id: number]: boolean } = {};
         for(let hook of this.list) {
@@ -113,7 +113,7 @@ class ActionChain<U> {
     public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.dominant(func, isActive, id);
     }
-    private async triggerFullActionResult(const_arg: U): Promise<ActionResult> {
+    public async triggerFullResult(const_arg: U): Promise<ActionResult> {
         if(this.by_keeper) {
             this.keeperCallback(const_arg);
         }
@@ -168,7 +168,7 @@ class ActionChain<U> {
      * 為什麼不先推進完再使角色疲勞？因為我希望 after_effect 是整個事件中最後執行的東西。
      */
     public async trigger(const_arg: U, callback?: CallBack, cleanup?: CallBack) {
-        let res = await (this.triggerFullActionResult(const_arg));
+        let res = await (this.triggerFullResult(const_arg));
         if(res.intercept_effect) {
             if(cleanup) {
                 await Promise.resolve(cleanup());

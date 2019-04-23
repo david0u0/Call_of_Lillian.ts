@@ -33,7 +33,7 @@ export default class U extends Upgrade {
                 return false;
             }
         },
-        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit]
+        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit, GamePhase.InWar]
     }];
 
     setupAliveeEffect() {

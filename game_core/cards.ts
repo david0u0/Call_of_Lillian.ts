@@ -30,13 +30,13 @@ abstract class KnownCard implements IKnownCard {
 
     protected _abilities = new Array<Ability>();
     public get abilities() {
-        let a = [...this._abilities];
+        let res = [...this._abilities];
         if(TypeGaurd.isCharacter(this)) {
             for(let upgrade of this.upgrade_list) {
-                a = [...a, ...upgrade.abilities];
+                res = [...res, ...upgrade.abilities];
             }
         }
-        return a;
+        return res.filter(a => a.canTrigger());
     }
 
     public async initialize() { return true; }

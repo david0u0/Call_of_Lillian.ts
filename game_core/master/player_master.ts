@@ -3,10 +3,11 @@
 
 import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, IUpgrade } from "../interface";
-import { ActionChain, GetterChain } from "../hook";
+import { GetterChain } from "../hook";
 import { throwIfIsBackend, BadOperationError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
 import { TimeMaster } from "./time_master";
+import { ActionChainFactory } from "./action_chain_factory";
 
 export class PlayerMaster {
     public getAll<T extends ICard>(guard: (c: ICard) => c is T, filter: (c: T) => boolean) {
@@ -48,7 +49,8 @@ export class PlayerMaster {
     }
 
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
-    constructor(public readonly player: Player, private t_master: TimeMaster,
+    constructor(private acf: ActionChainFactory, public readonly player: Player,
+        private t_master: TimeMaster,
         private getMaster: (card: ICard | Player)=> PlayerMaster
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
@@ -140,20 +142,20 @@ export class PlayerMaster {
      */
     public check_before_play_chain = new GetterChain<boolean, IKnownCard>();
 
-    public change_char_tired_chain = new ActionChain<{is_tired: boolean, char: ICharacter}>();
+    public change_char_tired_chain = this.acf.new<{is_tired: boolean, char: ICharacter}>();
 
-    public card_play_chain = new ActionChain<IKnownCard>();
-    public card_retire_chain = new ActionChain<IKnownCard>();
+    public card_play_chain = this.acf.new<IKnownCard>();
+    public card_retire_chain = this.acf.new<IKnownCard>();
 
-    public set_mana_chain = new ActionChain<{ mana: number, caller: IKnownCard[] }>();
-    public set_emo_chain = new ActionChain<{ emo: number, caller: IKnownCard[] }>();
+    public set_mana_chain = this.acf.new<{ mana: number, caller: IKnownCard[] }>();
+    public set_emo_chain = this.acf.new<{ emo: number, caller: IKnownCard[] }>();
 
-    public ability_chain = new ActionChain<{ card: IKnownCard, ability: Ability }>();
+    public ability_chain = this.acf.new<{ card: IKnownCard, ability: Ability }>();
 
-    public fail_chain = new ActionChain<IEvent>();
+    public fail_chain = this.acf.new<IEvent>();
     public get_push_cost_chain = new GetterChain<number, { char: ICharacter|null, event: IEvent }>();
-    public push_chain = new ActionChain<{ char: ICharacter|null, event: IEvent }>();
-    public finish_chain = new ActionChain<{ char: ICharacter|null, event: IEvent }>();
+    public push_chain = this.acf.new<{ char: ICharacter|null, event: IEvent }>();
+    public finish_chain = this.acf.new<{ char: ICharacter|null, event: IEvent }>();
 
     public get_strength_chain
         = new GetterChain<number, { card: ICharacter|IUpgrade, enemy?: ICharacter }>();
@@ -164,7 +166,7 @@ export class PlayerMaster {
     public get_battle_role_chain
         = new GetterChain<BattleRole, ICharacter>();
 
-    public draw_card_chain = new ActionChain<ICard>();
+    public draw_card_chain = this.acf.new<ICard>();
 
     addCard(card: ICard) {
         // TODO: 加上事件鏈?
@@ -222,15 +224,17 @@ export class PlayerMaster {
     getStrength(card: ICharacter|IUpgrade, enemy?: ICharacter) {
         let strength = card.basic_strength;
         if(TG.isCharacter(card)) {
-            if(card.char_status == CharStat.InWar && card.is_tired) {
-                return 0;
-            }
             for(let u of card.upgrade_list) {
                 strength += this.getStrength(u);
             }
         }
-        return card.get_strength_chain.chain(this.get_strength_chain, { card, enemy })
+        strength = card.get_strength_chain.chain(this.get_strength_chain, { card, enemy })
         .trigger(strength, enemy);
+        if(TG.isCharacter(card) && card.char_status == CharStat.InWar && card.is_tired) {
+            return Math.max(0, strength);
+        } else {
+            return strength;
+        }
     }
 
     getBattleRole(char: ICharacter) {
@@ -281,7 +285,7 @@ export class PlayerMaster {
         }
     }
     /** 會跳過大多數的檢查、設置、代價與行動鏈 */
-    public readonly add_card_chain = new ActionChain<IKnownCard>();
+    public readonly add_card_chain = this.acf.new<IKnownCard>();
     public async dangerouslySetToBoard(card: IKnownCard) {
         await this.add_card_chain.trigger(card, async () => {
             if(TG.isUpgrade(card)) {
@@ -526,12 +530,12 @@ export class PlayerMaster {
     }
 
     public readonly get_enter_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter }>();
-    public readonly enter_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
-    public readonly exit_chain = new ActionChain<{ arena: IArena, char: ICharacter }>();
+    public readonly enter_chain = this.acf.new<{ arena: IArena, char: ICharacter }>();
+    public readonly exit_chain = this.acf.new<{ arena: IArena, char: ICharacter }>();
     public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
-    public readonly exploit_chain = new ActionChain<{ arena: IArena, char: ICharacter | Player }>();
+    public readonly exploit_chain = this.acf.new<{ arena: IArena, char: ICharacter | Player }>();
 
-    public readonly incited_chain = new ActionChain<ICharacter|null>();
+    public readonly incited_chain = this.acf.new<ICharacter|null>();
     /** 由玩家 player 煽動我方的角色 char */
     incite(char: ICharacter, player: Player, by_keeper=false) {
         if(this.t_master.cur_player != player) {

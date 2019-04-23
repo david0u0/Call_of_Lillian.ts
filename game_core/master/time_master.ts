@@ -1,6 +1,6 @@
 import { Player, GamePhase } from "../enums";
-import { ActionChain } from "../hook";
 import { BadOperationError } from "../errors";
+import { ActionChainFactory } from "./action_chain_factory";
 
 const BUILDING_ACTION_P = 1;
 const MAIN_FIRST_ACTION_P = 1;
@@ -15,11 +15,11 @@ export class TimeMaster {
     public get cur_phase() { return this._cur_phase; }
     private first_player = Player.Player1;
 
-    public readonly start_building_chain = new ActionChain<null>();
-    public readonly start_main_chain = new ActionChain<null>();
-    public readonly start_exploit_chain = new ActionChain<null>();
+    public readonly start_building_chain = this.acf.new<null>();
+    public readonly start_main_chain = this.acf.new<null>();
+    public readonly start_exploit_chain = this.acf.new<null>();
 
-    constructor(private firstRestReward: (p: Player) => void) { }
+    constructor(private acf: ActionChainFactory) { }
 
     public async startBulding() {
         await this.start_building_chain.trigger(null, async () => {
@@ -49,9 +49,9 @@ export class TimeMaster {
 
     private _resting1 = false;
     private _resting2 = false;
-    public readonly rest_state_change_chain = new ActionChain<{ resting: boolean, player: Player }>();
+    public readonly rest_state_change_chain = this.acf.new<{ resting: boolean, player: Player }>();
     /** 專門指涉主階段中的休息 */
-    public readonly rest_chain = new ActionChain<Player>();
+    public readonly rest_chain = this.acf.new<Player>();
 
     public async rest(player: Player, by_keeper: boolean) {
         if(this.cur_player != player) {
@@ -71,7 +71,6 @@ export class TimeMaster {
             await this.rest_chain.byKeeper(by_keeper).trigger(player, () => {
                 if(!this.someoneResting()) {
                     // 下個世代的起始玩家
-                    this.firstRestReward(player);
                     this.first_player = player;
                 }
             });
@@ -105,8 +104,8 @@ export class TimeMaster {
         });
     }
 
-    public readonly set_action_point_chain = new ActionChain<number>();
-    public readonly start_turn_chain = new ActionChain<{ prev: Player, next: Player }>();
+    public readonly set_action_point_chain = this.acf.new<number>();
+    public readonly start_turn_chain = this.acf.new<{ prev: Player, next: Player }>();
 
     public checkResting(player: Player) {
         if(player == Player.Player1) {

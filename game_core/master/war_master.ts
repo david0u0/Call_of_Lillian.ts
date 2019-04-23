@@ -5,13 +5,15 @@ import { BadOperationError, throwIfIsBackend } from "../errors";
 import { ActionChain, ActionFunc, GetterChain, GetterFunc } from "../hook";
 import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
+import { ActionChainFactory } from "./action_chain_factory";
 
 enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
 export class WarMaster {
-    constructor(private t_master: TimeMaster, private card_table: { [seq: number]: ICard },
+    constructor(private acf: ActionChainFactory,
+        private t_master: TimeMaster, private card_table: { [seq: number]: ICard },
         private getMyMaster: (arg: Player | ICard) => PlayerMaster,
         private getEnemyMaster: (arg: Player | ICard) => PlayerMaster
     ) { };
@@ -67,19 +69,19 @@ export class WarMaster {
 
     public readonly get_declare_cost_chain
         = new GetterChain<number, { declarer: Player, arena: IArena }>();
-    public readonly declare_war_chain = new ActionChain<{ declarer: Player, arena: IArena }>();
+    public readonly declare_war_chain = this.acf.new<{ declarer: Player, arena: IArena }>();
     public readonly before_conflict_chain
-        = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
+        = this.acf.new<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
     public readonly after_conflict_chain
-        = new ActionChain<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
+        = this.acf.new<{ def: ICharacter, atk: ICharacter[], is_target: boolean }>();
     public readonly repluse_chain
-        = new ActionChain<{ loser: ICharacter, winner?: ICharacter }>();
-    public readonly end_war_chain = new ActionChain<null>();
+        = this.acf.new<{ loser: ICharacter, winner?: ICharacter }>();
+    public readonly end_war_chain = this.acf.new<null>();
 
     public readonly start_attack_chain
-        = new ActionChain<null>();
+        = this.acf.new<null>();
     public readonly set_block_chain
-        = new ActionChain<null>();
+        = this.acf.new<null>();
 
     public addActionForThisWar<U>(append: boolean, chain: ActionChain<U>, func: ActionFunc<U>) {
         let war_seq = this._war_seq;

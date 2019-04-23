@@ -62,7 +62,37 @@ export function drawCardFace(card: ICard|string, width: number, height: number, 
     img.scale.set(res.width / og_w, res.height / og_h);
     return img;
 }
-
+export function drawAbilityIcon(gm: GameMaster, card: IKnownCard, size: number) {
+    let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
+    icon.height = icon.width = size;
+    icon.anchor.set(0.5, 0.5);
+    icon.interactive = true;
+    icon.cursor = "pointer";
+    icon.on("click", async evt => {
+        evt.stopPropagation();
+        if(gm.t_master.cur_player == card.owner) {
+            let a_index = 0;
+            if(card.abilities.length > 1) {
+                let txt = card.abilities.map(a => a.description);
+                a_index = await gm.selecter.selectText(card.owner, card, txt);
+            }
+            await gm.getMyMaster(card).triggerAbility(card, a_index, true);
+        }
+    });
+    let update = () => {
+        if(card.abilities.length != 0) {
+            icon.visible = true;
+        } else {
+            icon.visible = false;
+        }
+    };
+    gm.acf.setAfterEffect(update, () => icon != null);
+    let destroy = () => {
+        icon.destroy();
+        icon = null;
+    };
+    return { view: icon, destroy };
+}
 export function drawUpgradeCount(gm: GameMaster, card: ICharacter, size: number) {
     let view = new PIXI.Container();
     let img = new PIXI.Sprite(PIXI.loader.resources["upgrade_pop"].texture);
@@ -80,13 +110,15 @@ export function drawUpgradeCount(gm: GameMaster, card: ICharacter, size: number)
             view.visible = false;
         }
     };
-    gm.getMyMaster(card).add_card_chain.append(() => {
-        return { after_effect: updateTxt };
-    });
+    gm.acf.setAfterEffect(updateTxt, () => view != null);
     updateTxt();
     view.addChild(img);
     view.addChild(txt);
-    return view;
+    let destroy = () => {
+        view = null;
+        view.destroy();
+    };
+    return { view, destroy };
 }
 export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_width: number, need_upate=false) {
     let pm = gm.getMyMaster(card);
@@ -119,31 +151,14 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
     // 在任何牌被打出時更新戰力
     let destroy: () => void = null;
     if(need_upate) {
-        pm.card_play_chain.append(() => {
-            return { after_effect: updateStr };
-        }, () => view != null);
-        pm.add_card_chain.append(() => {
-            return { after_effect: updateStr };
-        }, () => view != null);
-        pm.change_char_tired_chain.append(() => {
-            return { after_effect: updateStr };
-        }, () => view != null);
-        pm.ability_chain.append(() => {
-            return { after_effect: updateStr };
-        }, () => view != null);
-        gm.w_master.declare_war_chain.append(() => {
-            return { after_effect: updateStr };
-        }, () => view != null);
-        gm.w_master.end_war_chain.append(() => {
-            return { after_effect: updateStr };
-        }, () => view != null);
+        gm.acf.setAfterEffect(updateStr, () => view != null);
         destroy = () => {
             view.destroy();
             view = null;
         };
     }
 
-    return { view, destroy, updateStr };
+    return { view, destroy };
 }
 
 export function drawCard(gm: GameMaster, card: ICard, width: number, height: number, isbig = false) {
@@ -251,6 +266,10 @@ export class CharUI {
     private _onclick: (evt: PIXI.interaction.InteractionEvent) => void = null;
     private destroy_big: () => void = null;
 
+    private upgrade_area: { view: PIXI.Container, destroy: () => void };
+    private s_area: { view: PIXI.Container, destroy: () => void };
+    private ability_icon: { view: PIXI.Container, destroy: () => void };
+
     public static create(char: ICharacter, width: number, height: number,
         gm: GameMaster, ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
     ): Promise<CharUI> {
@@ -297,11 +316,11 @@ export class CharUI {
         // 點選
         img.on("click", evt => this._onclick(evt));
         // 升級
-        let upgrade_area = drawUpgradeCount(gm, char, img.height / 3);
-        upgrade_area.position.set(width, height / 3);
+        this.upgrade_area = drawUpgradeCount(gm, char, img.height / 3);
+        this.upgrade_area.view.position.set(width, height / 3);
         // 戰力
-        let s_area = drawStrength(gm, char, width * 0.6, true);
-        s_area.view.position.set(width * 0.2, height - s_area.view.height / 2);
+        this.s_area = drawStrength(gm, char, width * 0.6, true);
+        this.s_area.view.position.set(width * 0.2, height - this.s_area.view.height / 2);
         // 疲勞
         let tired_mask = new PIXI.Graphics();
         tired_mask.beginFill(0);
@@ -335,30 +354,11 @@ export class CharUI {
         });
         this.view.addChild(tired_mask);
         // 角色行動或能力
-        let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
-        icon.height = icon.width = img.height / 3;
-        icon.anchor.set(0.5, 0.5);
-        icon.interactive = true;
-        icon.cursor = "pointer";
-        icon.on("click", async evt => {
-            evt.stopPropagation();
-            if(gm.t_master.cur_player == char.owner) {
-                let a_index = 0;
-                if(char.abilities.length != 1) {
-                    let txt = char.abilities.map(a => a.description);
-                    a_index = await gm.selecter.selectText(char.owner, char, txt);
-                }
-                await gm.getMyMaster(char).triggerAbility(char, a_index, true);
-            }
-        });
-        this.view.addChild(icon);
-        if(char.abilities.length != 0) {
-            icon.visible = true;
-        }
-        // TODO: 即時更新 icon 的 visibile
+        this.ability_icon = drawAbilityIcon(gm, char, img.width / 3);
 
-        this.view.addChild(upgrade_area);
-        this.view.addChild(s_area.view);
+        this.view.addChild(this.upgrade_area.view);
+        this.view.addChild(this.s_area.view);
+        this.view.addChild(this.ability_icon.view);
     }
     highlight() {
         
@@ -380,5 +380,7 @@ export class CharUI {
             this.destroy_big();
         }
         this.view.destroy();
+        this.upgrade_area.destroy;
+        this.s_area.destroy;
     }
 }

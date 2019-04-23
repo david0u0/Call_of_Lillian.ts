@@ -1,6 +1,6 @@
 import { Player, CardStat, BattleRole, CharStat, GamePhase } from "../enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter, UnknownCard } from "../interface";
-import { ActionChain, GetterChain } from "../hook";
+import { ActionChainFactory } from "./action_chain_factory";
 import { throwIfIsBackend, BadOperationError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C } from "../general_rules";
 import { TimeMaster } from "./time_master";
@@ -11,8 +11,9 @@ export class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [seq: number]: ICard } = {};
 
-    public readonly t_master = new TimeMaster(p => this.getMyMaster(p).addMana(C.REST_MANA));
-    public readonly w_master = new WarMaster(this.t_master, this.card_table,
+    public readonly acf = new ActionChainFactory();
+    public readonly t_master = new TimeMaster(this.acf);
+    public readonly w_master = new WarMaster(this.acf, this.t_master, this.card_table,
         this.getMyMaster.bind(this), this.getEnemyMaster.bind(this));
 
     private p_master1: PlayerMaster;
@@ -21,8 +22,8 @@ export class GameMaster {
     constructor(public readonly selecter: ISelecter,
         private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
     ) {
-        this.p_master1 = new PlayerMaster(Player.Player1, this.t_master, c => this.getMyMaster(c));
-        this.p_master2 = new PlayerMaster(Player.Player2, this.t_master, c => this.getMyMaster(c));
+        this.p_master1 = new PlayerMaster(this.acf, Player.Player1, this.t_master, c => this.getMyMaster(c));
+        this.p_master2 = new PlayerMaster(this.acf, Player.Player2, this.t_master, c => this.getMyMaster(c));
         selecter.setCardTable(this.card_table);
     }
 
