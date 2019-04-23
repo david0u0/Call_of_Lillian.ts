@@ -139,7 +139,7 @@ class HandUI {
             let destroy_big_card: () => void = null;
             card_ui.on("mouseover", () => {
                 destroy_big_card = this.showBigCard(card_ui.worldTransform.tx,
-                    getWinSize().height, card, this.ticker);
+                    getWinSize().height, card);
             });
             card_ui.on("mouseout", () => {
                 if(destroy_big_card) {

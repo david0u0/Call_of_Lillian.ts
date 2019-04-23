@@ -5,20 +5,19 @@ import { drawCard, getCardSize } from "./draw_card";
 import { GameMaster } from "../../game_core/master/game_master";
 
 export type ShowBigCard = (x: number, y: number, card: ICard,
-    ticker: PIXI.ticker.Ticker) => (() => void);
+    conf?: { width: number, height: number, alpha: number, description?: boolean }
+) => () => void;
 
 // TODO: 這裡洩漏了一堆記憶體= =
-/**
- * @returns 把大圖銷毀的函式
- */
 export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number, y: number,
-    card: ICard, ticker: PIXI.ticker.Ticker
-): () => void {
+    card: ICard, ticker: PIXI.ticker.Ticker,
+    conf?: { width: number, height: number, alpha: number, description?: boolean }
+) {
     let view = new PIXI.Container();
     let s_width = getWinSize().width;
     let s_height = getWinSize().height;
     let { ew, eh } = getEltSize();
-    let card_ui = drawSingleBig(gm, card, 0);
+    let card_ui = drawSingleBig(gm, card, 0, conf);
     view.addChild(card_ui);
 
     let { height, width } = card_ui;
@@ -30,7 +29,7 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     };
     if(TypeGaurd.isCharacter(card) && card.upgrade_list.length > 0) {
         for(let [i, upgrade] of card.upgrade_list.entries()) {
-            view.addChild(drawSingleBig(gm, upgrade, i+1));
+            view.addChild(drawSingleBig(gm, upgrade, i+1, conf));
         }
         window.addEventListener("wheel", scroll_func);
     }
@@ -64,11 +63,22 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     };
 }
 
-function drawSingleBig(gm: GameMaster, card: ICard, index: number) {
+function drawSingleBig(gm: GameMaster, card: ICard, index: number,
+    conf?: { width: number, height: number, alpha: number, descriptioin? : boolean }
+) {
     let view = new PIXI.Container();
     let { ew, eh } = getEltSize();
-    let { width, height } = getCardSize(ew*20, eh*20);
-    let card_ui = drawCard(gm, card, width, height, true);
+    let width = ew*20;
+    let height = eh * 20;
+    let alpha = 1;
+    let descriptioin = true;
+    if(conf) {
+        ({ width, height, alpha, descriptioin } = conf);
+    }
+    ({ width, height } = getCardSize(width, height));
+
+    let card_ui = drawCard(gm, card, width, height, descriptioin);
+    card_ui.alpha = alpha;
     card_ui.y = (card_ui.height) * index;
     return card_ui;
 }

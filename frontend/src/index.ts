@@ -38,9 +38,15 @@ PIXI.loader
 .load(setup);
 
 async function setup() {
+    let show_big_card: ShowBigCard = (x: number, y: number, card: ICard,
+        conf?: { width: number, height: number, alpha: number, description?: boolean }
+    ) => {
+        return showBigCard(gm, app.stage, x, y, card, app.ticker, conf);
+    };
+
     let me = Player.Player1;
     let { width, height } = getWinSize();
-    let selecter = new FrontendSelecter(me, app.ticker);
+    let selecter = new FrontendSelecter(me, show_big_card, app.ticker);
     let gm = new GameMaster(selecter, generateCard);
 
     let { ew, eh } = getEltSize();
@@ -51,12 +57,6 @@ async function setup() {
     app.stage.addChild(bg);
     app.stage.addChild(selecter.cancel_view);
     let frontend_w_master = new FrontendWarMaste(me, gm, selecter);
-    
-    let show_big_card: ShowBigCard = (x: number, y: number,
-        card: ICard, ticker: PIXI.ticker.Ticker
-    ) => {
-        return showBigCard(gm, app.stage, x, y, card, ticker);
-    };
 
     let p_area1 = drawPlayerArea(gm, gm.getEnemyMaster(me), selecter, 6*ew, 10*eh, app.ticker, true);
     let p_area2 = drawPlayerArea(gm, gm.getMyMaster(me), selecter, 6*ew, 10*eh, app.ticker);

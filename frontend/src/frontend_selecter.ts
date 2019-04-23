@@ -3,6 +3,8 @@ import { IKnownCard, ISelecter, ICard } from "../../game_core/interface";
 import { getWinSize, getEltSize } from "./get_constant";
 import { BadOperationError } from "../../game_core/errors";
 import { Player } from "../../game_core/enums";
+import { ShowBigCard } from "./show_big_card";
+import { getCardSize } from "./draw_card";
 
 type CardLike = ICard|number|null;
 
@@ -21,7 +23,7 @@ export default class FrontendSelecter implements ISelecter {
     private _selecting = false;
     public get selecting() { return this._selecting; };
 
-    constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
+    constructor(private me: Player, private showBigCard: ShowBigCard, private ticker: PIXI.ticker.Ticker) {
         let { width, height } = getWinSize();
         this.cancel_view.beginFill(0);
         this.cancel_view.drawRect(0, 0, width, height);
@@ -73,6 +75,9 @@ export default class FrontendSelecter implements ISelecter {
         this.cancel_btn.visible = false;
         this.show_cancel_ui = null;
 
+        if(this.destroy_big) {
+            this.destroy_big();
+        }
         this.resolve_card(arg);
         if(arg == null) {
             this._mem.push(-1);
@@ -203,19 +208,26 @@ export default class FrontendSelecter implements ISelecter {
         this.init_pos = { x, y };
     }
 
+    private destroy_big = () => {};
     getPos(cards: IKnownCard[] | IKnownCard): { x: number, y: number }[] {
         if(cards instanceof Array) {
             let pos = new Array<{ x: number, y: number }>();
             for(let c of cards) {
                 let obj = this.card_obj_table[c.seq];
-                if(obj && obj.transform) { // 該物件已登記，且沒有被銷毀
+                if(!obj || !obj.transform) { // 該物件未登記，或是已被銷毀
+                    // NOTE: 秀大圖出來讓人知道是哪張卡呼叫了選擇器
+                    let { ew, eh } = getEltSize();
+                    let { width, height } = getCardSize(6 * ew, 10 * eh);
+                    this.destroy_big = this.showBigCard(18 * ew, 41 * eh, c,
+                        { width, height, alpha: 0.8, description: false });
+                    let p = { x: 18*ew + width/2, y: 41*eh - height };
+                    pos.push(p);
+                } else {
                     let p = {
-                        x: obj.worldTransform.tx + (obj.width)/2,
+                        x: obj.worldTransform.tx + (obj.width) / 2,
                         y: obj.worldTransform.ty,
                     };
                     pos.push(p);
-                } else {
-                    // TODO: 秀大圖出來讓人知道是被誰選中？
                 }
             }
             return pos;

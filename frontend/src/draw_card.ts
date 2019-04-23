@@ -305,7 +305,7 @@ export class CharUI {
         img.on("mouseover", () => {
             this.destroy_big = showBigCard(
                 img.worldTransform.tx + img.width / 2, img.worldTransform.ty + img.height / 2,
-                char, this.ticker);
+                char);
         });
         img.on("mouseout", () => {
             if(this.destroy_big) {

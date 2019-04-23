@@ -72,8 +72,7 @@ export class ArenaArea {
                         if(!this.hovering_char) {
                             destroy_big = this.showBigCard(
                                 card_face.worldTransform.tx + card_face.width / 2,
-                                card_face.worldTransform.ty + card_face.height / 2,
-                                card, this.ticker);
+                                card_face.worldTransform.ty + card_face.height / 2, card);
                         }
                     });
                     card_face.on("mouseout", () => {
