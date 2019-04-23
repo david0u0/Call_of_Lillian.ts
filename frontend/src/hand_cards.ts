@@ -1,8 +1,9 @@
+import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
 
 import { GameMaster } from "../../game_core/master/game_master";
 import { TypeGaurd as TG, ICard } from "../../game_core/interface";
-import { getEltSize, getWinSize } from "./get_constant";
+import { getEltSize, getWinSize, getPlayerColor } from "./get_constant";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";
@@ -171,7 +172,16 @@ class HandUI {
                 };
             });
         }
-        this.selecter.registerCardObj(card, card_ui);
+        let filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(card.owner, true), 0.5);
+        filter.enabled = false;
+        card_ui.filters = [filter];
+        this.selecter.registerCardStartSelect(card, () => {
+            filter.enabled = true;
+            return {
+                view: card_ui,
+                cleanup: () => filter.enabled = false
+            };
+        });
         return card_ui;
     }
 }

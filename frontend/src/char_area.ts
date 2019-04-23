@@ -62,7 +62,7 @@ export class CharArea {
             this.list[index] = char;
             let offset = this.getOffset(index);
             let char_ui = await CharUI.create(char, this.c_width, this.c_height,
-                this.gm, this.ticker, this.showBigCard);
+                this.gm, this.selecter, this.ticker, this.showBigCard);
             char_ui.view.position.set(offset, 0);
             this.view.addChild(char_ui.view);
             this.setupCharUI(char_ui, index);
@@ -88,11 +88,13 @@ export class CharArea {
                 }
             };
         });
+        // 向選擇器註冊
+        char_ui.register();
         // 角色回到場邊
         this.gm.getMyMaster(this.player).exit_chain.append(arg => {
             if(arg.char.isEqual(char)) {
                 char_ui.show();
-                this.selecter.registerCardObj(char, char_ui.view);
+                char_ui.register();
             }
         });
         // 角色進入場所或推進事件
@@ -118,6 +120,5 @@ export class CharArea {
                 }
             }
         });
-        this.selecter.registerCardObj(char, char_ui.view);
     }
 }

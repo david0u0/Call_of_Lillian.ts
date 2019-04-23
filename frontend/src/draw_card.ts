@@ -1,3 +1,4 @@
+import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
 
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
@@ -7,6 +8,7 @@ import { Player, CharStat } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
 import { getPlayerColor } from "./get_constant";
+import FrontendSelecter from "./frontend_selecter";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -263,27 +265,33 @@ function truncateName(name: string, width: number) {
 
 export class CharUI {
     public readonly view = new PIXI.Container();
+
+    private readonly img: PIXI.Sprite;
     private _onclick: (evt: PIXI.interaction.InteractionEvent) => void = null;
     private destroy_big: () => void = null;
+    private filter: Filters.GlowFilter;
 
     private upgrade_area: { view: PIXI.Container, destroy: () => void };
     private s_area: { view: PIXI.Container, destroy: () => void };
     private ability_icon: { view: PIXI.Container, destroy: () => void };
+    private active = true;
 
     public static create(char: ICharacter, width: number, height: number,
-        gm: GameMaster, ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
+        gm: GameMaster, selecter: FrontendSelecter,
+        ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
     ): Promise<CharUI> {
         return new Promise<CharUI>(resolve => {
             my_loader.add(char).load(() => {
-                resolve(new CharUI(char, width, height, gm, ticker, showBigCard));
+                resolve(new CharUI(char, width, height, gm, selecter, ticker, showBigCard));
             });
         });
     }
     private constructor(public readonly char: ICharacter,
-        private width: number, private height: number, gm: GameMaster,
+        private width: number, private height: number,
+        private gm: GameMaster, private selecter: FrontendSelecter,
         private ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
     ) {
-        let img = new PIXI.Sprite(my_loader.resources[char.name].texture);
+        let img = this.img = new PIXI.Sprite(my_loader.resources[char.name].texture);
         let og_w = img.width;
         let og_h = img.height;
         img.scale.set(width / og_w, height / og_h);
@@ -359,9 +367,57 @@ export class CharUI {
         this.view.addChild(this.upgrade_area.view);
         this.view.addChild(this.s_area.view);
         this.view.addChild(this.ability_icon.view);
+        this.filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(char.owner, true), 0.5);
+        this.view.filters = [this.filter];
+        this.filter.enabled = false;
+
+        gm.getMyMaster(char).add_card_chain.append(c => {
+            if(TG.isUpgrade(c) && char.isEqual(c.character_equipped) && this.active) {
+                this.registerUpgrade(c);
+            }
+        });
     }
-    highlight() {
-        
+    highlight(high=true) {
+        this.filter.enabled = high;
+    }
+    register() {
+        this.selecter.registerCardStartSelect(this.char, () => {
+            this.highlight();
+            return {
+                view: this.view,
+                cleanup: () => this.highlight(false)
+            };
+        });
+        for(let u of this.char.upgrade_list) {
+            this.registerUpgrade(u);
+        }
+    }
+    // 幫升級卡向選擇器註冊
+    private registerUpgrade(u: IUpgrade) {
+        this.selecter.registerCardStartSelect(u, () => {
+            let upgrade_ui = drawCard(this.gm, u, this.view.width, this.view.height);
+            upgrade_ui.pivot.set(0, upgrade_ui.height);
+            upgrade_ui.position.set(this.width/3, this.view.height);
+            upgrade_ui.scale.set(0.2);
+            this.view.addChild(upgrade_ui);
+            return new Promise(resolve => {
+                let popup = () => {
+                    let scale = upgrade_ui.scale.x;
+                    if(scale < 1.2) {
+                        upgrade_ui.scale.set(scale + 0.07);
+                    } else {
+                        this.ticker.remove(popup);
+                        resolve({
+                            view: this.view,
+                            cleanup: () => {
+                                upgrade_ui.destroy();
+                            }
+                        });
+                    }
+                };
+                this.ticker.add(popup);
+            });
+        });
     }
     setOnclick(func: (evt: PIXI.interaction.InteractionEvent) => void) {
         this._onclick = func;
@@ -371,9 +427,11 @@ export class CharUI {
             this.destroy_big();
         }
         this.view.visible = false;
+        this.active = false;
     }
     show() {
         this.view.visible = true;
+        this.active = true;
     }
     destroy() {
         if(this.destroy_big) {
@@ -382,5 +440,6 @@ export class CharUI {
         this.view.destroy();
         this.upgrade_area.destroy;
         this.s_area.destroy;
+        this.active = false;
     }
 }

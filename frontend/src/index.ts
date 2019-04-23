@@ -17,7 +17,7 @@ import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { EventArea } from "./event_area";
 import { PhaseNotifier } from "./phase_notifier";
-import { FrontendWarMaste } from "./frontend_war_master";
+import { FrontendWarMaster } from "./frontend_war_master";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -56,7 +56,7 @@ async function setup() {
 
     app.stage.addChild(bg);
     app.stage.addChild(selecter.cancel_view);
-    let frontend_w_master = new FrontendWarMaste(me, gm, selecter);
+    let f_w_master = new FrontendWarMaster(me, gm, selecter);
 
     let p_area1 = drawPlayerArea(gm, gm.getEnemyMaster(me), selecter, 6*ew, 10*eh, app.ticker, true);
     let p_area2 = drawPlayerArea(gm, gm.getMyMaster(me), selecter, 6*ew, 10*eh, app.ticker);
@@ -73,6 +73,19 @@ async function setup() {
     let event_area2 = new EventArea(me, gm, selecter, show_big_card, app.ticker);
     event_area2.view.position.set(36.5*ew, 21.2*eh);
 
+    let phase_notifier = new PhaseNotifier(gm, me, app.ticker);
+
+    let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card, f_w_master);
+    let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card, f_w_master);
+
+    await initiateGame(gm, [], []);
+
+    arena_area1.view.position.set(0, 20.25*eh - arena_area1.view.height);
+    arena_area2.view.position.set(0, 21.75*eh);
+
+    app.stage.addChild(arena_area1.view);
+    app.stage.addChild(arena_area2.view);
+    
     app.stage.addChild(event_area1.view);
     app.stage.addChild(event_area2.view);
 
@@ -82,18 +95,6 @@ async function setup() {
     app.stage.addChild(p_area1.container);
     app.stage.addChild(p_area2.container);
 
-    let phase_notifier = new PhaseNotifier(gm, me, app.ticker);
-
-    let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card);
-    let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card);
-
-    await initiateGame(gm, [], []);
-
-    arena_area1.view.position.set(0, 20.25*eh - arena_area1.view.height);
-    arena_area2.view.position.set(0, 21.75*eh);
-
-    app.stage.addChild(arena_area1.view);
-    app.stage.addChild(arena_area2.view);
 
     let hands_ui1_obj = await constructHandUI(selecter, 1-me, gm, gm.getEnemyMaster(me).hand, app.ticker,
         show_big_card, c => {
@@ -108,7 +109,7 @@ async function setup() {
     app.stage.addChild(hands_ui1_obj.view);
     app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(selecter.view);
-    app.stage.addChild(frontend_w_master.view);
+    app.stage.addChild(f_w_master.view);
     app.stage.addChild(phase_notifier.view);
 }
 

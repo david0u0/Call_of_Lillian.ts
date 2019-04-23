@@ -7,6 +7,10 @@ import { ShowBigCard } from "./show_big_card";
 import { getCardSize } from "./draw_card";
 
 type CardLike = ICard|number|null;
+type StartSelectFunc = () => Promise<{
+    view: PIXI.Container,
+    cleanup: () => void
+}> | { view: PIXI.Container, cleanup: () => void };
 
 export default class FrontendSelecter implements ISelecter {
     public view = new PIXI.Container();
@@ -66,20 +70,26 @@ export default class FrontendSelecter implements ISelecter {
         this._mem = [];
     }
 
-    private endSelect(arg: CardLike) {
+    private endSelect(arg?: CardLike) {
         this.view.removeAllListeners();
         this._selecting = false;
         for(let line of this.lines) {
             line.destroy();
         }
+        this.lines = [];
         this.cancel_btn.visible = false;
         this.show_cancel_ui = null;
 
-        if(this.destroy_big) {
-            this.destroy_big();
+        for(let func of this.cleanup) {
+            func();
         }
-        this.resolve_card(arg);
-        if(arg == null) {
+        if(this.resolve_card) {
+            this.resolve_card(arg);
+        }
+        this.resolve_card = null;
+        if(typeof(arg) == "undefined") {
+            // 啥都不做
+        } else if(arg == null) {
             this._mem.push(-1);
         } else if(typeof(arg) == "number") {
             this._mem.push(arg);
@@ -93,17 +103,17 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     selectText(player: Player, caller: IKnownCard, text: string[]): Promise<number|null> {
-        let pos = this.getPos(caller)[0]; 
         let { height, width } = getWinSize();
         let tmp_view = new PIXI.Container();
         let mask = new PIXI.Graphics();
+        let { eh } = getEltSize();
+
         mask.beginFill(0, 0.5);
         mask.drawRect(0, 0, width, height);
         tmp_view.addChild(mask);
         this.view.addChild(tmp_view);
-        let { ew, eh } = getEltSize();
-
-        return new Promise<number|null>(resolve => {
+        return new Promise<number|null>(async resolve => {
+            let pos = (await this.startSelect(caller))[0];
             for(let [i, s] of text.entries()) {
                 let option_txt = new PIXI.Text(s, new PIXI.TextStyle({
                     fill: 0xffffff,
@@ -112,8 +122,8 @@ export default class FrontendSelecter implements ISelecter {
                 option_txt.interactive = true;
                 option_txt.cursor = "pointer";
                 option_txt.on("click", () => {
-                    // TODO: 應該使用 this.endSelect
                     tmp_view.destroy();
+                    this.endSelect();
                     resolve(i);
                     this._mem.push(i);
                 });
@@ -139,29 +149,30 @@ export default class FrontendSelecter implements ISelecter {
                     return false;
                 }
             };
-            let line_init_pos: { x: number, y: number }[];
-            if(caller) {
-                line_init_pos = this.getPos(caller);
-            } else {
-                line_init_pos = [this.init_pos];
-            }
-            this.lines = [];
-            for(let pos of line_init_pos) {
-                let line = new PIXI.Graphics();
-                this.view.addChild(line);
-                this.lines.push(line);
-            }
-
-            this.view.on("mousemove", evt => {
-                for(let [i, line] of this.lines.entries()) {
-                    line.clear();
-                    line.lineStyle(4, 0xffffff, 1);
-                    line.moveTo(line_init_pos[i].x, line_init_pos[i].y);
-                    line.lineTo(evt.data.global.x, evt.data.global.y);
+            return new Promise<T | null>(async resolve => {
+                let line_init_pos: { x: number, y: number }[];
+                if(caller) {
+                    line_init_pos = await this.startSelect(caller);
+                } else {
+                    line_init_pos = [this.init_pos];
+                }
+                this.lines = [];
+                for(let pos of line_init_pos) {
+                    let line = new PIXI.Graphics();
+                    this.view.addChild(line);
+                    this.lines.push(line);
                 }
 
-            });
-            return new Promise<T | null>(resolve => {
+                this.view.on("mousemove", evt => {
+                    for(let [i, line] of this.lines.entries()) {
+                        line.clear();
+                        line.lineStyle(4, 0xffffff, 1);
+                        line.moveTo(line_init_pos[i].x, line_init_pos[i].y);
+                        line.lineTo(evt.data.global.x, evt.data.global.y);
+                    }
+
+                });
+
                 this.resolve_card = resolve;
             });
         }
@@ -182,7 +193,6 @@ export default class FrontendSelecter implements ISelecter {
         if(this.resolve_card && this.selecting) {
             if(this.filter_func(card)) {
                 this.endSelect(card);
-                this.resolve_card(card);
                 this._mem.push(card.seq);
                 return true;
             } else {
@@ -194,12 +204,13 @@ export default class FrontendSelecter implements ISelecter {
         }
     }
 
-    private card_obj_table: { [index: number]: PIXI.Container } = {};
-    registerCardObj(card: ICard, obj?: PIXI.Container) {
-        if(obj) {
-            this.card_obj_table[card.seq] = obj;
-        } else if(card.seq in this.card_obj_table) {
-            delete this.card_obj_table[card.seq];
+    private cleanup = new Array<() => void>();
+    private start_select_talbe: { [seq: number]: StartSelectFunc } = {};
+    registerCardStartSelect(card: ICard, func?: StartSelectFunc) {
+        if(func) {
+            this.start_select_talbe[card.seq] = func;
+        } else if(card.seq in this.start_select_talbe) {
+            delete this.start_select_talbe[card.seq];
         }
     }
 
@@ -208,35 +219,30 @@ export default class FrontendSelecter implements ISelecter {
         this.init_pos = { x, y };
     }
 
-    private destroy_big = () => {};
-    getPos(cards: IKnownCard[] | IKnownCard): { x: number, y: number }[] {
+    private async startSelect(cards: IKnownCard[] | IKnownCard): Promise<{ x: number, y: number }[]> {
         if(cards instanceof Array) {
+            this.cleanup = [];
             let pos = new Array<{ x: number, y: number }>();
             for(let c of cards) {
-                let obj = this.card_obj_table[c.seq];
-                if(!obj || !obj.transform) { // 該物件未登記，或是已被銷毀
-                    // NOTE: 秀大圖出來讓人知道是哪張卡呼叫了選擇器
-                    let { ew, eh } = getEltSize();
-                    let { width, height } = getCardSize(6 * ew, 10 * eh);
-                    this.destroy_big = this.showBigCard(18 * ew, 41 * eh, c,
-                        { width, height, alpha: 0.8, description: false });
-                    let p = { x: 18*ew + width/2, y: 41*eh - height };
-                    pos.push(p);
-                } else {
-                    let p = {
-                        x: obj.worldTransform.tx + (obj.width) / 2,
-                        y: obj.worldTransform.ty,
-                    };
-                    pos.push(p);
+                let func = this.start_select_talbe[c.seq];
+                if(func) {
+                    let { view, cleanup } = await Promise.resolve(func());
+                    if(view && view.transform) { // 確保 view 還沒被銷毀
+                        this.cleanup.push(cleanup);
+                        pos.push({
+                            x: view.worldTransform.tx + (view.width) / 2,
+                            y: view.worldTransform.ty,
+                        });
+                    }
                 }
             }
             return pos;
         } else {
-            return this.getPos([cards]);
+            return await this.startSelect([cards]);
         }
     }
 
-    private show_cancel_ui: string|null = null;
+    private show_cancel_ui: string | null = null;
     public cancelUI(cancel_msg: string) {
         this.show_cancel_ui = cancel_msg;
         return this;

@@ -4,11 +4,25 @@ import { ICharacter, TypeGaurd as TG } from "../../game_core/interface";
 import { Player } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter from "./frontend_selecter";
+import { BadOperationError } from "../../game_core/errors";
 
-export class FrontendWarMaste {
+export class FrontendWarMaster {
     public view = new PIXI.Container();
 
     private lines = new Array<PIXI.Graphics>();
+    private char_ui_table: { [seq: number]: PIXI.Container } = {};
+
+    public register(char: ICharacter, view: PIXI.Container) {
+        this.char_ui_table[char.seq] = view;
+    }
+    public getPos(char: ICharacter) {
+        let view = this.char_ui_table[char.seq];
+        if(view) {
+            return { x: view.worldTransform.tx, y: view.worldTransform.ty };
+        } else {
+            throw new BadOperationError("未經註冊就要求位置", char);
+        }
+    }
 
     private drawConflictLine() {
         let table = this.gm.w_master.conflict_table;
@@ -20,8 +34,8 @@ export class FrontendWarMaste {
             let atk = this.gm.card_table[atk_seq];
             let def = table[atk_seq];
             if(TG.isCharacter(atk)) {
-                let atk_pos = this.selecter.getPos(atk)[0];
-                let def_pos = this.selecter.getPos(def)[0];
+                let atk_pos = this.getPos(atk);
+                let def_pos = this.getPos(def);
                 let line = new PIXI.Graphics();
                 if(def.isEqual(this.gm.w_master.target)) {
                     line.lineStyle(4, 0xf36299, 1);

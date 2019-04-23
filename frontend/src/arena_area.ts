@@ -1,6 +1,8 @@
-import { IArena, ICharacter, TypeGaurd as TG } from "../../game_core/interface";
+import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
-import { getEltSize } from "./get_constant";
+
+import { IArena, ICharacter, TypeGaurd as TG } from "../../game_core/interface";
+import { getEltSize, getPlayerColor } from "./get_constant";
 import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount, CharUI } from "./draw_card";
 
 import { Player, GamePhase } from "../../game_core/enums";
@@ -9,6 +11,7 @@ import { my_loader } from "./card_loader";
 import FrontendSelecter from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
 import { Constant } from "../../game_core/general_rules";
+import { FrontendWarMaster } from "./frontend_war_master";
 
 export class ArenaArea {
     public view = new PIXI.Container();
@@ -20,7 +23,8 @@ export class ArenaArea {
     private hovering_char = false;
 
     constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
-        private ticker: PIXI.ticker.Ticker, private showBigCard: ShowBigCard
+        private ticker: PIXI.ticker.Ticker, private showBigCard: ShowBigCard,
+        private f_w_master: FrontendWarMaster
     ) {
         let { ew, eh } = getEltSize();
         let res = getCardSize(ew * 4, eh * 4, true);
@@ -87,7 +91,16 @@ export class ArenaArea {
     }
     private setupArenaUI(obj: PIXI.Container, card: IArena) {
         obj.interactive = true;
-        this.selecter.registerCardObj(card, obj);
+        let filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(card.owner, true), 0.5);
+        obj.filters = [filter];
+        filter.enabled = false;
+        this.selecter.registerCardStartSelect(card, () => {
+            filter.enabled = true;
+            return {
+                view: obj,
+                cleanup: () => filter.enabled = false
+            };
+        });
         obj.on("click", () => {
             if(this.selecter.selecting) {
                 this.selecter.onCardClicked(card);
@@ -102,9 +115,10 @@ export class ArenaArea {
         let { width, height } = getCardSize(this.card_gap * 0.6, this.card_h * 1.1);
 
         let char_ui = await CharUI.create(char, width, height,
-            this.gm, this.ticker, this.showBigCard);
+            this.gm, this.selecter, this.ticker, this.showBigCard);
         this.view.addChild(char_ui.view);
         let view = char_ui.view;
+        this.f_w_master.register(char, view);
 
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;
@@ -139,6 +153,6 @@ export class ArenaArea {
                 this.hovering_char = false;
             }
         });
-        this.selecter.registerCardObj(char, view);
+        char_ui.register();
     }
 }

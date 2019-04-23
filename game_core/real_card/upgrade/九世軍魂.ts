@@ -1,5 +1,5 @@
 import { Upgrade, Character } from "../../cards";
-import { BattleRole, Player, CharStat, GamePhase } from "../../enums";
+import { BattleRole, Player, CharStat, GamePhase, CardStat } from "../../enums";
 import { TypeGaurd } from "../../interface";
 import { BadOperationError } from "../../errors";
 
@@ -45,7 +45,7 @@ export default class U extends Upgrade {
                 let new_char = await this.g_master.selecter
                 .cancelUI("銷毀裝備")
                 .selectCardInteractive(this.owner, this, TypeGaurd.isCharacter, char => {
-                    return char.owner == this.owner;
+                    return char.owner == this.owner && char.card_status == CardStat.Onboard;
                 });
                 if(new_char) {
                     this.modifier += 2;

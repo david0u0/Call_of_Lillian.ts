@@ -14,7 +14,8 @@ export default class A extends Arena implements IArena {
     basic_exploit_cost = 3;
 
     async onExploit(char: ICharacter|Player) {
-        let _index = await this.g_master.selecter.selectText(this, ["恢復2情緒", "造成對手1情緒傷害"]);
+        let player = TypeGaurd.isCard(char) ? char.owner : char;
+        let _index = await this.g_master.selecter.selectText(player, this, ["恢復2情緒", "造成對手1情緒傷害"]);
         let index = 0;
         if(typeof _index == "number") {
             index = _index;
