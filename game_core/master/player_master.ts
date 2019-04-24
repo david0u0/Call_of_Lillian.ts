@@ -271,9 +271,7 @@ export class PlayerMaster {
             throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
-        console.log(111)
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
-            console.log(222)
             card.recoverFields();
             return false;
         }
@@ -329,8 +327,8 @@ export class PlayerMaster {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain.byKeeper(by_keeper)
-                .trigger({ card, ability }, () => {
-                    ability.func();
+                .trigger({ card, ability }, async () => {
+                    await Promise.resolve(ability.func());
                 });
                 if(!ability.instance) {
                     this.t_master.spendAction();

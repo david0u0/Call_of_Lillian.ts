@@ -98,30 +98,33 @@ export class CharArea {
             }
         });
         // 角色進入場所或推進事件
-        char_ui.setOnclick(async evt => {
+        char_ui.setOnclick(evt => {
             if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_player == this.player && !char.is_tired) {
                 function guard(c: ICard): c is IEvent | IArena {
                     return TypeGaurd.isEvent(c) || TypeGaurd.isArena(c);
                 }
-                let c_selected = await this.selecter.selectCard(this.player, char, {
-                    guard,
-                    stat: CardStat.Onboard
-                });
-                if(TypeGaurd.isCard(c_selected)) {
-                    if(TypeGaurd.isArena(c_selected)) {
-                        let result = await this.gm.getMyMaster(this.player)
-                        .enterArena(c_selected, char, true);
-                        if(result) {
-                            // 隱藏UI
-                            char_ui.hide();
+                (async () => {
+                    let c_selected = await this.selecter.selectCard(this.player, char, {
+                        guard,
+                        stat: CardStat.Onboard
+                    });
+                    if(TypeGaurd.isCard(c_selected)) {
+                        if(TypeGaurd.isArena(c_selected)) {
+                            let result = await this.gm.getMyMaster(this.player)
+                            .enterArena(c_selected, char, true);
+                            if(result) {
+                                // 隱藏UI
+                                char_ui.hide();
+                            }
+                        } else if(TypeGaurd.isEvent(c_selected)) {
+                            await this.gm.getMyMaster(this.player).pushEvent(c_selected, char, true);
                         }
-                    } else if(TypeGaurd.isEvent(c_selected)) {
-                        await this.gm.getMyMaster(this.player).pushEvent(c_selected, char, true);
                     }
-                }
+                })();
             }
+            return true;
         });
     }
 }

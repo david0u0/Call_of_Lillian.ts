@@ -147,6 +147,8 @@ export function drawStrength(gm: GameMaster, card: ICharacter | IUpgrade, s_widt
         let str = pm.getStrength(card);
         if(str != card.basic_strength) {
             s_txt.style.fill = 0x0f70d2;
+        } else {
+            s_txt.style.fill = 0;
         }
         s_txt.text = str.toString();
     };
@@ -410,6 +412,7 @@ export class CharUI {
             upgrade_ui.scale.set(0.2);
             this.view.addChild(upgrade_ui);
             this.img.alpha = 0.6;
+            this.filter.enabled = true;
             return new Promise(resolve => {
                 let popup = () => {
                     let scale = upgrade_ui.scale.x;
@@ -422,6 +425,7 @@ export class CharUI {
                             cleanup: () => {
                                 upgrade_ui.destroy();
                                 this.img.alpha = 1;
+                                this.filter.enabled = false;
                             }
                         });
                     }
@@ -432,7 +436,7 @@ export class CharUI {
     }
     private _onclick_func = new Array<(evt: PIXI.interaction.InteractionEvent) => boolean|void>();
     setOnclick(func: (evt: PIXI.interaction.InteractionEvent) => boolean|void) {
-        this._onclick_func = [func, ...this._onclick_func];
+        this._onclick_func = [...this._onclick_func, func];
     }
     hide() {
         if(this.destroy_big) {

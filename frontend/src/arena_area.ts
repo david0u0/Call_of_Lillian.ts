@@ -136,6 +136,7 @@ export class ArenaArea {
         char_ui.setOnclick(() => {
             if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(char);
+                return true;
             } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
                 this.gm.getMyMaster(char).exploit(arena, char, true);
             }

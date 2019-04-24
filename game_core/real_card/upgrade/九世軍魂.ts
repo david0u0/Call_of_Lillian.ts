@@ -5,7 +5,7 @@ import { BadOperationError } from "../../errors";
 
 let name = "九世軍魂";
 let description = `每世代開始時戰力增加1。當本裝備即將被銷毀，可以改為將其裝備至任意角色，並使戰力增加1。
-裝備者獲得角色行動：銷毀*九世軍魂*。`;
+裝備者獲得瞬間行動：銷毀*九世軍魂*。`;
 
 export default class U extends Upgrade {
     name = name;
@@ -34,7 +34,8 @@ export default class U extends Upgrade {
                 return false;
             }
         },
-        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit, GamePhase.InWar]
+        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit, GamePhase.InWar],
+        instance: true
     }];
 
     setupAliveEffect() {

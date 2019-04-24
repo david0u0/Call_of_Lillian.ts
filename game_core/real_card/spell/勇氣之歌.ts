@@ -19,8 +19,6 @@ export default class S extends Spell {
     protected target: ICharacter | null = null;
 
     async initialize(): Promise<boolean> {
-        console.log("ha")
-        console.log(this.g_master.selecter.selecting)
         this.target = await this.g_master.selecter.promptUI("指定施放者")
         .selectCard(this.owner, this, {
             guard: TypeGaurd.isCharacter,
@@ -28,7 +26,6 @@ export default class S extends Spell {
         }, c => {
             return c.char_status == CharStat.InWar;
         });
-        console.log(this.target)
         if(this.target) {
             return this.my_master.checkCanPlay(this);
         } else {
@@ -46,7 +43,7 @@ export default class S extends Spell {
         this.addGetterWhileAlive(true, this.target.get_strength_chain, str => {
             return { var_arg: str + 2 };
         });
-        this.g_master.w_master.end_war_chain.append(() => {
+        this.addActionWhileAlive(true, this.g_master.w_master.end_war_chain, () => {
             this.my_master.retireCard(this);
         });
     }

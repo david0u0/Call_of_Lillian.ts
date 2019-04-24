@@ -9,13 +9,10 @@ export class PhaseNotifier {
     private pending_anime = new Array<() => void>();
     private anime_playing = false;
     public readonly view = new PIXI.Container();
-    
-    private skip_selecter: FrontendSelecter;
 
-    constructor(private gm: GameMaster, player: Player, private ticker: PIXI.ticker.Ticker) {
-        this.skip_selecter = new FrontendSelecter(player, ticker);
-        this.view.addChild(this.skip_selecter.view);
-
+    constructor(private gm: GameMaster, player: Player,
+        private selecter: FrontendSelecter, private ticker: PIXI.ticker.Ticker
+    ) {
         let { width, height } = getWinSize();
         let txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: width/20,
@@ -86,7 +83,6 @@ export class PhaseNotifier {
             phase_txt.text = "戰鬥中";
             anime("戰鬥開始");
             anime("請點選我方角色作為攻擊者\n再點選敵方角色作為攻擊目標");
-            this.stopAskingSkip();
         });
         gm.w_master.end_war_chain.append(() => {
             phase_txt.text = "主階段";
@@ -111,15 +107,15 @@ export class PhaseNotifier {
     };
 
     private stopAskingSkip() {
-        this.skip_selecter.stopCancelBtn();
+        this.selecter.stopConfirm();
     }
     private askIfSkip() {
         this.stopAskingSkip();
         let p = this.gm.t_master.cur_player;
         let msg = this.gm.t_master.skip_is_rest ? "休息" : "跳過";
         (async () => {
-            let res = await this.skip_selecter.selectCancelBtn(p, null, msg);
-            if(res == null) {
+            let res = await this.selecter.selectConfirm(p, null, msg);
+            if(res) {
                 await this.gm.t_master.skip(p, true);
             }
         })();

@@ -24,20 +24,20 @@ export class FrontendWarMaster {
         let w_master = this.gm.w_master;
         this.char_ui_table[char.seq] = char_ui;
         char_ui.setOnclick(evt => {
-            if(!this.selecting) {
+            if(this.selecter.selecting != SelectState.Card && !this.selecting) {
                 if(w_master.detailed_phase == DetailedWarPhase.Attaking
                     && w_master.checkCanAttack(char)
                 ) {
-                    evt.stopPropagation();
                     this.selecting = true;
+                    evt.stopPropagation();
                     this.attacking.push(char);
                     this.selectAttack().then(() => this.selecting = false);
                     return true;
                 } else if(w_master.detailed_phase == DetailedWarPhase.Blocking
                     && w_master.checkCanBlock(char)
                 ) {
-                    evt.stopPropagation();
                     this.selecting = true;
+                    evt.stopPropagation();
                     this.selectBlock(char).then(() => this.selecting = false);
                     return true;
                 }
@@ -81,9 +81,10 @@ export class FrontendWarMaster {
     }
 
     async loopStopWarBtn() {
+        this.selecter.stopConfirm();
         while(true) {
-            let res = await this.selecter.selectCancelBtn(this.gm.w_master.atk_player, null, "結束戰鬥");
-            if(!res) {
+            let res = await this.selecter.selectConfirm(this.gm.w_master.atk_player, null, "結束戰鬥");
+            if(res) {
                 let end_war_success = await this.gm.w_master.endWar(true);
                 if(end_war_success) {
                     break;
@@ -94,9 +95,10 @@ export class FrontendWarMaster {
         }
     }
     async doConflictBtn() {
+        this.selecter.stopConfirm();
         let res = await this.selecter
-        .selectCancelBtn(this.gm.w_master.def_player, null, "進入衝突階段");
-        if(!res) {
+        .selectConfirm(this.gm.w_master.def_player, null, "開始衝突");
+        if(res) {
             await this.gm.w_master.startConflict();
         }
     }
@@ -128,7 +130,7 @@ export class FrontendWarMaster {
 
     private attacking = new Array<ICharacter>();
     private async selectAttack() {
-        this.selecter.stopCancelBtn();
+        this.selecter.stopConfirm();
         let w_master = this.gm.w_master;
         let target: ICharacter = null;
         while(true) {
@@ -181,7 +183,7 @@ export class FrontendWarMaster {
         this.attacking = [];
     }
     private async selectBlock(block_char: ICharacter) {
-        this.selecter.stopCancelBtn();
+        this.selecter.stopConfirm();
         let wm = this.gm.w_master;
         let atk_char = await this.selecter
         .selectCard(wm.def_player,

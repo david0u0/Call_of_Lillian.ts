@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { IKnownCard, ISelecter, ICard, SelectConfig } from "../../game_core/interface";
+import { IKnownCard, ISelecter, ICard, SelectConfig, TypeGaurd } from "../../game_core/interface";
 import { getWinSize, getEltSize } from "./get_constant";
 import { BadOperationError } from "../../game_core/errors";
 import { Player, CharStat } from "../../game_core/enums";
@@ -23,8 +23,7 @@ export default class FrontendSelecter implements ISelecter {
     private card_table: { [index: number]: ICard } = {};
     private filter_func: (c: IKnownCard) => boolean;
     private lines: PIXI.Graphics[] = [];
-    private cancel_btn = new PIXI.Container();
-    private cancel_txt: PIXI.Text;
+    private cancel_btn = new StackableBtn();
 
     private _selecting = SelectState.None;
     public get selecting() { return this._selecting; };
@@ -39,37 +38,18 @@ export default class FrontendSelecter implements ISelecter {
         this.cancel_view.alpha = 0;
         this.cancel_view.interactive = true;
         this.cancel_view.on("click", evt => {
-            if(this.selecting && this.show_cancel_ui == null) {
+            if(this.selecting != SelectState.None
+                && this.selecting != SelectState.Btn && this.show_cancel_ui == null
+            ) {
                 evt.stopPropagation();
                 this.endSelect(null);
             }
         });
         this.view.interactive = true;
-
+        
         let { ew, eh } = getEltSize();
-        this.cancel_btn.interactive = true;
-        this.cancel_btn.cursor = "pointer";
-        this.view.addChild(this.cancel_btn);
-        this.cancel_btn.position.set(ew, 39*eh);
-        this.cancel_btn.visible = false;
-
-        let cancel_btn_bg = new PIXI.Graphics();
-        cancel_btn_bg.beginFill(0x6298f3);
-        cancel_btn_bg.drawRect(0, 0, ew * 4, eh * 2);
-        cancel_btn_bg.endFill();
-        this.cancel_btn.addChild(cancel_btn_bg);
-
-        this.cancel_txt = new PIXI.Text("", new PIXI.TextStyle({
-            fill: 0,
-            fontSize: eh * 1.5
-        }));
-        this.cancel_txt.anchor.set(0.5, 0.5);
-        this.cancel_btn.addChild(this.cancel_txt);
-        this.cancel_txt.position.set(ew * 2, eh);
-
-        this.cancel_btn.on("click", () => {
-            this.endSelect(null);
-        });
+        this.view.addChild(this.cancel_btn.view);
+        this.cancel_btn.view.position.set(ew, 39*eh);
     }
     public clearMem() {
         this._mem = [];
@@ -80,9 +60,16 @@ export default class FrontendSelecter implements ISelecter {
         for(let line of this.lines) {
             line.destroy();
         }
-        this.view.removeAllListeners();
         this.lines = [];
-        this.cancel_btn.visible = false;
+        this.view.removeAllListeners();
+
+        if(this.cancel_btn.selecting) {
+            this.cancel_btn.stopBtn();
+        }
+        if(this.cancel_btn.popBtn()) {
+            this._selecting = SelectState.Btn;
+        }
+
         this.show_cancel_ui = null;
         for(let func of this.cleanup) {
             func();
@@ -109,9 +96,10 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     selectText(player: Player, caller: IKnownCard, text: string[]): Promise<number|null> {
-        if(this.selecting != SelectState.None) {
-            // FIXME: handle btn!
-            throw new BadOperationError("正在選擇時呼叫選擇器");
+        if(this.selecting == SelectState.Btn) {
+            this.cancel_btn.stackBtn();
+        } else if(this.selecting != SelectState.None) {
+            throw new BadOperationError("selectText: 正在選擇時呼叫選擇器", caller);
         }
         this._selecting = SelectState.Text;
         let { height, width } = getWinSize();
@@ -147,9 +135,9 @@ export default class FrontendSelecter implements ISelecter {
         check=(card: T) => true
     ): Promise<T | null> {
         if(this.selecting == SelectState.Btn) {
-            // 把按鈕的狀態記錄下來
+            this.cancel_btn.stackBtn();
         } else if(this.selecting != SelectState.None) {
-            throw new BadOperationError("正在選擇時呼叫選擇器");
+            throw new BadOperationError("selectCard: 正在選擇時呼叫選擇器", caller);
         }
         player = this.me; // FIXME: 這行要拿掉
         if(player != this.me) {
@@ -262,10 +250,12 @@ export default class FrontendSelecter implements ISelecter {
         this.show_cancel_ui = cancel_msg;
         return this;
     }
-    private showCancelUI() {
+    private async showCancelUI() {
         if(this.show_cancel_ui) {
-            this.cancel_txt.text = this.show_cancel_ui;
-            this.cancel_btn.visible = true;
+            let res = await this.cancel_btn.startBtn(this.show_cancel_ui);
+            if(res) {
+                this.endSelect(null);
+            }
         }
     }
 
@@ -275,31 +265,109 @@ export default class FrontendSelecter implements ISelecter {
         return this;
     }
 
-    public async selectCancelBtn(
-        player: Player, caller: IKnownCard|null, msg?: string
-    ): Promise<true|null> {
-        if(this.selecting != SelectState.None) {
-            return;
+    public async selectConfirm(
+        player: Player, caller: IKnownCard|null, msg: string
+    ): Promise<boolean> {
+        if(this.selecting == SelectState.Btn) {
+            this.cancel_btn.stackBtn();
+        } else if(this.selecting != SelectState.None) {
+            throw new BadOperationError(`selectConfirm: 正在選擇時呼叫選擇器：${msg}`);
         }
+
         player = this.me; // FIXME:
         if(player != this.me) {
 
         } else {
             this._selecting = SelectState.Btn;
-            this.cancelUI(msg);
-            this.showCancelUI();
-            return new Promise<true|null>(resolve => {
-                this.resolve_card = resolve;
-            });
+            return await this.cancel_btn.startBtn(msg);
         }
     }
-    public stopCancelBtn() {
-        if(this._selecting == SelectState.None) {
-            // 啥都不做
-        } else if(this._selecting != SelectState.Btn) {
-            throw new BadOperationError("不是按鈕狀態卻想停止按鈕");
+    public stopConfirm() {
+        if(this.selecting == SelectState.Btn) {
+            this._selecting = SelectState.None;
+            this.cancel_btn.stopBtn();
+        }
+    }
+}
+
+class StackableBtn {
+    public view = new PIXI.Container();
+
+    private stack = new Array<{ resolve_func: (arg: boolean) => void, txt: string }>();
+    private txt_view: PIXI.Text;
+
+    private cur_msg: string;
+    private cur_resolve: (arg: boolean) => void;
+
+    public selecting = false;
+
+    constructor() {
+        let { ew, eh } = getEltSize();
+        this.view.interactive = true;
+        this.view.cursor = "pointer";
+        this.view.visible = false;
+
+        let btn_bg = new PIXI.Graphics();
+        btn_bg.beginFill(0x6298f3);
+        btn_bg.drawRect(0, 0, ew * 4, eh * 2);
+        btn_bg.endFill();
+        this.view.addChild(btn_bg);
+
+        this.txt_view = new PIXI.Text("", new PIXI.TextStyle({
+            fill: 0,
+            fontSize: eh * 1.5
+        }));
+        this.txt_view.anchor.set(0.5, 0.5);
+        this.view.addChild(this.txt_view);
+        this.txt_view.position.set(ew * 2, eh);
+
+        this.view.on("click", () => {
+            this.cur_resolve(true);
+            this.view.visible = false;
+            this.selecting = false;
+        });
+    }
+    public async startBtn(msg: string): Promise<boolean> {
+        if(this.selecting) {
+            throw new BadOperationError("StackableBtn: 正在選擇中還想啟動選擇");
+        }
+        this.cur_msg = msg;
+        this.txt_view.text = msg;
+        this.view.visible = true;
+        this.selecting = true;
+        return new Promise<boolean>(resolve => {
+            this.cur_resolve = resolve;
+        });
+    }
+    public stackBtn() {
+        if(this.selecting) {
+            this.stack.push({ txt: this.cur_msg, resolve_func: this.cur_resolve });
+            this.view.visible = false;
+            this.selecting = false;
+        }
+    }
+    public popBtn(): boolean {
+        if(!this.selecting) {
+            let obj = this.stack.pop();
+            if(obj) {
+                this.cur_msg = obj.txt;
+                this.txt_view.text = this.cur_msg;
+                this.cur_resolve = obj.resolve_func;
+                this.view.visible = true;
+                this.selecting = true;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public stopBtn() {
+        if(this.selecting) {
+            this.cur_resolve(false);
+            this.view.visible = false;
+            this.selecting = false;
         } else {
-            this.endSelect(true);
+            // throw new BadOperationError("StackableBtn: 不在選擇中卻想停止選擇");
         }
     }
 }

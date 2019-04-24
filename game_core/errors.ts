@@ -6,14 +6,26 @@ const ENV = (() => {
     }
 })();
 
+function formatErrMsg(msg: string, obj: any) {
+    if(obj instanceof Array) {
+        for(let o of obj) {
+            if(o.name) {
+                msg = `${o.name}: ${msg}`;
+            }
+        }
+    } else {
+        if(obj && obj.name) {
+            msg = `${obj.name}: ${msg}`;
+        }
+    }
+    return msg;
+}
+
 /** 發生錯誤操作，理想上應該會被UI檔下來，會出現這個錯誤代表玩家繞過UI直接對伺服器說話 */
 export class BadOperationError {
     message = "";
     constructor(message: string, obj_with_name?: any) {
-        if(obj_with_name && obj_with_name.name) {
-            message = `${obj_with_name.name}: ${message}`;
-        }
-        this.message = message;
+        this.message = formatErrMsg(message, obj_with_name);
         if(ENV == "frontend") {
             alert(this.message);
         }
@@ -31,9 +43,7 @@ export function throwIfIsBackend(msg: string, obj_with_name?: any) {
     if(ENV == "backend") {
         throw new BadOperationError(msg, obj_with_name);
     } else {
-        if(obj_with_name && obj_with_name.name) {
-            msg = `${obj_with_name.name}: ${msg}`;
-        }
+        msg = formatErrMsg(msg, obj_with_name);
         alert(msg);
     }
 }

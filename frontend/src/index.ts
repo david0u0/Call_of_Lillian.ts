@@ -72,7 +72,7 @@ async function setup() {
     let event_area2 = new EventArea(me, gm, selecter, show_big_card, app.ticker);
     event_area2.view.position.set(36.5*ew, 21.2*eh);
 
-    let phase_notifier = new PhaseNotifier(gm, me, app.ticker);
+    let phase_notifier = new PhaseNotifier(gm, me, selecter, app.ticker);
 
     let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card, f_w_master);
     let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card, f_w_master);

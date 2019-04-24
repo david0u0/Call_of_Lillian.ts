@@ -228,7 +228,7 @@ interface ISelecter {
         conf: SelectConfig<T>,
         check?: (card: T) => boolean): Promise<T | null>;
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
-    selectCancelBtn(player: Player, caller: IKnownCard|null, msg?: string): Promise<true|null>;
+    selectConfirm(player: Player, caller: IKnownCard|null, msg: string): Promise<boolean>;
     setCardTable(table: { [index: number]: ICard }): void;
     cancelUI(msg?: string): ISelecter;
     promptUI(msg: string): ISelecter;
