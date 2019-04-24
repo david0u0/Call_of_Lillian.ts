@@ -101,6 +101,7 @@ export default class FrontendSelecter implements ISelecter {
         } else if(this.selecting != SelectState.None) {
             throw new BadOperationError("selectText: 正在選擇時呼叫選擇器", caller);
         }
+        this.showCancelUI();
         this._selecting = SelectState.Text;
         let { height, width } = getWinSize();
         let tmp_view = new PIXI.Container();
@@ -110,8 +111,16 @@ export default class FrontendSelecter implements ISelecter {
         mask.beginFill(0, 0.5);
         mask.drawRect(0, 0, width, height);
         tmp_view.addChild(mask);
-        this.view.addChild(tmp_view);
+        this.view.addChildAt(tmp_view, 0);
+        mask.interactive = true;
+        mask.on("click", () => {
+            if(this.show_cancel_ui == null) {
+                this.endSelect(null);
+            }
+        });
+        this.cleanup.push(() => tmp_view.destroy());
         return new Promise<number|null>(async resolve => {
+            this.resolve_card = resolve;
             let pos = (await this.startSelect(caller))[0];
             for(let [i, s] of text.entries()) {
                 let option_txt = new PIXI.Text(s, new PIXI.TextStyle({
@@ -121,9 +130,7 @@ export default class FrontendSelecter implements ISelecter {
                 option_txt.interactive = true;
                 option_txt.cursor = "pointer";
                 option_txt.on("click", () => {
-                    tmp_view.destroy();
                     this.endSelect(i);
-                    resolve(i);
                 });
                 option_txt.position.set(pos.x, pos.y+i*eh*1.5);
                 tmp_view.addChild(option_txt);
