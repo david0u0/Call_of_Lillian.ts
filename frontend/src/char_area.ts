@@ -6,7 +6,7 @@ import { BadOperationError } from "../../game_core/errors";
 import { TypeGaurd, ICharacter, IEvent, IArena, ICard } from "../../game_core/interface";
 import { Player } from "../../game_core/enums";
 import { CharUI } from "./draw_card";
-import FrontendSelecter from "./frontend_selecter";
+import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { GameMaster } from "../../game_core/master/game_master";
 
 const H = 70, W = 50, MAX_CHAR = 9;
@@ -99,7 +99,7 @@ export class CharArea {
         });
         // 角色進入場所或推進事件
         char_ui.setOnclick(async evt => {
-            if(this.selecter.selecting) {
+            if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_player == this.player && !char.is_tired) {
                 function guard(c: ICard): c is IEvent | IArena {

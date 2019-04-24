@@ -224,8 +224,10 @@ interface ISelecter {
         guard: (c: ICard) => c is T,
         check: (card: T) => boolean): Promise<T | null>;
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
+    selectCancelBtn(player: Player, caller: IKnownCard|null, msg?: string): Promise<true|null>;
     setCardTable(table: { [index: number]: ICard }): void;
     cancelUI(msg?: string): ISelecter;
+    promptUI(msg: string): ISelecter;
 }
 
 export {

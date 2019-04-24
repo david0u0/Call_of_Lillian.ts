@@ -3,7 +3,7 @@ import { Character, Upgrade, Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard, ICard } from "../../interface";
 
 let name = "市立圖書館";
-let description = "使用：3魔力->放逐最多三張牌，並從牌庫抽出同樣數量的牌。";
+let description = "使用：3魔力->放逐最多兩張牌，並從牌庫抽出同樣數量的牌。";
 
 export default class A extends Arena implements IArena {
     name = name;
@@ -39,7 +39,7 @@ export default class A extends Arena implements IArena {
                 }
                 if(!cancel) {
                     cards_to_discard.push(c);
-                    if(cards_to_discard.length == 3) {
+                    if(cards_to_discard.length == 2) {
                         break;
                     }
                 }

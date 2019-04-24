@@ -10,7 +10,7 @@ let description = `每世代開始時戰力增加1。當本裝備即將被銷毀
 export default class U extends Upgrade {
     name = name;
     description = description;
-    basic_mana_cost = 3;
+    basic_mana_cost = 2;
     basic_strength = -4;
 
     protected modifier = 0;

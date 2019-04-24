@@ -2,14 +2,20 @@ import * as PIXI from "pixi.js";
 import { GameMaster } from "../../game_core/master/game_master";
 import { Player, GamePhase } from "../../game_core/enums";
 import { getWinSize } from "./get_constant";
+import FrontendSelecter from "./frontend_selecter";
 
 export class PhaseNotifier {
     private cur_era = 0;
     private pending_anime = new Array<() => void>();
     private anime_playing = false;
     public readonly view = new PIXI.Container();
+    
+    private skip_selecter: FrontendSelecter;
 
-    constructor(gm: GameMaster, player: Player, private ticker: PIXI.ticker.Ticker) {
+    constructor(private gm: GameMaster, player: Player, private ticker: PIXI.ticker.Ticker) {
+        this.skip_selecter = new FrontendSelecter(player, ticker);
+        this.view.addChild(this.skip_selecter.view);
+
         let { width, height } = getWinSize();
         let txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: width/20,
@@ -80,10 +86,42 @@ export class PhaseNotifier {
             phase_txt.text = "戰鬥中";
             anime("戰鬥開始");
             anime("請點選我方角色作為攻擊者\n再點選敵方角色作為攻擊目標");
+            this.stopAskingSkip();
         });
         gm.w_master.end_war_chain.append(() => {
             phase_txt.text = "主階段";
             anime("戰鬥結束");
+            return {
+                after_effect: () => this.askIfSkip()
+            };
+        });
+
+        gm.t_master.start_turn_chain.append(() => {
+            if(gm.t_master.cur_phase != GamePhase.InWar) {
+                return {
+                    after_effect: () => this.askIfSkip()
+                };
+            }
+        });
+        gm.t_master.spend_action_chain.append(() => {
+            return {
+                after_effect: async () => this.askIfSkip()
+            };
         });
     };
+
+    private stopAskingSkip() {
+        this.skip_selecter.stopCancelBtn();
+    }
+    private askIfSkip() {
+        this.stopAskingSkip();
+        let p = this.gm.t_master.cur_player;
+        let msg = this.gm.t_master.skip_is_rest ? "休息" : "跳過";
+        (async () => {
+            let res = await this.skip_selecter.selectCancelBtn(p, null, msg);
+            if(res == null) {
+                await this.gm.t_master.skip(p, true);
+            }
+        })();
+    }
 }

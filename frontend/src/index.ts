@@ -28,7 +28,6 @@ PIXI.loader
 .add("incite", require("../assets/incite.png"))
 .add("war", require("../assets/war.png"))
 .add("release", require("../assets/release.png"))
-.add("rest", require("../assets/rest.png"))
 .add("mana_pop", require("../assets/mana_pop.png"))
 .add("goal_pop", require("../assets/goal_pop.png"))
 .add("countdown_pop", require("../assets/countdown_pop.png"))
@@ -46,7 +45,7 @@ async function setup() {
 
     let me = Player.Player1;
     let { width, height } = getWinSize();
-    let selecter = new FrontendSelecter(me, show_big_card, app.ticker);
+    let selecter = new FrontendSelecter(me, app.ticker);
     let gm = new GameMaster(selecter, generateCard);
 
     let { ew, eh } = getEltSize();

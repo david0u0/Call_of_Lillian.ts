@@ -6,7 +6,9 @@ import { Player } from "../../game_core/enums";
 import { ShowBigCard } from "./show_big_card";
 import { getCardSize } from "./draw_card";
 
-type CardLike = ICard|number|null;
+export enum SelectState { Text, Card, None, Btn };
+
+type CardLike = ICard|number|boolean|null;
 type StartSelectFunc = () => Promise<{
     view: PIXI.Container,
     cleanup: () => void
@@ -24,10 +26,10 @@ export default class FrontendSelecter implements ISelecter {
     private cancel_btn = new PIXI.Container();
     private cancel_txt: PIXI.Text;
 
-    private _selecting = false;
+    private _selecting = SelectState.None;
     public get selecting() { return this._selecting; };
 
-    constructor(private me: Player, private showBigCard: ShowBigCard, private ticker: PIXI.ticker.Ticker) {
+    constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
         let { width, height } = getWinSize();
         this.cancel_view.beginFill(0);
         this.cancel_view.drawRect(0, 0, width, height);
@@ -70,8 +72,8 @@ export default class FrontendSelecter implements ISelecter {
         this._mem = [];
     }
 
-    private endSelect(arg?: CardLike) {
-        this._selecting = false;
+    private endSelect(arg: CardLike) {
+        this._selecting = SelectState.None;
         for(let line of this.lines) {
             line.destroy();
         }
@@ -87,12 +89,13 @@ export default class FrontendSelecter implements ISelecter {
             this.resolve_card(arg);
         }
         this.resolve_card = null;
-        if(typeof(arg) == "undefined") {
-            // 啥都不做
-        } else if(arg == null) {
+
+        if(arg == null) {
             this._mem.push(-1);
         } else if(typeof(arg) == "number") {
             this._mem.push(arg);
+        } else if(typeof(arg) == "boolean") {
+            this._mem.push(arg ? 1 : 0);
         } else {
             this._mem.push(arg.seq);
         }
@@ -103,6 +106,7 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     selectText(player: Player, caller: IKnownCard, text: string[]): Promise<number|null> {
+        this._selecting = SelectState.Card;
         let { height, width } = getWinSize();
         let tmp_view = new PIXI.Container();
         let mask = new PIXI.Graphics();
@@ -140,7 +144,7 @@ export default class FrontendSelecter implements ISelecter {
             // TODO: 從佇列中拉出資料來回傳
         } else {
             this.showCancelUI();
-            this._selecting = true;
+            this._selecting = SelectState.Card;
             this.filter_func = card => {
                 if(guard(card)) {
                     return check(card);
@@ -187,7 +191,7 @@ export default class FrontendSelecter implements ISelecter {
      * @return 回傳值代表其是否符合選擇的要件
      */
     onCardClicked(card: IKnownCard): boolean {
-        if(this.resolve_card && this.selecting) {
+        if(this.resolve_card && this.selecting == SelectState.Card) {
             if(this.filter_func(card)) {
                 this.endSelect(card);
                 return true;
@@ -246,6 +250,37 @@ export default class FrontendSelecter implements ISelecter {
         if(this.show_cancel_ui) {
             this.cancel_txt.text = this.show_cancel_ui;
             this.cancel_btn.visible = true;
+        }
+    }
+
+    private show_prompt_ui: string | null = null;
+    public promptUI(prompt_ui) {
+        this.show_prompt_ui = prompt_ui;
+        return this;
+    }
+
+    public async selectCancelBtn(
+        player: Player, caller: IKnownCard|null, msg?: string
+    ): Promise<true|null> {
+        player = this.me; // FIXME:
+        if(player != this.me) {
+
+        } else {
+            this._selecting = SelectState.Btn;
+            this.cancelUI(msg);
+            this.showCancelUI();
+            return new Promise<true|null>(resolve => {
+                this.resolve_card = resolve;
+            });
+        }
+    }
+    public stopCancelBtn() {
+        if(this._selecting == SelectState.None) {
+            // 啥都不做
+        } else if(this._selecting != SelectState.Btn) {
+            throw new BadOperationError("不是按鈕狀態卻想停止按鈕");
+        } else {
+            this.endSelect(true);
         }
     }
 }

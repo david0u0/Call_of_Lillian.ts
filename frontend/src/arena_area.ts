@@ -8,7 +8,7 @@ import { drawCardFace, getCardSize, drawCard, drawStrength, drawUpgradeCount, Ch
 import { Player, GamePhase } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
 import { my_loader } from "./card_loader";
-import FrontendSelecter from "./frontend_selecter";
+import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
 import { Constant } from "../../game_core/general_rules";
 import { FrontendWarMaster } from "./frontend_war_master";
@@ -102,7 +102,7 @@ export class ArenaArea {
             };
         });
         obj.on("click", () => {
-            if(this.selecter.selecting) {
+            if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(card);
             } else {
                 // NOTE: 沒事應該不會去點場地卡 吧？
@@ -134,7 +134,7 @@ export class ArenaArea {
         }
 
         char_ui.setOnclick(async () => {
-            if(this.selecter.selecting) {
+            if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
                 await this.gm.getMyMaster(char).exploit(arena, char, true);

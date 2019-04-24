@@ -4,7 +4,7 @@ import { drawCard, drawCardFace } from "./draw_card";
 import { my_loader } from "./card_loader";
 import { Player } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
-import FrontendSelecter from "./frontend_selecter";
+import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
 import { IKnownCard, IEvent, TypeGaurd } from "../../game_core/interface";
 
@@ -82,7 +82,7 @@ export class EventArea {
         card_face.interactive = true;
         card_face.cursor = "pointer";
         card_face.on("click", () => {
-            if(this.selecter.selecting) {
+            if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(card);
             } else {
                 // NOTE: 沒事應該不會去點事件卡 吧？

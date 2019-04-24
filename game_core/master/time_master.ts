@@ -66,7 +66,8 @@ export class TimeMaster {
     public readonly rest_chain = this.acf.new<Player>();
 
     /** 若沒有做任何動作就跳過，則徑行休息 */
-    private skip_is_rest = true;
+    private _skip_is_rest = true;
+    public get skip_is_rest() { return this._skip_is_rest; }
     public async skip(player: Player, by_keeper: boolean) {
         if(this.cur_player != player) {
             throw new BadOperationError("想在別人的回合跳過？");
@@ -83,12 +84,12 @@ export class TimeMaster {
         }
         if(this._cur_phase == GamePhase.InAction) {
             if(this.skip_is_rest) {
-                await this.rest(player, false);
+                await this.rest(player, by_keeper);
             } else {
                 await this.spendAction();
             }
         } else {
-            await this.rest(player, false);
+            await this.rest(player, by_keeper);
         }
     }
     public async rest(player: Player, by_keeper: boolean) {
@@ -167,7 +168,7 @@ export class TimeMaster {
             return;
         } else {
             this.spend_action_chain.trigger(null, async () => {
-                this.skip_is_rest = false;
+                this._skip_is_rest = false;
                 this.action_index++;
                 await this.addActionPoint(-1);
             });
@@ -196,7 +197,7 @@ export class TimeMaster {
             this._cur_player = next_player;
             if(this.cur_phase == GamePhase.InAction) {
                 this._action_point = 0;
-                this.skip_is_rest = true;
+                this._skip_is_rest = true;
                 await this.addActionPoint(MAIN_DEFAULT_ACTION_P);
             }
         });

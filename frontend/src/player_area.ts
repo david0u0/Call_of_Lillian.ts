@@ -199,7 +199,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
     rec.beginFill(0xFFFFFF, 1);
-    rec.drawRoundedRect(0, 0, eh*11.5, eh*2.5, 5);
+    rec.drawRoundedRect(0, 0, eh*9, eh*2.5, 5);
     rec.endFill();
     rec.position.set(-eh*3, -eh*3);
     container.addChild(rec);
@@ -214,11 +214,9 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
     });
     let getHovering = () => hovering;
 
-    for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
+    for(let [i, label] of ["incite", "war", "release"].entries()) {
         let func = (() => {
-            if(label == "rest") {
-                return async () => await gm.t_master.skip(player, true);
-            } else if(label == "incite") {
+            if(label == "incite") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
                     let char = await selecter.selectCard(player, null, TypeGaurd.isCharacter, c => {

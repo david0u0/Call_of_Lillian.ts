@@ -7,7 +7,7 @@ import { getEltSize, getWinSize, getPlayerColor } from "./get_constant";
 import { ShowBigCard } from "./show_big_card";
 import { drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";
-import FrontendSelecter from "./frontend_selecter";
+import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { BadOperationError } from "../../game_core/errors";
 import { Player, CardStat } from "../../game_core/enums";
 
@@ -153,7 +153,7 @@ class HandUI {
                 }
             });
             card_ui.on("click", async evt => {
-                if(this.selecter.selecting) {
+                if(this.selecter.selecting == SelectState.Card) {
                     this.selecter.onCardClicked(card);
                 } else {
                     await this.gm.playCard(card, true);
