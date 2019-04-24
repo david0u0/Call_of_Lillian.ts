@@ -19,13 +19,16 @@ export default class S extends Spell {
     protected target: ICharacter | null = null;
 
     async initialize(): Promise<boolean> {
-        this.target = await this.g_master.selecter.cancelUI().promptUI("指定施放者")
+        console.log("ha")
+        console.log(this.g_master.selecter.selecting)
+        this.target = await this.g_master.selecter.promptUI("指定施放者")
         .selectCard(this.owner, this, {
             guard: TypeGaurd.isCharacter,
             stat: CardStat.Onboard
         }, c => {
             return c.char_status == CharStat.InWar;
         });
+        console.log(this.target)
         if(this.target) {
             return this.my_master.checkCanPlay(this);
         } else {

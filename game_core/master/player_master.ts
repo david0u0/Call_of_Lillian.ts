@@ -271,7 +271,9 @@ export class PlayerMaster {
             throw new BadOperationError("想在別人的回合出牌？", card);
         }
         card.rememberFields();
+        console.log(111)
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
+            console.log(222)
             card.recoverFields();
             return false;
         }

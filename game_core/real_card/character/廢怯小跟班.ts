@@ -17,7 +17,7 @@ export default class C extends Character {
         description: "練習勇敢：花費1魔力，增加2點戰力。",
         func: async () => {
             this.has_triggered_ability = true;
-            await this.my_master.addMana(-2);
+            await this.my_master.addMana(-1);
         },
         canTrigger: () => {
             if(this.my_master.mana < 1) {
@@ -27,7 +27,7 @@ export default class C extends Character {
             }
             return true;
         },
-        can_play_phase: [GamePhase.InWar, GamePhase.InAction],
+        can_play_phase: [GamePhase.InWar, GamePhase.InAction, GamePhase.Exploit, GamePhase.Building],
         instance: true
     }];
 

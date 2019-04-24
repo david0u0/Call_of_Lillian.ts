@@ -268,7 +268,6 @@ export class CharUI {
     public readonly view = new PIXI.Container();
 
     private readonly img: PIXI.Sprite;
-    private _onclick: (evt: PIXI.interaction.InteractionEvent) => void = null;
     private destroy_big: () => void = null;
     private filter: Filters.GlowFilter;
 
@@ -322,11 +321,20 @@ export class CharUI {
                 this.destroy_big = null;
             }
         });
-        // 點選
-        img.on("click", evt => this._onclick(evt));
         // 升級
         this.upgrade_area = drawUpgradeCount(gm, char, img.height / 3);
         this.upgrade_area.view.position.set(width, height / 3);
+        // 點擊處理
+        this.img.on("click", evt => {
+            for(let f of this._onclick_func) {
+                let res = f(evt);
+                if(typeof(res) == "boolean") {
+                    if(res) { // 打斷
+                        return;
+                    }
+                }
+            }
+        });
         // 戰力
         this.s_area = drawStrength(gm, char, width * 0.6, true);
         this.s_area.view.position.set(width * 0.2, height - this.s_area.view.height / 2);
@@ -422,8 +430,9 @@ export class CharUI {
             });
         });
     }
-    setOnclick(func: (evt: PIXI.interaction.InteractionEvent) => void) {
-        this._onclick = func;
+    private _onclick_func = new Array<(evt: PIXI.interaction.InteractionEvent) => boolean|void>();
+    setOnclick(func: (evt: PIXI.interaction.InteractionEvent) => boolean|void) {
+        this._onclick_func = [func, ...this._onclick_func];
     }
     hide() {
         if(this.destroy_big) {

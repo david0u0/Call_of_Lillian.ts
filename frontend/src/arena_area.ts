@@ -118,7 +118,7 @@ export class ArenaArea {
             this.gm, this.selecter, this.ticker, this.showBigCard);
         this.view.addChild(char_ui.view);
         let view = char_ui.view;
-        this.f_w_master.register(char, view);
+        this.f_w_master.register(char, char_ui);
 
         let offset = index * (this.card_w + this.card_gap) + this.card_gap;
         view.rotation = -Math.PI / 4;
@@ -133,11 +133,11 @@ export class ArenaArea {
             view.position.set(offset, view.width * 0.35);
         }
 
-        char_ui.setOnclick(async () => {
+        char_ui.setOnclick(() => {
             if(this.selecter.selecting == SelectState.Card) {
                 this.selecter.onCardClicked(char);
             } else if(this.gm.t_master.cur_phase == GamePhase.Exploit) {
-                await this.gm.getMyMaster(char).exploit(arena, char, true);
+                this.gm.getMyMaster(char).exploit(arena, char, true);
             }
         });
 

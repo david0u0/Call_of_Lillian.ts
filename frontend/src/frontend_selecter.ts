@@ -39,7 +39,7 @@ export default class FrontendSelecter implements ISelecter {
         this.cancel_view.alpha = 0;
         this.cancel_view.interactive = true;
         this.cancel_view.on("click", evt => {
-            if(this.resolve_card && this.selecting && this.show_cancel_ui == null) {
+            if(this.selecting && this.show_cancel_ui == null) {
                 evt.stopPropagation();
                 this.endSelect(null);
             }
@@ -109,7 +109,11 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     selectText(player: Player, caller: IKnownCard, text: string[]): Promise<number|null> {
-        this._selecting = SelectState.Card;
+        if(this.selecting != SelectState.None) {
+            // FIXME: handle btn!
+            throw new BadOperationError("正在選擇時呼叫選擇器");
+        }
+        this._selecting = SelectState.Text;
         let { height, width } = getWinSize();
         let tmp_view = new PIXI.Container();
         let mask = new PIXI.Graphics();
@@ -142,6 +146,11 @@ export default class FrontendSelecter implements ISelecter {
         conf: SelectConfig<T>,
         check=(card: T) => true
     ): Promise<T | null> {
+        if(this.selecting == SelectState.Btn) {
+            // 把按鈕的狀態記錄下來
+        } else if(this.selecting != SelectState.None) {
+            throw new BadOperationError("正在選擇時呼叫選擇器");
+        }
         player = this.me; // FIXME: 這行要拿掉
         if(player != this.me) {
             // TODO: 從佇列中拉出資料來回傳
@@ -198,7 +207,7 @@ export default class FrontendSelecter implements ISelecter {
      * @return 回傳值代表其是否符合選擇的要件
      */
     onCardClicked(card: IKnownCard): boolean {
-        if(this.resolve_card && this.selecting == SelectState.Card) {
+        if(this.selecting == SelectState.Card) {
             if(this.filter_func(card)) {
                 this.endSelect(card);
                 return true;
@@ -269,6 +278,9 @@ export default class FrontendSelecter implements ISelecter {
     public async selectCancelBtn(
         player: Player, caller: IKnownCard|null, msg?: string
     ): Promise<true|null> {
+        if(this.selecting != SelectState.None) {
+            return;
+        }
         player = this.me; // FIXME:
         if(player != this.me) {
 

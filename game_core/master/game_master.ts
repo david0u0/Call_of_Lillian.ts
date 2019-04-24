@@ -112,7 +112,7 @@ export class GameMaster {
         return list;
     }
     async playCard(card: IKnownCard, by_keeper=false) {
-        this.getMyMaster(card).playCard(card, by_keeper);
+        await this.getMyMaster(card).playCard(card, by_keeper);
     }
     public readonly expose_card_chain = this.acf.new<ICard>();
     async exposeCard(card: ICard): Promise<IKnownCard> {

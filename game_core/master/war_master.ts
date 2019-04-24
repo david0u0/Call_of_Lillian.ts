@@ -7,6 +7,7 @@ import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
 import { ActionChainFactory } from "./action_chain_factory";
 
+export enum DetailedWarPhase { Attaking, Blocking, None };
 enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
@@ -21,6 +22,9 @@ export class WarMaster {
     private _war_seq = 0;
     /** 避免開戰後完全不攻擊就結束 */
     private _attacked = false;
+
+    private _detailed_phase = DetailedWarPhase.None;
+    public get detailed_phase() { return this._detailed_phase; }
 
     private checkBasic(player: Player, char?: ICharacter, conflict_stat?: ConflictEnum) {
         if(char) {
@@ -177,6 +181,7 @@ export class WarMaster {
     }
     private setupWar() {
         this._attacked = false;
+        this._detailed_phase = DetailedWarPhase.Attaking;
         if(this.war_field) {
             for(let a of this.getAllWarFields(this.war_field)) {
                 for(let c of a.char_list) {
@@ -254,6 +259,7 @@ export class WarMaster {
             this.t_master.startTurn(this.def_player);
             // 開始進行格擋
             await this.start_attack_chain.byKeeper().trigger(null);
+            this._detailed_phase = DetailedWarPhase.Blocking;
             await this.t_master.startTurn(this.def_player);
         }
     }
@@ -302,6 +308,7 @@ export class WarMaster {
         }
         this._conflict_table = {};
         this._target = null;
+        this._detailed_phase = DetailedWarPhase.Attaking;
     }
     private async doSingleConflict(atk_chars: ICharacter[], def: ICharacter, is_target: boolean) {
         let res = await this.before_conflict_chain.trigger({ atk: atk_chars, def, is_target });
@@ -356,6 +363,7 @@ export class WarMaster {
             return false;
         } else {
             this.t_master.setWarPhase(GamePhase.EndWar);
+            this._detailed_phase = DetailedWarPhase.None;
             // TODO: 讓玩家可以執行某些行動
             await this.t_master.startTurn(this.atk_player);
             // 所有參與的角色從疲勞中恢復，且角色狀態改回 InArena
