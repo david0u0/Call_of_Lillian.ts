@@ -225,7 +225,6 @@ interface ISelecter {
         check: (card: T) => boolean): Promise<T | null>;
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     setCardTable(table: { [index: number]: ICard }): void;
-    freeze(should_freeze?: boolean): void;
     cancelUI(msg?: string): ISelecter;
 }
 

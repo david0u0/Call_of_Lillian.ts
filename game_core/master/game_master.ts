@@ -25,6 +25,12 @@ export class GameMaster {
         this.p_master1 = new PlayerMaster(this.acf, Player.Player1, this.t_master, c => this.getMyMaster(c));
         this.p_master2 = new PlayerMaster(this.acf, Player.Player2, this.t_master, c => this.getMyMaster(c));
         selecter.setCardTable(this.card_table);
+
+        this.t_master.rest_chain.append(async () => {
+            if(!this.t_master.someoneResting()) {
+                await this.getMyMaster(this.t_master.cur_player).addMana(C.REST_MANA);
+            }
+        });
     }
 
     genUnknownToDeck(owner: Player) {

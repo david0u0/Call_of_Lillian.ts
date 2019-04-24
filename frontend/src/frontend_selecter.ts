@@ -79,12 +79,10 @@ export default class FrontendSelecter implements ISelecter {
         this.lines = [];
         this.cancel_btn.visible = false;
         this.show_cancel_ui = null;
-        if(!this._freeze) {
-            for(let func of this.cleanup) {
-                func();
-            }
-            this.cleanup = [];
+        for(let func of this.cleanup) {
+            func();
         }
+        this.cleanup = [];
         if(this.resolve_card) {
             this.resolve_card(arg);
         }
@@ -192,9 +190,6 @@ export default class FrontendSelecter implements ISelecter {
         if(this.resolve_card && this.selecting) {
             if(this.filter_func(card)) {
                 this.endSelect(card);
-                if(this._freeze) {
-                    this.startSelect(card);
-                }
                 return true;
             } else {
                 // this.resolve_card(null);
@@ -251,13 +246,6 @@ export default class FrontendSelecter implements ISelecter {
         if(this.show_cancel_ui) {
             this.cancel_txt.text = this.show_cancel_ui;
             this.cancel_btn.visible = true;
-        }
-    }
-    private _freeze = false;
-    public freeze(should_freeze=true) {
-        this._freeze = should_freeze;
-        if(!should_freeze) {
-            this.endSelect();
         }
     }
 }

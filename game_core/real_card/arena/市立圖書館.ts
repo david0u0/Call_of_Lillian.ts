@@ -12,7 +12,7 @@ export default class A extends Arena implements IArena {
     basic_exploit_cost = 3;
 
     async onExploit(char: ICharacter|Player) {
-        let caller = new Array<IKnownCard>();
+        let caller: Array<IKnownCard> = [this];
         let player: Player;
         if(TypeGaurd.isCard(char)) {
             caller.push(char);
@@ -21,25 +21,25 @@ export default class A extends Arena implements IArena {
             player = char;
         }
 
-        let cards = new Array<ICard>();
+        let cards_to_discard = new Array<ICard>();
         while(true) {
-            this.g_master.selecter.freeze();
+            let _caller = [...caller, ...cards_to_discard];
             let c = await this.g_master.selecter.cancelUI()
-            .selectCardInteractive(player, caller, TypeGaurd.isCard, c => {
+            .selectCardInteractive(player, _caller, TypeGaurd.isCard, c => {
                 return (c.card_status == CardStat.Hand && c.owner == player);
             });
             if(c) {
                 let cancel = false;
-                for(let [i, card] of cards.entries()) {
+                for(let [i, card] of cards_to_discard.entries()) {
                     if(card.isEqual(c)) {
-                        cards = [...cards.slice(0, i), ...cards.slice(i+1)];
+                        cards_to_discard = [...cards_to_discard.slice(0, i), ...cards_to_discard.slice(i+1)];
                         cancel = true;
                         break;
                     }
                 }
                 if(!cancel) {
-                    cards.push(c);
-                    if(cards.length == 3) {
+                    cards_to_discard.push(c);
+                    if(cards_to_discard.length == 3) {
                         break;
                     }
                 }
@@ -47,8 +47,7 @@ export default class A extends Arena implements IArena {
                 break;
             }
         }
-        this.g_master.selecter.freeze(false);
-        for(let c of cards) {
+        for(let c of cards_to_discard) {
             let known_card = await this.g_master.exposeCard(c);
             await this.g_master.getMyMaster(player).exileCard(known_card);
             await this.g_master.getMyMaster(player).draw();

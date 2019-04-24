@@ -89,13 +89,9 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
     rest_txt.alpha = 0;
     container.addChild(rest_txt);
     gm.t_master.rest_state_change_chain.append(({ player, resting }) => {
-        return {
-            after_effect: () => {
-                if(player == pm.player) {
-                    rest_txt.alpha = resting ? 1 : 0;
-                }
-            }
-        };
+        if(player == pm.player) {
+            rest_txt.alpha = resting ? 1 : 0;
+        }
     });
 
     if(upsidedown) {
@@ -221,7 +217,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
     for(let [i, label] of ["incite", "war", "release", "rest"].entries()) {
         let func = (() => {
             if(label == "rest") {
-                return async () => await gm.t_master.rest(player, true);
+                return async () => await gm.t_master.skip(player, true);
             } else if(label == "incite") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);

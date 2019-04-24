@@ -65,6 +65,32 @@ export class TimeMaster {
     /** 專門指涉主階段中的休息 */
     public readonly rest_chain = this.acf.new<Player>();
 
+    /** 若沒有做任何動作就跳過，則徑行休息 */
+    private skip_is_rest = true;
+    public async skip(player: Player, by_keeper: boolean) {
+        if(this.cur_player != player) {
+            throw new BadOperationError("想在別人的回合跳過？");
+        } else if(this.cur_phase != GamePhase.InAction
+            && this.cur_phase != GamePhase.Building
+            && this.cur_phase != GamePhase.Exploit
+        ) {
+            throw new BadOperationError("只能在建築階段/主階段/收獲階段跳過");
+        }
+        if(player == Player.Player1 && this._resting1) {
+            throw new BadOperationError("已經在休息了");
+        } else if(player == Player.Player2 && this._resting2) {
+            throw new BadOperationError("已經在休息了");
+        }
+        if(this._cur_phase == GamePhase.InAction) {
+            if(this.skip_is_rest) {
+                await this.rest(player, false);
+            } else {
+                await this.spendAction();
+            }
+        } else {
+            await this.rest(player, false);
+        }
+    }
     public async rest(player: Player, by_keeper: boolean) {
         if(this.cur_player != player) {
             throw new BadOperationError("想在別人的回合休息？");
@@ -91,27 +117,32 @@ export class TimeMaster {
     }
 
     private async setRest(player: Player, resting: boolean) {
-        this.rest_state_change_chain.trigger({ resting, player }, () => {
+        await this.rest_state_change_chain.trigger({ resting, player }, async () => {
+            let end_phase = false;
             if(resting == false) {
                 // 重置
             } else {
                 // 休息
                 if(this.someoneResting()) {
-                    if(this.cur_phase == GamePhase.Building) {
-                        this.startMainPhase();
-                    } else if(this.cur_phase == GamePhase.InAction) {
-                        this.startExploit();
-                    } else if(this.cur_phase == GamePhase.Exploit) {
-                        this.startBulding();
-                    }
+                    end_phase = true;
                 } else {
-                    this.startTurn(1 - player);
+                    await this.startTurn(1 - player);
                 }
             }
+            
             if(player == Player.Player1) {
                 this._resting1 = resting;
             } else {
                 this._resting2 = resting;
+            }
+            if(end_phase) {
+                if(this.cur_phase == GamePhase.Building) {
+                    await this.startMainPhase();
+                } else if(this.cur_phase == GamePhase.InAction) {
+                    await this.startExploit();
+                } else if(this.cur_phase == GamePhase.Exploit) {
+                    await this.startBulding();
+                }
             }
         });
     }
@@ -136,6 +167,7 @@ export class TimeMaster {
             return;
         } else {
             this.spend_action_chain.trigger(null, async () => {
+                this.skip_is_rest = false;
                 this.action_index++;
                 await this.addActionPoint(-1);
             });
@@ -164,6 +196,7 @@ export class TimeMaster {
             this._cur_player = next_player;
             if(this.cur_phase == GamePhase.InAction) {
                 this._action_point = 0;
+                this.skip_is_rest = true;
                 await this.addActionPoint(MAIN_DEFAULT_ACTION_P);
             }
         });
