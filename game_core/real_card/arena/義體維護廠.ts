@@ -9,7 +9,7 @@ let description = `本場所可容納3個角色。
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 4;
+    basic_mana_cost = 5;
     basic_exploit_cost = 0;
     max_capacity = 3;
     series = [ CardSeries.Hospital ];

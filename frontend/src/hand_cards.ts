@@ -153,7 +153,9 @@ class HandUI {
                 }
             });
             card_ui.on("click", async evt => {
-                if(this.selecter.selecting == SelectState.Card) {
+                if(this.selecter.selecting == SelectState.Card
+                    && this.selecter.select_conf.stat == CardStat.Hand
+                ) {
                     this.selecter.onCardClicked(card);
                 } else {
                     await this.gm.playCard(card, true);

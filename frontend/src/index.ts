@@ -107,9 +107,9 @@ async function setup() {
     );
     app.stage.addChild(hands_ui1_obj.view);
     app.stage.addChild(hands_ui2_obj.view);
-    app.stage.addChild(selecter.view);
     app.stage.addChild(f_w_master.view);
     app.stage.addChild(phase_notifier.view);
+    app.stage.addChild(selecter.view);
 }
 
 document.body.appendChild(app.view);

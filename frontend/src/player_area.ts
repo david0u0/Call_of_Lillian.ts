@@ -4,7 +4,7 @@ import * as Filters from "pixi-filters";
 import { getEltSize, getPlayerColor } from "./get_constant";
 import { Player, CardStat } from "../../game_core/enums";
 import FS from "./frontend_selecter";
-import { TypeGaurd, IArena } from "../../game_core/interface";
+import { TypeGaurd as TG, IArena } from "../../game_core/interface";
 import { GameMaster } from "../../game_core/master/game_master";
 import { PlayerMaster } from "../../game_core/master/player_master";
 
@@ -219,12 +219,10 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
             if(label == "incite") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let char = await selecter.selectCard(player, null, TypeGaurd.isCharacter, c => {
-                        if(c.owner != player && c.card_status == CardStat.Onboard) {
-                            return true;
-                        } else {
-                            return false;
-                        }
+                    let char = await selecter.selectCard(player, null, {
+                        guard: TG.isCharacter,
+                        owner: 1-player,
+                        stat: CardStat.Onboard
                     });
                     if(char) {
                         await gm.getMyMaster(char).incite(char, player, true);
@@ -233,7 +231,10 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
             } else if(label == "war") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let arena = await selecter.selectCard(player, null, TypeGaurd.isArena, a => {
+                    let arena = await selecter.selectCard(player, null, {
+                        guard: TG.isArena,
+                        stat: CardStat.Onboard
+                    }, a => {
                         return gm.w_master.checkCanDeclare(player, a);
                     });
                     if(arena) {

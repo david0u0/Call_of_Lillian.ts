@@ -4,7 +4,7 @@ import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";
 import { TypeGaurd, ICharacter, IEvent, IArena, ICard } from "../../game_core/interface";
-import { Player } from "../../game_core/enums";
+import { Player, CardStat } from "../../game_core/enums";
 import { CharUI } from "./draw_card";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { GameMaster } from "../../game_core/master/game_master";
@@ -105,7 +105,10 @@ export class CharArea {
                 function guard(c: ICard): c is IEvent | IArena {
                     return TypeGaurd.isEvent(c) || TypeGaurd.isArena(c);
                 }
-                let c_selected = await this.selecter.selectCard(this.player, char, guard, card => true);
+                let c_selected = await this.selecter.selectCard(this.player, char, {
+                    guard,
+                    stat: CardStat.Onboard
+                });
                 if(TypeGaurd.isCard(c_selected)) {
                     if(TypeGaurd.isArena(c_selected)) {
                         let result = await this.gm.getMyMaster(this.player)

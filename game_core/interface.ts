@@ -166,7 +166,7 @@ interface IEvent extends IKnownCard {
     setTimeCount(time_count: number): void;
 }
 interface ISpell extends IKnownCard {
-
+    casters: Array<ICharacter>;
 }
 
 const TypeGaurd = {
@@ -213,16 +213,20 @@ class UnknownCard implements ICard {
     }
 }
 
-
+type SelectConfig<T extends ICard> = {
+    guard: (c: ICard) => c is T,
+    stat: CardStat,
+    owner?: Player,
+}
 interface ISelecter {
     selectCard<T extends ICard>(player: Player,
         caller: IKnownCard|IKnownCard[]|null,
-        guard: (c: ICard) => c is T,
-        check: (card: T) => boolean): Promise<T | null>;
+        conf: SelectConfig<T>,
+        check?: (card: T) => boolean): Promise<T | null>;
     selectCardInteractive<T extends ICard>(player: Player,
         caller: ICard|ICard[]|null,
-        guard: (c: ICard) => c is T,
-        check: (card: T) => boolean): Promise<T | null>;
+        conf: SelectConfig<T>,
+        check?: (card: T) => boolean): Promise<T | null>;
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     selectCancelBtn(player: Player, caller: IKnownCard|null, msg?: string): Promise<true|null>;
     setCardTable(table: { [index: number]: ICard }): void;
@@ -233,5 +237,5 @@ interface ISelecter {
 export {
     ICard, IKeeper, IKnownCard, ICharacter,
     IUpgrade, IArena, IEvent, ISpell, UnknownCard,
-    TypeGaurd, ISelecter, Ability
+    TypeGaurd, ISelecter, Ability, SelectConfig
 };

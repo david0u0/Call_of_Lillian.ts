@@ -1,12 +1,12 @@
 import * as PIXI from "pixi.js";
-import { IKnownCard, ISelecter, ICard } from "../../game_core/interface";
+import { IKnownCard, ISelecter, ICard, SelectConfig } from "../../game_core/interface";
 import { getWinSize, getEltSize } from "./get_constant";
 import { BadOperationError } from "../../game_core/errors";
-import { Player } from "../../game_core/enums";
+import { Player, CharStat } from "../../game_core/enums";
 import { ShowBigCard } from "./show_big_card";
 import { getCardSize } from "./draw_card";
 
-export enum SelectState { Text, Card, None, Btn };
+export enum SelectState { Text, OnBoard, None, Btn, Card };
 
 type CardLike = ICard|number|boolean|null;
 type StartSelectFunc = () => Promise<{
@@ -28,6 +28,8 @@ export default class FrontendSelecter implements ISelecter {
 
     private _selecting = SelectState.None;
     public get selecting() { return this._selecting; };
+    private _selecting_conf: SelectConfig<ICard> = null;
+    public get select_conf() { return this._selecting_conf; }
 
     constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
         let { width, height } = getWinSize();
@@ -36,8 +38,9 @@ export default class FrontendSelecter implements ISelecter {
         this.cancel_view.endFill();
         this.cancel_view.alpha = 0;
         this.cancel_view.interactive = true;
-        this.cancel_view.on("click", () => {
+        this.cancel_view.on("click", evt => {
             if(this.resolve_card && this.selecting && this.show_cancel_ui == null) {
+                evt.stopPropagation();
                 this.endSelect(null);
             }
         });
@@ -136,17 +139,21 @@ export default class FrontendSelecter implements ISelecter {
         });
     }
     selectCard<T extends ICard>(player: Player, caller: IKnownCard|IKnownCard[]|null,
-        guard: (c: ICard) => c is T,
-        check: (card: T) => boolean
+        conf: SelectConfig<T>,
+        check=(card: T) => true
     ): Promise<T | null> {
         player = this.me; // FIXME: 這行要拿掉
         if(player != this.me) {
             // TODO: 從佇列中拉出資料來回傳
         } else {
-            this.showCancelUI();
             this._selecting = SelectState.Card;
+            this._selecting_conf = { ...conf };
+            this.showCancelUI();
             this.filter_func = card => {
-                if(guard(card)) {
+                if(conf.guard(card)
+                    && (typeof(conf.owner) == "undefined" || card.owner == conf.owner)
+                    && card.card_status == conf.stat
+                ) {
                     return check(card);
                 } else {
                     return false;
@@ -180,11 +187,11 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     selectCardInteractive<T extends ICard>(player: Player,
-        caller: IKnownCard | IKnownCard[], guard: (c: ICard) => c is T,
-        check: (card: T) => boolean
+        caller: IKnownCard | IKnownCard[], conf: SelectConfig<T>,
+        check=(card: T) => true
     ): Promise<T | null> {
         // FIXME: 
-        return this.selectCard(player, caller, guard, check);
+        return this.selectCard(player, caller, conf, check);
     }
 
     /**

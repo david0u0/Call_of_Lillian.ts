@@ -1,10 +1,15 @@
 import * as PIXI from "pixi.js";
 
 import { ICharacter, TypeGaurd as TG } from "../../game_core/interface";
-import { Player } from "../../game_core/enums";
+import { Player, CardSeries, CardStat } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter from "./frontend_selecter";
 import { BadOperationError } from "../../game_core/errors";
+
+const CHAR_CONF = {
+    guard: TG.isCharacter,
+    stat: CardStat.Onboard
+};
 
 export class FrontendWarMaster {
     public view = new PIXI.Container();
@@ -79,7 +84,7 @@ export class FrontendWarMaster {
         while(true) {
             let ch = await this.selecter
             .cancelUI("結束戰鬥")
-            .selectCard(this.me, this.attacking, TG.isCharacter, _ch => {
+            .selectCard(this.me, this.attacking, CHAR_CONF, _ch => {
                 if(w_master.checkCanAttack(_ch)) {
                     return true;
                 } else if(w_master.checkCanAttack(this.attacking, _ch)) {
@@ -133,14 +138,14 @@ export class FrontendWarMaster {
             let block_char = await this.selecter
             .cancelUI("進入衝突階段")
             .selectCard(wm.def_player, [],
-                TG.isCharacter, c => {
+                CHAR_CONF, c => {
                     return wm.checkCanBlock(c);
                 }
             );
             if(block_char) {
                 let _block_char = block_char;
                 let atk_char = await this.selecter.selectCard(
-                    wm.def_player, _block_char, TG.isCharacter, c => {
+                    wm.def_player, _block_char, CHAR_CONF, c => {
                         return wm.checkCanBlock(_block_char, c);
                     }
                 );

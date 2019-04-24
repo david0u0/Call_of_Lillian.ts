@@ -1,7 +1,7 @@
 // TODO: 為了達成斷線復原的功能，應該把入場曲跟在場效果分清楚（多一個 setAliveChain 方法）
 
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
-import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd, IEvent, ICard, Ability } from "./interface";
+import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, ICard, Ability } from "./interface";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
@@ -31,7 +31,7 @@ abstract class KnownCard implements IKnownCard {
     protected _abilities = new Array<Ability>();
     public get abilities() {
         let res = [...this._abilities];
-        if(TypeGaurd.isCharacter(this)) {
+        if(TG.isCharacter(this)) {
             for(let upgrade of this.upgrade_list) {
                 res = [...res, ...upgrade.abilities];
             }
@@ -126,7 +126,12 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     private mem_character_equipped: ICharacter | null = this.character_equipped;
 
     public async initialize() {
-        let char = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isCharacter, char => {
+        let char = await this.g_master.selecter.promptUI("指定裝備者")
+        .selectCard(this.owner, this, {
+            guard: TG.isCharacter,
+            owner: this.owner,
+            stat: CardStat.Onboard
+        }, char => {
             this.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
             return can_play;
@@ -235,7 +240,7 @@ abstract class Arena extends KnownCard implements IArena {
     }
     find(tar: ICharacter|null) {
         for(let i = 0; i < this.max_capacity; i++) {
-            if(TypeGaurd.isCard(tar)) {
+            if(TG.isCard(tar)) {
                 if(tar.isEqual(this._char_list[i])) {
                     return i;
                 }
@@ -250,14 +255,13 @@ abstract class Arena extends KnownCard implements IArena {
     abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
 
     public async initialize() {
-        let old_arena = await this.g_master.selecter.selectCard(this.owner, this, TypeGaurd.isArena, arena => {
-            if(arena.card_status != CardStat.Onboard || arena.owner != this.owner) {
-                return false;
-            }
-            else {
-                this.position = arena.position;
-                return this.my_master.checkCanPlay(this);
-            }
+        let old_arena = await this.g_master.selecter.selectCard(this.owner, this, {
+            guard: TG.isArena,
+            owner: this.owner,
+            stat: CardStat.Onboard
+        }, arena => {
+            this.position = arena.position;
+            return this.my_master.checkCanPlay(this);
         });
         if(old_arena) {
             return true;
@@ -321,4 +325,57 @@ abstract class Event extends KnownCard implements IEvent {
     }
 }
 
-export { KnownCard, Upgrade, Character, Arena, Event };
+abstract class Spell extends KnownCard implements ISpell {
+    public readonly card_type = CardType.Spell;
+    public casters = new Array<ICharacter>();
+    protected max_caster = 1;
+    protected min_caster = 1;
+    public async initialize(): Promise<boolean> {
+        while(true) {
+            let caller = [this, ...this.casters];
+            let c = await this.g_master.selecter.cancelUI().promptUI("指定施放者")
+            .selectCard(this.owner, caller, {
+                guard: TG.isCharacter,
+                stat: CardStat.Onboard,
+                owner: this.owner
+            }, c => {
+                return c.char_status == CharStat.StandBy
+                    && c.is_tired == false;
+            });
+            if(c) {
+                let cancel = false;
+                for(let [i, card] of this.casters.entries()) {
+                    if(card.isEqual(c)) {
+                        this.casters = [...this.casters.slice(0, i), ...this.casters.slice(i+1)];
+                        cancel = true;
+                        break;
+                    }
+                }
+                if(!cancel) {
+                    this.casters.push(c);
+                    if(this.casters.length == this.max_caster) {
+                        break;
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+        if(this.casters.length < this.min_caster) {
+            return false;
+        } else {
+            return this.my_master.checkCanPlay(this);
+        }
+    }
+    async onPlay() {
+        for(let c of this.casters) {
+            await this.my_master.changeCharTired(c, true);
+        }
+    }
+
+    recoverFields() {
+        this.casters = [];
+    }
+}
+
+export { KnownCard, Upgrade, Character, Arena, Event, Spell };

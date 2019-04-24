@@ -1,6 +1,6 @@
 import { CardType, CardSeries, BattleRole, Player, CardStat } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
-import { IArena, ICharacter, TypeGaurd, IKnownCard, ICard } from "../../interface";
+import { IArena, ICharacter, TypeGaurd as TG, IKnownCard, ICard } from "../../interface";
 
 let name = "市立圖書館";
 let description = "使用：3魔力->放逐最多兩張牌，並從牌庫抽出同樣數量的牌。";
@@ -14,7 +14,7 @@ export default class A extends Arena implements IArena {
     async onExploit(char: ICharacter|Player) {
         let caller: Array<IKnownCard> = [this];
         let player: Player;
-        if(TypeGaurd.isCard(char)) {
+        if(TG.isCard(char)) {
             caller.push(char);
             player = char.owner;
         } else {
@@ -25,8 +25,10 @@ export default class A extends Arena implements IArena {
         while(true) {
             let _caller = [...caller, ...cards_to_discard];
             let c = await this.g_master.selecter.cancelUI()
-            .selectCardInteractive(player, _caller, TypeGaurd.isCard, c => {
-                return (c.card_status == CardStat.Hand && c.owner == player);
+            .selectCardInteractive(player, _caller, {
+                guard: TG.isCard,
+                stat: CardStat.Hand,
+                owner: player
             });
             if(c) {
                 let cancel = false;
