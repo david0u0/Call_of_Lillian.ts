@@ -1,5 +1,5 @@
 import { Player, GamePhase } from "../enums";
-import { BadOperationError } from "../errors";
+import { BadOperationError, throwDevError } from "../errors";
 import { ActionChainFactory } from "./action_chain_factory";
 
 const BUILDING_ACTION_P = 1;
@@ -18,11 +18,23 @@ export class TimeMaster {
     public readonly start_building_chain = this.acf.new<null>();
     public readonly start_main_chain = this.acf.new<null>();
     public readonly start_exploit_chain = this.acf.new<null>();
+    public readonly spend_action_chain = this.acf.new<null>();
+
+    private era_index = 0;
+    private action_index = 0;
 
     constructor(private acf: ActionChainFactory) { }
 
+    public addActionForThisAction<U>() {
+
+    }
+    public addGetterForThisAction<T, U>() {
+
+    }
+
     public async startBulding() {
         await this.start_building_chain.trigger(null, async () => {
+            this.era_index++;
             await this.setRest(Player.Player1, false);
             await this.setRest(Player.Player2, false);
             this._cur_phase = GamePhase.Building;
@@ -119,10 +131,17 @@ export class TimeMaster {
         return this._resting1 || this._resting2;
     }
 
-    public async addActionPoint(n: number) {
+    public async spendAction() {
         if(this.cur_phase != GamePhase.InAction) {
             return;
+        } else {
+            this.spend_action_chain.trigger(null, async () => {
+                this.action_index++;
+                await this.addActionPoint(-1);
+            });
         }
+    }
+    public async addActionPoint(n: number) {
         let new_action_point = Math.max(0, this._action_point + n);
         await this.set_action_point_chain.trigger(new_action_point, async () => {
             this._action_point = new_action_point;

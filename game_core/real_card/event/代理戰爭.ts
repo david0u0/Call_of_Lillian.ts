@@ -2,9 +2,9 @@ import { Event, Arena } from "../../cards";
 import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
 import { CardSeries, Player } from "../../enums";
 
-let name = "火力鎮壓";
+let name = "代理戰爭";
 let description = `推進：角色戰力需大於0。
-結算：每當你休息時，若你在場所中的角色數比對手多2以上，對其造成1情緒傷害。`;
+結算：你在每個世代第一次開戰時，得到5魔力。`;
 
 export default class E extends Event implements IEvent {
     name = name;
@@ -26,11 +26,21 @@ export default class E extends Event implements IEvent {
     onFinish() { }
     onPush() { }
 
+    has_declared = false;
+
     setupFinishEffect() {
-        this.addActionWhileAlive(true, this.g_master.t_master.rest_chain, (player) => {
-            if(player == this.owner) {
-                this.enemy_master.addEmo(1);
+        this.addActionWhileAlive(true, this.g_master.w_master.declare_war_chain, 
+            async ({ declarer }) => {
+                if(declarer == this.owner) {
+                    if(this.has_declared) {
+                        this.has_declared = true;
+                        await this.my_master.addMana(5);
+                    }
+                }
             }
+        );
+        this.g_master.t_master.start_building_chain.append(() => {
+            this.has_declared = false;
         });
     }
 }

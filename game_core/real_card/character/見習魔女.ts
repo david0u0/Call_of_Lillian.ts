@@ -13,9 +13,9 @@ export default class C extends Character {
 
     _abilities = [{
         description: "啟程時刻：從牌庫抽一張牌",
-        func: () => {
-            this.my_master.draw();
-            this.my_master.changeCharTired(this, true);
+        func: async () => {
+            await this.my_master.draw();
+            await this.my_master.changeCharTired(this, true);
         },
         canTrigger: () => {
             return !this.is_tired && this.char_status == CharStat.StandBy;

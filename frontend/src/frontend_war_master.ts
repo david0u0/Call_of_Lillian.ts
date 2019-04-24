@@ -18,7 +18,7 @@ export class FrontendWarMaster {
     public getPos(char: ICharacter) {
         let view = this.char_ui_table[char.seq];
         if(view) {
-            return { x: view.worldTransform.tx, y: view.worldTransform.ty };
+            return { x: view.worldTransform.tx + view.width / 2, y: view.worldTransform.ty };
         } else {
             throw new BadOperationError("未經註冊就要求位置", char);
         }

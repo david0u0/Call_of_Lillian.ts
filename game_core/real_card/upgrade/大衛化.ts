@@ -9,7 +9,7 @@ export default class U extends Upgrade {
     basic_mana_cost = 5;
     basic_strength = 1;
 
-    setupAliveeEffect() {
+    setupAliveEffect() {
         this.addActionWhileAlive(true, this.my_master.set_emo_chain, async ({ emo, caller }) => {
             let cur_emo = this.my_master.emo;
             if(emo > cur_emo) {

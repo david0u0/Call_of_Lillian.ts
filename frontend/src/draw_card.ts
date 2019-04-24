@@ -88,6 +88,7 @@ export function drawAbilityIcon(gm: GameMaster, card: IKnownCard, size: number) 
             icon.visible = false;
         }
     };
+    update();
     gm.acf.setAfterEffect(update, () => icon != null);
     let destroy = () => {
         icon.destroy();
@@ -400,6 +401,7 @@ export class CharUI {
             upgrade_ui.position.set(this.width/3, this.view.height);
             upgrade_ui.scale.set(0.2);
             this.view.addChild(upgrade_ui);
+            this.img.alpha = 0.6;
             return new Promise(resolve => {
                 let popup = () => {
                     let scale = upgrade_ui.scale.x;
@@ -411,6 +413,7 @@ export class CharUI {
                             view: this.view,
                             cleanup: () => {
                                 upgrade_ui.destroy();
+                                this.img.alpha = 1;
                             }
                         });
                     }

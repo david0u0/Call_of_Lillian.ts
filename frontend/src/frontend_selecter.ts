@@ -75,6 +75,7 @@ export default class FrontendSelecter implements ISelecter {
         for(let line of this.lines) {
             line.destroy();
         }
+        this.view.removeAllListeners();
         this.lines = [];
         this.cancel_btn.visible = false;
         this.show_cancel_ui = null;
@@ -162,7 +163,6 @@ export default class FrontendSelecter implements ISelecter {
                     this.view.addChild(line);
                     this.lines.push(line);
                 }
-
                 this.view.on("mousemove", evt => {
                     for(let [i, line] of this.lines.entries()) {
                         line.clear();
@@ -170,7 +170,6 @@ export default class FrontendSelecter implements ISelecter {
                         line.moveTo(line_init_pos[i].x, line_init_pos[i].y);
                         line.lineTo(evt.data.global.x, evt.data.global.y);
                     }
-
                 });
 
                 this.resolve_card = resolve;

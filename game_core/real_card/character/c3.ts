@@ -12,7 +12,7 @@ export default class C2 extends Character {
     readonly basic_strength = 1;
     basic_battle_role = { can_attack: true, can_block: true, can_be_blocked: false };
 
-    setupAliveeEffect() {
+    setupAliveEffect() {
         this.get_inconflict_strength_chain.append((str, enemy) => {
             if(this.char_status == CharStat.Attacking && this.arena_entered) {
                 if(!this.arena_entered.isEqual(enemy.arena_entered)) {

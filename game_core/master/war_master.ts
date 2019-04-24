@@ -369,7 +369,7 @@ export class WarMaster {
             this.t_master.setWarPhase(GamePhase.InAction);
             this._war_seq++; // 每次戰鬥的編號都會增加
             await this.end_war_chain.byKeeper(by_keeper).trigger(null);
-            await this.t_master.addActionPoint(-1);
+            await this.t_master.spendAction();
             return true;
         }
     }

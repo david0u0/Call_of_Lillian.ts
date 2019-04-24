@@ -8,14 +8,14 @@ export default class C extends Character {
     name = name;
     description = description;
     basic_strength = 0;
-    basic_mana_cost = 5;
+    basic_mana_cost = 4;
 
     async onPlay() {
         let ch = await this.g_master.genCharToBoard(this.owner, "閃存少女");
         await this.my_master.changeCharTired(ch, false);
     }
 
-    setupAliveeEffect() {
+    setupAliveEffect() {
         this.addActionWhileAlive(true, this.g_master.t_master.start_building_chain, async () => {
             let ch = await this.g_master.genCharToBoard(this.owner, "閃存少女");
             await this.my_master.changeCharTired(ch, false);

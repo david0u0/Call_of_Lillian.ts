@@ -108,8 +108,11 @@ export class GameMaster {
     async playCard(card: IKnownCard, by_keeper=false) {
         this.getMyMaster(card).playCard(card, by_keeper);
     }
+    public readonly expose_card_chain = this.acf.new<ICard>();
     async exposeCard(card: ICard): Promise<IKnownCard> {
         // FIXME: 前後端溝通
-        return card as IKnownCard;
+        let known = card as IKnownCard;
+        await this.expose_card_chain.trigger(known);
+        return known;
     }
 }

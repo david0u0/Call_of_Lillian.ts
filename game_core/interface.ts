@@ -47,7 +47,7 @@ interface IKnownCard extends ICard {
     /** 入場曲或咒語效果的概念 */
     onPlay(): Promise<void>|void;
     /** 設置卡牌在場時的效果 */
-    setupAliveeEffect(): Promise<void>|void;
+    setupAliveEffect(): void;
     /** 退場曲的概念 */
     onRetrieve(): Promise<void>|void;
 
@@ -95,8 +95,9 @@ interface ICharacter extends IKnownCard {
     readonly change_char_tired_chain: ActionChain<boolean>;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
     readonly enter_arena_chain: ActionChain<IArena>;
-    readonly attack_chain: ActionChain<ICharacter>;
     readonly get_battle_role_chain: GetterChain<BattleRole, null>;
+
+    readonly release_chain: ActionChain<null>;
 
     readonly exploit_chain: ActionChain<IArena>;
     readonly enter_chain: ActionChain<IArena>;

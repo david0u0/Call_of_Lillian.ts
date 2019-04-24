@@ -4,23 +4,24 @@ import { TypeGaurd } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "九世軍魂";
-let description = `每世代開始時，本裝備的戰力增加1。當本裝備即將被銷毀，可以改為將其裝備至任意角色。
+let description = `每世代開始時戰力增加1。當本裝備即將被銷毀，可以改為將其裝備至任意角色，並使戰力增加1。
 裝備者獲得角色行動：銷毀*九世軍魂*。`;
 
 export default class U extends Upgrade {
     name = name;
     description = description;
     basic_mana_cost = 3;
-    basic_strength = -3;
+    basic_strength = -4;
 
     protected modifier = 0;
 
     _abilities = [{
         description: "銷毀九世軍魂",
-        func: () => {
-            if(this.character_equipped) {
-                this.my_master.changeCharTired(this.character_equipped, true);
-                this.my_master.retireCard(this);
+        func: async () => {
+            let char = this.character_equipped;
+            if(char) {
+                await this.my_master.retireCard(this);
+                await this.my_master.changeCharTired(char, true);
             } else {
                 throw new BadOperationError("沒有裝備者卻想啟動裝備能力", this);
             }
@@ -36,11 +37,11 @@ export default class U extends Upgrade {
         can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit, GamePhase.InWar]
     }];
 
-    setupAliveeEffect() {
+    setupAliveEffect() {
         this.get_strength_chain.append(str => {
             return { var_arg: str + this.modifier };
         });
-        this.g_master.t_master.start_building_chain.append(() => {
+        this.addActionWhileAlive(true, this.g_master.t_master.start_building_chain, () => {
             this.modifier += 1;
         });
         this.card_retire_chain.append(async () => {
@@ -52,6 +53,7 @@ export default class U extends Upgrade {
                 });
                 if(new_char) {
                     // 把自己附到別人身上，然後打斷這條退場鏈
+                    this.modifier += 1;
                     this.character_equipped.unsetUpgrade(this);
                     this.character_equipped = new_char;
                     this.my_master.dangerouslySetToBoard(this);

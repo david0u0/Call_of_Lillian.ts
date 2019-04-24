@@ -41,7 +41,7 @@ abstract class KnownCard implements IKnownCard {
 
     public async initialize() { return true; }
     public onPlay() { }
-    public setupAliveeEffect() { }
+    public setupAliveEffect() { }
     public onRetrieve() { }
 
     constructor(public readonly seq: number, public readonly owner: Player,
@@ -165,7 +165,7 @@ abstract class Character extends KnownCard implements ICharacter {
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
     public readonly enter_arena_chain = new ActionChain<IArena>();
-    public readonly attack_chain = new ActionChain<ICharacter>();
+    public readonly release_chain = new ActionChain<null>();
 
     public readonly exploit_chain = new ActionChain<IArena>();
     public readonly enter_chain = new ActionChain<IArena>();
@@ -302,7 +302,7 @@ abstract class Event extends KnownCard implements IEvent {
     public abstract onPush(char: ICharacter|null): Promise<void>|void;
     public abstract onFinish(char: ICharacter|null): Promise<void>|void;
     public onFail() { }
-    public abstract setupFinishEffect(char: ICharacter|null): Promise<void>|void;
+    public abstract setupFinishEffect(char: ICharacter|null): void;
 
 
     public push() {

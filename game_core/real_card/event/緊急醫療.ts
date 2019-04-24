@@ -43,9 +43,7 @@ export default class E extends Event implements IEvent {
     onFinish() { }
 
     setupFinishEffect() {
-        alert(888)
         this.addActionWhileAlive(true, this.g_master.t_master.start_exploit_chain, () => {
-            alert(123)
             this.my_master.addMana(2, [this]);
         });
     }

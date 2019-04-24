@@ -21,7 +21,7 @@ export default class C_Test0 extends Character {
         this.enemy_master.addMana(-10);
     }
 
-    setupAliveeEffect() {
+    setupAliveEffect() {
         let my_master = this.my_master;
         let enemy_master = this.enemy_master;
 

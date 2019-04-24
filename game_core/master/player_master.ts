@@ -104,17 +104,17 @@ export class PlayerMaster {
             // 打角色的額度恢復
             this._char_quota = 1;
             // 抽牌
-            this.draw();
+            await this.draw();
             // TODO: 換牌
         });
-        t_master.start_turn_chain.append(() => {
+        t_master.start_turn_chain.append(async () => {
             if(t_master.cur_phase == GamePhase.InAction) {
                 // 將所有場所中的角色從疲勞中恢復
                 let ch_in_arena = this.getAll(TG.isCharacter, c => {
                     return c.card_status == CardStat.Onboard && c.char_status == CharStat.InArena;
                 });
                 for(let ch of ch_in_arena) {
-                    this.changeCharTired(ch, false);
+                    await this.changeCharTired(ch, false);
                 }
             }
         });
@@ -132,6 +132,13 @@ export class PlayerMaster {
                 return { var_arg: false };
             }
         });
+        this.release_chain.append(() => {
+            return {
+                after_effect: async () => {
+                    this.addEmo(-1);
+                }
+            };
+        }, undefined, RuleEnums.RecoverEmoAfterRelease);
     }
     
     /** 
@@ -231,7 +238,7 @@ export class PlayerMaster {
         strength = card.get_strength_chain.chain(this.get_strength_chain, { card, enemy })
         .trigger(strength, enemy);
         if(TG.isCharacter(card) && card.char_status == CharStat.InWar && card.is_tired) {
-            return Math.max(0, strength);
+            return Math.min(0, strength);
         } else {
             return strength;
         }
@@ -281,7 +288,7 @@ export class PlayerMaster {
             card.recoverFields();
         });
         if(!card.instance) {
-            await this.t_master.addActionPoint(-1);
+            await this.t_master.spendAction();
         }
     }
     /** 會跳過大多數的檢查、設置、代價與行動鏈 */
@@ -303,7 +310,7 @@ export class PlayerMaster {
             }
             if(card.card_status != CardStat.Onboard) {
                 card.card_status = CardStat.Onboard;
-                await Promise.resolve(card.setupAliveeEffect());
+                card.setupAliveEffect();
             }
         });
     }
@@ -313,6 +320,7 @@ export class PlayerMaster {
             throw new BadOperationError("想在別人的回合使用能力？");
         } else if(card.card_status != CardStat.Onboard) {
             throw new BadOperationError("卡牌不在場上還想使用能力？");
+            // TODO: 也許有些牌可以在歷史區施放能力？
         }
         let ability = card.abilities[a_index];
         if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, ability })) {
@@ -323,7 +331,7 @@ export class PlayerMaster {
                     ability.func();
                 });
                 if(!ability.instance) {
-                    this.t_master.addActionPoint(-1);
+                    this.t_master.spendAction();
                 }
                 return true;
             } else {
@@ -436,7 +444,7 @@ export class PlayerMaster {
                         await this.finishEvent(char, event);
                     }
                 });
-                await this.t_master.addActionPoint(-1);
+                await this.t_master.spendAction();
                 return true;
             }
         }
@@ -472,7 +480,7 @@ export class PlayerMaster {
                 await enter_chain.byKeeper(by_keeper).trigger(char, () => {
                     HR.onEnter(char, arena);
                 });
-                await this.t_master.addActionPoint(-1);
+                await this.t_master.spendAction();
                 return true;
             }
         }
@@ -545,7 +553,8 @@ export class PlayerMaster {
     public readonly get_exploit_cost_chain = new GetterChain<number, { arena: IArena, char: ICharacter | Player }>();
     public readonly exploit_chain = this.acf.new<{ arena: IArena, char: ICharacter | Player }>();
 
-    public readonly incited_chain = this.acf.new<ICharacter|null>();
+    public readonly incited_chain = this.acf.new<ICharacter>();
+    public readonly release_chain = this.acf.new<ICharacter>();
     /** 由玩家 player 煽動我方的角色 char */
     incite(char: ICharacter, player: Player, by_keeper=false) {
         if(this.t_master.cur_player != player) {
@@ -562,8 +571,7 @@ export class PlayerMaster {
             this.incited_chain.byKeeper(by_keeper).trigger(char, () => {
                 this.retireCard(char);
             });
-            this.t_master.addActionPoint(-1);
+            this.t_master.spendAction();
         }
     }
-
 }
