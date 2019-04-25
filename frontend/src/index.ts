@@ -19,6 +19,18 @@ import { EventArea } from "./event_area";
 import { PhaseNotifier } from "./phase_notifier";
 import { FrontendWarMaster } from "./frontend_war_master";
 
+let url_params = new URL(window.location.href).searchParams;
+let e_deck_txt = url_params.get("enemy");
+let my_deck_txt = url_params.get("me");
+let e_deck = new Array<string>();
+let my_deck = new Array<string>();
+if(!e_deck_txt || !my_deck_txt) {
+    window.location.href = "/deck_builder.html";
+} else {
+    e_deck = e_deck_txt.replace(/ |\n/g, "").split(",").filter(s => s.length > 0);
+    my_deck = my_deck_txt.replace(/ |\n/g, "").split(",").filter(s => s.length > 0);
+}
+
 let app = new PIXI.Application(getWinSize());
 
 PIXI.loader
@@ -77,7 +89,7 @@ async function setup() {
     let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card, f_w_master);
     let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card, f_w_master);
 
-    await initiateGame(gm, [], []);
+    await initiateGame(gm, my_deck, e_deck);
 
     arena_area1.view.position.set(0, 20.25*eh - arena_area1.view.height);
     arena_area2.view.position.set(0, 21.75*eh);

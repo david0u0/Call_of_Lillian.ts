@@ -26,6 +26,7 @@ function genCardFunc(name: string, owner: Player, seq: number, gm: GameMaster) {
     let C = card_class_table[name];
     return new C(seq, owner, gm);
 }
+
 app.use("/card_image", express.static("frontend/assets/card_image"));
 app.use(express.static("frontend/dist"));
 

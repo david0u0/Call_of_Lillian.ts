@@ -2,27 +2,6 @@ import { Player } from "./enums";
 import { Constant } from "./general_rules";
 import { GameMaster } from "./master/game_master";
 
-const basic_deck = [
-    "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",
-    "工作狂小紅", "工作狂小紅", "工作狂小紅",
-    "廢怯小跟班", "廢怯小跟班", "廢怯小跟班",
-    "u_test0", "u_test0",
-    "雨季的魔女．語霽", "雨季的魔女．語霽", "雨季的魔女．語霽",
-    "迷糊工程師．八喵", "迷糊工程師．八喵", "迷糊工程師．八喵",
-    "緊急醫療", "緊急醫療", "緊急醫療",
-    "代理戰爭", "代理戰爭", "代理戰爭",
-    "大衛化", "大衛化", "大衛化",
-    "彩虹橋下的酒館", "彩虹橋下的酒館",
-    "義體維護廠", "義體維護廠", "戰地醫院", "戰地醫院",
-    "傭兵學校", "傭兵學校", "傭兵學校",
-    "九世軍魂", "九世軍魂", "九世軍魂",
-    "市立圖書館", "市立圖書館", "市立圖書館",
-    "大質因數分解魔法",
-    "大質因數分解魔法",
-    "大質因數分解魔法",
-    "勇氣之歌", "勇氣之歌", "勇氣之歌",
-];
-
 // TODO: 應該要把 Keeper 傳進來?
 
 export default async function initiateGame(gm: GameMaster, deck1: string[]|null, deck2: string[]|null) {
@@ -32,10 +11,6 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         await pm.addMana(Constant.INIT_MANA);
         let deck = decks[p];
         if(deck) {
-            if(deck.length != Constant.DECK_COUNT) {
-                // throw new BadOperationError("牌庫張數有誤！");
-                deck = basic_deck;
-            }
             for(let c_name of deck) {
                 gm.genCardToDeck(p, c_name);
             }

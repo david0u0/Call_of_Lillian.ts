@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build_card": "node build_card_generator.js",
-    "watch": "parcel watch static/index.html"
+    "watch": "parcel watch static/index.html static/deck_builder.html"
   },
   "author": "",
   "license": "ISC",
