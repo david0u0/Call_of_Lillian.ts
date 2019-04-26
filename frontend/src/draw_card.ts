@@ -8,7 +8,7 @@ import { Player, CharStat } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
 import { getPlayerColor } from "./get_constant";
-import FrontendSelecter from "./frontend_selecter";
+import FrontendSelecter, { SelectState } from "./frontend_selecter";
 
 const H = 1000, W = 722;
 function titleStyle(width: number) {
@@ -64,21 +64,25 @@ export function drawCardFace(card: ICard|string, width: number, height: number, 
     img.scale.set(res.width / og_w, res.height / og_h);
     return img;
 }
-export function drawAbilityIcon(gm: GameMaster, card: IKnownCard, size: number) {
+export function drawAbilityIcon(gm: GameMaster, selecter: FrontendSelecter,
+    card: IKnownCard, size: number
+) {
     let icon = new PIXI.Sprite(PIXI.loader.resources["ability"].texture);
     icon.height = icon.width = size;
     icon.anchor.set(0.5, 0.5);
     icon.interactive = true;
     icon.cursor = "pointer";
     icon.on("click", async evt => {
-        evt.stopPropagation();
-        if(gm.t_master.cur_player == card.owner) {
-            let a_index = 0;
-            if(card.abilities.length > 1) {
-                let txt = card.abilities.map(a => a.description);
-                a_index = await gm.selecter.selectText(card.owner, card, txt);
+        if(selecter.selecting != SelectState.Card) {
+            if(gm.t_master.cur_player == card.owner) {
+                evt.stopPropagation();
+                let a_index = 0;
+                if(card.abilities.length > 1) {
+                    let txt = card.abilities.map(a => a.description);
+                    a_index = await gm.selecter.selectText(card.owner, card, txt);
+                }
+                await gm.getMyMaster(card).triggerAbility(card, a_index, true);
             }
-            await gm.getMyMaster(card).triggerAbility(card, a_index, true);
         }
     });
     let update = () => {
@@ -373,7 +377,7 @@ export class CharUI {
         });
         this.view.addChild(tired_mask);
         // 角色行動或能力
-        this.ability_icon = drawAbilityIcon(gm, char, img.width / 3);
+        this.ability_icon = drawAbilityIcon(gm, selecter, char, img.width / 3);
 
         this.view.addChild(this.upgrade_area.view);
         this.view.addChild(this.s_area.view);
