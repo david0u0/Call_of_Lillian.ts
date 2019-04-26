@@ -12,7 +12,7 @@ export default class E extends Event implements IEvent {
     description = description;
 
     readonly is_ending = true;
-    readonly score = 3;
+    readonly score = 2;
     readonly goal_progress_count = 1;
     readonly init_time_count = 3;
     readonly can_play_phase = [GamePhase.Building];

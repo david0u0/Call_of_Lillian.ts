@@ -242,7 +242,17 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     }
                 };
             } else {
-                return async (x: number, y: number) => alert(label);
+                return async (x: number, y: number) => {
+                    selecter.setInitPos(x, y);
+                    let char = await selecter.selectCard(player, null, {
+                        guard: TG.isCharacter,
+                        owner: player,
+                        stat: CardStat.Onboard
+                    });
+                    if(char) {
+                        await gm.getMyMaster(char).release(char, true);
+                    }
+                };
             }
         })();
         container.addChild(drawIcon(label, i, expand, func));

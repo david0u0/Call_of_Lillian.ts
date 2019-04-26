@@ -3,13 +3,13 @@ import { Character, Upgrade, Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "傭兵學校";
-let description = "使用：4魔力->招募一名*遊擊隊員*至待命區";
+let description = "使用：3魔力->招募一名*遊擊隊員*至待命區";
 
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
     basic_mana_cost = 4;
-    basic_exploit_cost = 4;
+    basic_exploit_cost = 3;
 
     async onExploit(char: ICharacter|Player) {
         let caller = new Array<IKnownCard>();

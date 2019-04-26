@@ -104,6 +104,7 @@ interface ICharacter extends IKnownCard {
     readonly get_battle_role_chain: GetterChain<BattleRole, null>;
     readonly repulse_chain: ActionChain<ICharacter[]>;
 
+    readonly incited_chain: ActionChain<null>;
     readonly release_chain: ActionChain<null>;
 
     readonly exploit_chain: ActionChain<IArena>;

@@ -124,9 +124,6 @@ export class PlayerMaster {
             }
             // 打角色的額度恢復
             this._char_quota = 1;
-            // 抽牌
-            await this.draw();
-            // TODO: 換牌
         });
         t_master.start_turn_chain.append(async () => {
             if(t_master.cur_phase == GamePhase.InAction) {
@@ -145,13 +142,20 @@ export class PlayerMaster {
             }
         });
         this.incited_chain.appendCheck(() => {
-            if(this.emo <= C.INCITE_EMO) {
+            if(this.emo < C.INCITE_EMO) {
                 throwIfIsBackend("情緒還不夠就想煽動我？");
                 return { var_arg: false };
             } else if(this.t_master.cur_phase != GamePhase.InAction) {
                 throwIfIsBackend("只能在主階段行動中執行煽動");
                 return { var_arg: false };
             }
+        });
+        this.release_chain.appendCheck(() => {
+            if(this.t_master.cur_phase != GamePhase.InAction) {
+                throwIfIsBackend("只能在主階段行動中執行釋放");
+                return { var_arg: false };
+            }
+
         });
         this.release_chain.append(() => {
             return {
@@ -379,7 +383,6 @@ export class PlayerMaster {
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
-        await card.card_leave_chain.trigger(null);
         if(TG.isCharacter(card)) {
             if(card.data.arena_entered) {
                 await this.exitArena(card);
@@ -394,6 +397,7 @@ export class PlayerMaster {
                 card.data.character_equipped.unsetUpgrade(card);
             }
         }
+        await card.card_leave_chain.trigger(null);
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
@@ -602,16 +606,31 @@ export class PlayerMaster {
         } else if(!checkCardStat(char)) {
             throw new BadOperationError("角色不在場上");
         }
+        let incited_chain = char.incited_chain.chain(this.incited_chain, char);
         let enemy_master = this.getMaster(player);
         if(enemy_master.mana > C.INCITE_COST
-            && char.card_status == CardStat.Onboard
-            && this.incited_chain.checkCanTrigger(char)
+            && incited_chain.checkCanTrigger(null)
         ) {
             enemy_master.addMana(-C.INCITE_COST);
-            this.incited_chain.byKeeper(by_keeper).trigger(char, () => {
+            incited_chain.byKeeper(by_keeper).trigger(null, () => {
                 this.retireCard(char);
             });
             this.t_master.spendAction();
+        }
+    }
+    async release(char: ICharacter, by_keeper=false) {
+        if(this.t_master.cur_player != this.player) {
+            throw new BadOperationError("想在別人的回合執行釋放？");
+        } else if(char.owner != this.player) {
+            throw new BadOperationError("要釋約放角色，請找她的主人");
+        } else if(!checkCardStat(char)) {
+            throw new BadOperationError("角色不在場上");
+        }
+        let release_chain = char.release_chain.chain(this.release_chain, char);
+        if(release_chain.checkCanTrigger(null)) {
+            await this.retireCard(char);
+            await release_chain.byKeeper(by_keeper).trigger(null);
+            await this.t_master.spendAction();
         }
     }
 }

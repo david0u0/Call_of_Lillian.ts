@@ -11,9 +11,9 @@ export default class C extends Character {
     basic_mana_cost = 0;
 
     setupAliveEffect() {
-        this.g_master.t_master.start_exploit_chain.append(() => {
+        this.g_master.t_master.start_exploit_chain.append(async () => {
             if(this.card_status != CardStat.Exile) {
-                this.my_master.exileCard(this);
+                await this.my_master.exileCard(this);
             }
         });
         this.release_chain.append(() => {

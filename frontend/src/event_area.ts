@@ -26,7 +26,7 @@ export class EventArea {
         let pm = gm.getMyMaster(player);
         pm.add_card_chain.append(card => {
             if(TypeGaurd.isEvent(card)) {
-                return { after_effect: () => this.addEvent(card) };
+                return { after_effect: async () => await this.addEvent(card) };
             }
         });
 
@@ -35,7 +35,15 @@ export class EventArea {
         this.view.addChild(score_icon);
         this.view.addChild(this.event_view);
     }
-    addEvent(card: IEvent) {
+    addEvent(card: IEvent): Promise<void> {
+        return new Promise<void>(resolve => {
+            my_loader.add(card.name).load(() => {
+                this.addEventLoaded(card);
+                resolve();
+            });
+        });
+    }
+    private addEventLoaded(card: IEvent) {
         let { ew, eh } = getEltSize();
         let evt_ui = new PIXI.Container();
 
@@ -131,8 +139,8 @@ export class EventArea {
             txt.text = pm.getScore().toString();
         };
         updateScore();
-        pm.finish_chain.append(() => {
-            return { after_effect: updateScore };
+        this.gm.acf.setAfterEffect(() => {
+            updateScore();
         });
         txt.x = (size-txt.width)/2;
         txt.y = (size-txt.height)/2;
