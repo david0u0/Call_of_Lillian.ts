@@ -325,8 +325,7 @@ export class WarMaster {
             }
             if(atk_strength < tar_strength) {
                 await this.repulseChar(atk_chars, [def]);
-                tar_strength -= atk_strength;
-                this._def_win_count++;
+                this._def_win_count += atk_chars.length;
             } else if(atk_strength > tar_strength) {
                 await this.repulseChar(def, atk_chars);
                 this._atk_win_count++;

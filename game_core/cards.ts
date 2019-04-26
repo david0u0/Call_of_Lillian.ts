@@ -63,12 +63,22 @@ abstract class KnownCard extends Card implements IKnownCard {
     }
     public rememberDatas() {
         for(let field in this.data) {
-            this._mem_data[field] = this.data[field];
+            let tar = this.data[field];
+            if(tar instanceof Array) {
+                this._mem_data[field] = [...tar];
+            } else {
+                this._mem_data[field] = tar;
+            }
         }
     }
     public recoverDatas() {
         for(let field in this._mem_data) {
-            this.data[field] = this._mem_data[field];
+            let tar = this._mem_data[field];
+            if(tar instanceof Array) {
+                this.data[field] = [...tar];
+            } else {
+                this.data[field] = tar;
+            }
         }
     }
 
@@ -138,7 +148,6 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
         .selectCard(this.owner, this, {
             guard: TG.isCharacter,
             owner: this.owner,
-            stat: CardStat.Onboard
         }, char => {
             this.data.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
@@ -262,7 +271,6 @@ abstract class Arena extends KnownCard implements IArena {
         let old_arena = await this.g_master.selecter.selectCard(this.owner, this, {
             guard: TG.isArena,
             owner: this.owner,
-            stat: CardStat.Onboard
         }, arena => {
             this.data.position = arena.data.position;
             return this.my_master.checkCanPlay(this);
@@ -329,20 +337,40 @@ abstract class Event extends KnownCard implements IEvent {
 
 abstract class Spell extends KnownCard implements ISpell {
     public readonly card_type = CardType.Spell;
-    protected max_caster = 1;
-    protected min_caster = 1;
+    protected max_caster = 0;
+    protected min_caster = 0;
 
     readonly data = {
         casters: new Array<ICharacter>()
     };
 
+    constructor(public readonly seq: number, public readonly owner: Player,
+        public readonly g_master: GameMaster
+    ) {
+        super(seq, owner, g_master);
+        this.check_before_play_chain.append(() => {
+            let casters_may_be = this.getMaybeCasters();
+            if(casters_may_be.length < this.min_caster) {
+                return { var_arg: false };
+            }
+        });
+    }
+
+    protected getMaybeCasters() {
+        return this.my_master.getAll(TG.isCharacter, ch => {
+            return ch.char_status == CharStat.StandBy
+                && ch.card_status == CardStat.Onboard
+                && !ch.is_tired;
+        });
+    }
+
     public async initialize(): Promise<boolean> {
         while(true) {
+            let cancel_ui = (this.min_caster == 1 && this.max_caster == 1) ? null : undefined;
             let caller = [this, ...this.data.casters];
-            let c = await this.g_master.selecter.cancelUI().promptUI("指定施放者")
+            let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施放者")
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,
-                stat: CardStat.Onboard,
                 owner: this.owner
             }, c => {
                 return c.char_status == CharStat.StandBy

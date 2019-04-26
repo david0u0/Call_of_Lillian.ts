@@ -222,7 +222,6 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     let char = await selecter.selectCard(player, null, {
                         guard: TG.isCharacter,
                         owner: 1-player,
-                        stat: CardStat.Onboard
                     });
                     if(char) {
                         await gm.getMyMaster(char).incite(char, player, true);
@@ -233,7 +232,6 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     selecter.setInitPos(x, y);
                     let arena = await selecter.selectCard(player, null, {
                         guard: TG.isArena,
-                        stat: CardStat.Onboard
                     }, a => {
                         return gm.w_master.checkCanDeclare(player, a);
                     });
@@ -247,7 +245,6 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     let char = await selecter.selectCard(player, null, {
                         guard: TG.isCharacter,
                         owner: player,
-                        stat: CardStat.Onboard
                     });
                     if(char) {
                         await gm.getMyMaster(char).release(char, true);

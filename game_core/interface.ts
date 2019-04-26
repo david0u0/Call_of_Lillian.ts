@@ -239,8 +239,9 @@ class UnknownCard extends Card implements ICard {
 
 type SelectConfig<T extends ICard> = {
     guard: (c: ICard) => c is T,
-    stat: CardStat,
+    stat?: CardStat,
     owner?: Player,
+    must_have_value?: boolean
 }
 interface ISelecter {
     selectCard<T extends ICard>(player: Player,
@@ -254,8 +255,8 @@ interface ISelecter {
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     selectConfirm(player: Player, caller: IKnownCard|null, msg: string): Promise<boolean>;
     setCardTable(table: { [index: number]: ICard }): void;
-    cancelUI(msg?: string): ISelecter;
-    promptUI(msg: string): ISelecter;
+    cancelUI(msg?: string|null): ISelecter;
+    promptUI(msg: string|null): ISelecter;
 }
 
 export {

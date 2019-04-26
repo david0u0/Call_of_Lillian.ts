@@ -13,9 +13,6 @@ export default class S extends Spell {
     basic_mana_cost = 2;
     can_play_phase = [GamePhase.InWar];
 
-    max_caster = 0;
-    min_caster = 0;
-
     readonly data: {
         casters: ICharacter[],
         target: ICharacter | null

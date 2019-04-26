@@ -1,6 +1,6 @@
-import { GamePhase } from "../../enums";
+import { GamePhase, CardStat } from "../../enums";
 import { Spell } from "../../cards";
-import { ICharacter } from "../../interface";
+import { ICharacter, TypeGaurd } from "../../interface";
 import { GetterChain } from "../../hook";
 
 let name = "質因數分解魔法";
@@ -14,6 +14,18 @@ export default class S extends Spell {
 
     max_caster = 4;
     min_caster = 1;
+
+    check_before_play_chain = (() => {
+        let chain = new GetterChain<boolean, null>();
+        chain.append((b, n) => {
+            let casters_may_be = this.getMaybeCasters();
+            if(this.my_master.mana >= this.basic_mana_cost - casters_may_be.length * 2) {
+                // 極限狀況下是放得出來的
+                return { var_arg: true };
+            }
+        });
+        return chain;
+    })();
 
     get_mana_cost_chain = (() => {
         let chain = new GetterChain<number, null>();

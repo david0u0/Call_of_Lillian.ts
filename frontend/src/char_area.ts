@@ -108,7 +108,6 @@ export class CharArea {
                 (async () => {
                     let c_selected = await this.selecter.selectCard(this.player, char, {
                         guard,
-                        stat: CardStat.Onboard
                     });
                     if(TypeGaurd.isCard(c_selected)) {
                         if(TypeGaurd.isArena(c_selected)) {

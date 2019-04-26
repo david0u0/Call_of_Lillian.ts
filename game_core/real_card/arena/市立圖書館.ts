@@ -1,15 +1,16 @@
 import { CardType, CardSeries, BattleRole, Player, CardStat } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd as TG, IKnownCard, ICard } from "../../interface";
+import { BadOperationError } from "../../errors";
 
 let name = "市立圖書館";
-let description = "使用：3魔力->放逐最多兩張牌，並從牌庫抽出同樣數量的牌。";
+let description = "使用：2魔力->抽兩張牌，接著放逐一張手牌。";
 
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
     basic_mana_cost = 3;
-    basic_exploit_cost = 3;
+    basic_exploit_cost = 2;
 
     async onExploit(char: ICharacter|Player) {
         let caller: Array<IKnownCard> = [this];
@@ -20,39 +21,21 @@ export default class A extends Arena implements IArena {
         } else {
             player = char;
         }
+        await this.g_master.getMyMaster(char).draw();
+        await this.g_master.getMyMaster(char).draw();
 
-        let cards_to_discard = new Array<ICard>();
-        while(true) {
-            let _caller = [...caller, ...cards_to_discard];
-            let c = await this.g_master.selecter.cancelUI()
-            .selectCardInteractive(player, _caller, {
-                guard: TG.isCard,
-                stat: CardStat.Hand,
-                owner: player
-            });
-            if(c) {
-                let cancel = false;
-                for(let [i, card] of cards_to_discard.entries()) {
-                    if(card.isEqual(c)) {
-                        cards_to_discard = [...cards_to_discard.slice(0, i), ...cards_to_discard.slice(i+1)];
-                        cancel = true;
-                        break;
-                    }
-                }
-                if(!cancel) {
-                    cards_to_discard.push(c);
-                    if(cards_to_discard.length == 2) {
-                        break;
-                    }
-                }
-            } else {
-                break;
-            }
-        }
-        for(let c of cards_to_discard) {
-            let known_card = await this.g_master.exposeCard(c);
-            await this.g_master.getMyMaster(player).exileCard(known_card);
-            await this.g_master.getMyMaster(player).draw();
+        let card = await this.g_master.selecter
+        .selectCardInteractive(player, caller, {
+            guard: TG.isCard,
+            stat: CardStat.Hand,
+            owner: player,
+            must_have_value: true
+        });
+        if(card) {
+            let _card = await this.g_master.exposeCard(card);
+            await this.g_master.getMyMaster(char).exileCard(_card);
+        } else {
+            throw new BadOperationError("未選擇棄卡", this);
         }
     }
 }

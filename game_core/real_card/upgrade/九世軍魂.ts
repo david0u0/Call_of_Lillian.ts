@@ -11,7 +11,7 @@ export default class U extends Upgrade {
     name = name;
     description = description;
     basic_mana_cost = 2;
-    basic_strength = -4;
+    basic_strength = -3;
 
     readonly data: {
         character_equipped: ICharacter | null,
@@ -58,7 +58,6 @@ export default class U extends Upgrade {
                 .selectCardInteractive(this.owner, this, {
                     guard: TG.isCharacter,
                     owner: this.owner,
-                    stat: CardStat.Onboard
                 });
                 if(new_char) {
                     // 把自己附到別人身上，然後打斷這條退場鏈

@@ -98,7 +98,7 @@ class HandUI {
                 }
             }
             if(index == this.list.length) {
-                //throw new BadOperationError("欲從手牌中移除不存在的牌");
+                // throw new BadOperationError("欲從手牌中移除不存在的牌");
                 return;
             }
             let goal_x = this.view.children[index].x;
@@ -155,7 +155,7 @@ class HandUI {
             card_ui.on("click", async evt => {
                 if(this.selecter.selecting == SelectState.Card) {
                     this.selecter.onCardClicked(card);
-                } else {
+                } else if(this.gm.getMyMaster(card).checkBeforePlay(card)) {
                     await this.gm.playCard(card, true);
                 }
             });
@@ -170,16 +170,14 @@ class HandUI {
                 };
             });
             card.card_leave_chain.append(() => {
-                if(card.card_status == CardStat.Hand) {
-                    return {
-                        after_effect: async () => {
-                            if(destroy_big_card) {
-                                destroy_big_card();
-                            }
-                            await this.remove(card);
+                return {
+                    after_effect: async () => {
+                        if(destroy_big_card) {
+                            destroy_big_card();
                         }
-                    };
-                }
+                        await this.remove(card);
+                    }
+                };
             });
         }
         let filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(card.owner, true), 0.5);

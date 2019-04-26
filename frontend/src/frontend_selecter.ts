@@ -1,8 +1,9 @@
+import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
 import { IKnownCard, ISelecter, ICard, SelectConfig, TypeGaurd } from "../../game_core/interface";
-import { getWinSize, getEltSize } from "./get_constant";
+import { getWinSize, getEltSize, getPlayerColor } from "./get_constant";
 import { BadOperationError } from "../../game_core/errors";
-import { Player, CharStat } from "../../game_core/enums";
+import { Player, CharStat, CardStat } from "../../game_core/enums";
 import { ShowBigCard } from "./show_big_card";
 import { getCardSize } from "./draw_card";
 
@@ -27,8 +28,8 @@ export default class FrontendSelecter implements ISelecter {
 
     private _selecting = SelectState.None;
     public get selecting() { return this._selecting; };
-    private _selecting_conf: SelectConfig<ICard> = null;
-    public get select_conf() { return this._selecting_conf; }
+    private _select_conf: SelectConfig<ICard> = null;
+    public get select_conf() { return this._select_conf; }
 
     constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
         let { width, height } = getWinSize();
@@ -56,6 +57,10 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     private endSelect(arg: CardLike) {
+        if(arg == null && this.select_conf && this.select_conf.must_have_value) {
+            return;
+        }
+        this._select_conf = null;
         this._selecting = SelectState.None;
         for(let line of this.lines) {
             line.destroy();
@@ -146,12 +151,18 @@ export default class FrontendSelecter implements ISelecter {
         } else if(this.selecting != SelectState.None) {
             throw new BadOperationError("selectCard: 正在選擇時呼叫選擇器", caller);
         }
+
+        let filter = new Filters.GlowFilter(20, 2, 0, getPlayerColor(player, true), 0.5);
+
         player = this.me; // FIXME: 這行要拿掉
         if(player != this.me) {
             // TODO: 從佇列中拉出資料來回傳
         } else {
+            if(!conf.stat) {
+                conf = { ...conf, stat: CardStat.Onboard };
+            }
             this._selecting = SelectState.Card;
-            this._selecting_conf = { ...conf };
+            this._select_conf = { ...conf };
             this.showCancelUI();
             this.filter_func = card => {
                 if(conf.guard(card)
@@ -173,6 +184,7 @@ export default class FrontendSelecter implements ISelecter {
                 this.lines = [];
                 for(let pos of line_init_pos) {
                     let line = new PIXI.Graphics();
+                    line.filters = [filter];
                     this.view.addChild(line);
                     this.lines.push(line);
                 }

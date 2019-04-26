@@ -97,10 +97,9 @@ export class PlayerMaster {
                 }
             };
         }, undefined, RuleEnums.ExitAfterExploit);
-        this.card_play_chain.appendCheck((b, card) => {
+        this.check_before_play_chain.append((b, card) => {
             if(card.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
                 // 如果現在不是能打該牌的階段，就不讓他打
-                throwIfIsBackend("在錯的時間做事");
                 return { var_arg: false };
             }
         });
@@ -291,11 +290,12 @@ export class PlayerMaster {
     }
     checkCanPlay(card: IKnownCard) {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
-            return card.card_play_chain.chain(this.card_play_chain, card)
-            .checkCanTrigger(null);
-        } else {
-            return false;
+            if(this.checkBeforePlay(card)) {
+                return card.card_play_chain.chain(this.card_play_chain, card)
+                .checkCanTrigger(null);
+            }
         }
+        return false;
     }
     async playCard(card: IKnownCard, by_keeper=false) {
         // 檢查
@@ -314,8 +314,8 @@ export class PlayerMaster {
         // 實際行動
         await card.card_play_chain.chain(this.card_play_chain, card).byKeeper(by_keeper)
         .trigger(null, async () => {
-            await Promise.resolve(card.onPlay());
             await this.dangerouslySetToBoard(card);
+            await Promise.resolve(card.onPlay());
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -410,7 +410,7 @@ export class PlayerMaster {
                 });
             }
         } else {
-            throwDevError("重複銷毀一張卡片", card);
+            throwDevError("欲銷毀的卡牌不在場上", card);
         }
     }
     async exileCard(card: IKnownCard) {
