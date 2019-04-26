@@ -10,7 +10,7 @@ let description = "你只能在戰鬥中施放本咒語，令一個戰鬥中的�
 export default class S extends Spell {
     name = name;
     description = description;
-    basic_mana_cost = 1;
+    basic_mana_cost = 2;
     can_play_phase = [GamePhase.InWar];
 
     max_caster = 0;

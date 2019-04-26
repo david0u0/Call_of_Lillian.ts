@@ -30,7 +30,7 @@ function manaStyle(width: number) {
 }
 function descrStyle(width: number) {
     return new PIXI.TextStyle({
-        fontSize: width / 16,
+        fontSize: width / 18,
         fill: 0,
         fontFamily: "微軟正黑體",
         wordWrap: true,
@@ -383,7 +383,7 @@ export class CharUI {
         this.filter.enabled = false;
 
         gm.getMyMaster(char).add_card_chain.append(c => {
-            if(TG.isUpgrade(c) && char.isEqual(c.character_equipped) && this.active) {
+            if(TG.isUpgrade(c) && char.isEqual(c.data.character_equipped) && this.active) {
                 this.registerUpgrade(c);
             }
         });

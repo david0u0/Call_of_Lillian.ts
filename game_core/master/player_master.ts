@@ -67,7 +67,7 @@ export class PlayerMaster {
     // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
     constructor(private acf: ActionChainFactory, public readonly player: Player,
         private t_master: TimeMaster,
-        private getMaster: (card: ICard | Player)=> PlayerMaster
+        private getMaster: (card: ICard | Player) => PlayerMaster,
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
         soft_rules.checkPlay(this.card_play_chain, () => this.char_quota);
@@ -250,8 +250,10 @@ export class PlayerMaster {
         });
     }
 
+    public get_score_chain = new GetterChain<number, null>();
     getScore() {
-        return this.events_finished.reduce((sum, e) => sum + e.score, 0);
+        let score = this.events_finished.reduce((sum, e) => sum + e.score, 0);
+        return this.get_score_chain.trigger(score, null);
     }
 
     getStrength(card: ICharacter|IUpgrade, enemy?: ICharacter) {
@@ -377,6 +379,7 @@ export class PlayerMaster {
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
+        await card.card_leave_chain.trigger(null);
         if(TG.isCharacter(card)) {
             if(card.data.arena_entered) {
                 await this.exitArena(card);
@@ -391,7 +394,6 @@ export class PlayerMaster {
                 card.data.character_equipped.unsetUpgrade(card);
             }
         }
-        await card.card_leave_chain.trigger(null);
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
@@ -399,8 +401,8 @@ export class PlayerMaster {
             let can_die = chain.checkCanTrigger(null);
             if(can_die) {
                 await chain.trigger(null, async () => {
-                    await this._leaveCard(card);
                     card.card_status = CardStat.Retired;
+                    await this._leaveCard(card);
                 });
             }
         } else {
@@ -408,8 +410,8 @@ export class PlayerMaster {
         }
     }
     async exileCard(card: IKnownCard) {
-        await this._leaveCard(card);
         card.card_status = CardStat.Exile;
+        await this._leaveCard(card);
     }
 
     // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
@@ -432,7 +434,6 @@ export class PlayerMaster {
         await event.finish_chain.chain(this.finish_chain, { event, char })
         .trigger(char, async () => {
             event.is_finished = true;
-            this._leaveCard(event);
             await Promise.resolve(event.onFinish(char));
             await Promise.resolve(event.setupFinishEffect(char));
         });

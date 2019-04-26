@@ -1,4 +1,4 @@
-import { Player, CardStat, BattleRole, CharStat, GamePhase } from "../enums";
+import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, ISelecter, UnknownCard } from "../interface";
 import { ActionChainFactory } from "./action_chain_factory";
 import { throwIfIsBackend, BadOperationError } from "../errors";
@@ -31,6 +31,18 @@ export class GameMaster {
                 await this.getMyMaster(this.t_master.cur_player).addMana(C.REST_MANA);
             }
         });
+
+        for(let pm of [this.p_master1, this.p_master2]) {
+            pm.finish_chain.append(({ event }) => {
+                return {
+                    after_effect: async () => {
+                        if(event.is_ending) {
+                            await this.endGame();
+                        }
+                    }
+                };
+            }, undefined, RuleEnums.EndGameAfterFinish);
+        }
     }
 
     genUnknownToDeck(owner: Player) {
@@ -120,5 +132,27 @@ export class GameMaster {
         let known = card as IKnownCard;
         await this.expose_card_chain.trigger(known);
         return known;
+    }
+
+    public end_game_chain = this.acf.new<Player>();
+    private async endGame() {
+        let winner: Player;
+        let score1 = this.p_master1.getScore();
+        let score2 = this.p_master2.getScore();
+        let ending_count1 = this.p_master1.getAll(TG.isEvent, e => e.is_ending).length;
+        let ending_count2 = this.p_master2.getAll(TG.isEvent, e => e.is_ending).length;
+        if(score1 == score2) {
+            if(ending_count1 == ending_count2) {
+                // 如果同分結局數也相同，先手玩家獲勝
+                winner = this.t_master.first_player;
+            } else {
+                // 如果同分，比誰結局多
+                winner = ending_count1 > ending_count2 ? Player.Player1 : Player.Player2;
+            }
+        } else {
+            // 比誰分數高
+            winner = score1 > score2 ? Player.Player1: Player.Player2;
+        }
+        await this.end_game_chain.trigger(winner);
     }
 }

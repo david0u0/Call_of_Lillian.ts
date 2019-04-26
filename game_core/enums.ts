@@ -35,5 +35,6 @@ export enum RuleEnums {
     ExitAfterExploit,
     RecoverEmoAfterRelease,
     CustomPushCheck,
-    PunishOnFail
+    PunishOnFail,
+    EndGameAfterFinish
 }
