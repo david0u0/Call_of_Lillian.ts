@@ -99,15 +99,15 @@ describe("測試事件卡功能", () => {
         });
         it("進入醫院後應該就可以推進了", async () => {
             await pm.enterArena(hospital, char);
-            assert.doesNotThrow(async () => {
+            await checkBadOperationErrorAsync(async () => {
                 await pm.pushEvent(event, char2);
-            });
+            }, false);
         });
         it("進入敵方的醫院應該也可以推進了", async () => {
             await pm.enterArena(e_hospital, char);
-            assert.doesNotThrow(async () => {
+            await checkBadOperationErrorAsync(async () => {
                 await pm.pushEvent(event, char2);
-            });
+            }, false);
         });
     });
 });

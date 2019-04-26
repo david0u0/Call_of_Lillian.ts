@@ -63,7 +63,7 @@ describe("測試最基礎的場所卡", () => {
                 });
             });
             it("角色進入的場所應該是自己的醫院", () => {
-                assert.equal(true, my_h.isEqual(rainy.arena_entered));
+                assert.equal(true, my_h.isEqual(rainy.data.arena_entered));
             });
             it("場所中應該洽好有一個角色", () => {
                 assert.equal(true, rainy.isEqual(my_h.char_list[0]));

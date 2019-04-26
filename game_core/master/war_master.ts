@@ -8,7 +8,7 @@ import { PlayerMaster } from "./player_master";
 import { ActionChainFactory } from "./action_chain_factory";
 
 export enum DetailedWarPhase { Attaking, Blocking, None };
-enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
+export enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
@@ -110,7 +110,7 @@ export class WarMaster {
     public inMainField(char?: ICharacter) {
         if(this.war_field) {
             if(char) {
-                return this.war_field.isEqual(char.arena_entered);
+                return this.war_field.isEqual(char.data.arena_entered);
             } else {
                 return true;
             }
@@ -121,12 +121,12 @@ export class WarMaster {
     public getAllWarFields(arena: IArena) {
         let arenas = [];
         for(let a of this.getMyMaster(arena).arenas) {
-            if(Math.abs(a.position - arena.position) <= 1) {
+            if(Math.abs(a.data.position - arena.data.position) <= 1) {
                 arenas.push(a);
             }
         }
         for(let a of this.getEnemyMaster(arena.owner).arenas) {
-            if(Math.abs(a.position - arena.position) == 0) {
+            if(Math.abs(a.data.position - arena.data.position) == 0) {
                 arenas.push(a);
             }
         }

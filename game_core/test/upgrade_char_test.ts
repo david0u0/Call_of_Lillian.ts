@@ -218,9 +218,9 @@ describe("測試一張強得亂七八糟的角色卡", () => {
             it("即使魔力不夠，UI還是允許打出升級卡", () => {
                 assert.equal(pm.checkBeforePlay(ferry_bomb_upgrade2), true);
             });
-            it("所有安裝在這個角色身上的升級費用應為零", () => {
+            it("所有安裝在這個角色身上的升級費用應為零", async () => {
                 selecter.setSelectedSeqs(ultimate_0_test_char.seq);
-                ferry_bomb_upgrade2.initialize();
+                await ferry_bomb_upgrade2.initialize();
                 assert.equal(0, pm.getManaCost(ferry_bomb_upgrade2));
             });
             it("每有一個角色退場，敵方情緒值+1");

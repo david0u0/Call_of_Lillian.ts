@@ -1,6 +1,8 @@
 import { ActionChain, GetterChain, GetterFunc, ActionFunc } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 
+export type DataField = number | IKnownCard | IKnownCard[] | boolean | null
+
 interface IKeeper { };
 interface ICard {
     readonly card_type: CardType;
@@ -27,6 +29,8 @@ interface IKnownCard extends ICard {
     readonly can_play_phase: GamePhase[];
     readonly instance: boolean;
 
+    readonly data: { [field: string]: DataField }
+
     readonly check_before_play_chain: GetterChain<boolean, null>;
     readonly get_mana_cost_chain: GetterChain<number, null>;
     readonly card_play_chain: ActionChain<null>;
@@ -52,8 +56,8 @@ interface IKnownCard extends ICard {
     onRetrieve(): Promise<void>|void;
 
     /** 記憶與恢復變數，理論上只有前端會用到（因為後端檢查沒過會直接爆錯） */
-    rememberFields(): void;
-    recoverFields(): void;
+    rememberDatas(): void;
+    recoverDatas(): void;
 
     /**
      * 創造一個新的規則，接上某條規則鏈。當 this 這張卡牌死亡時，該規則也會失效。
@@ -79,14 +83,16 @@ interface ISpell extends IKnownCard { };
 
 interface IUpgrade extends IKnownCard {
     readonly basic_strength: number;
-    readonly character_equipped: ICharacter|null;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
+    readonly data: {
+        [field: string]: number|IKnownCard|boolean|null,
+        character_equipped: null | ICharacter
+    }
 }
 interface ICharacter extends IKnownCard {
     readonly basic_strength: number;
     readonly basic_battle_role: BattleRole;
     readonly upgrade_list: IUpgrade[];
-    arena_entered: IArena|null;
     char_status: CharStat;
     is_tired: boolean;
     
@@ -109,16 +115,24 @@ interface ICharacter extends IKnownCard {
     readonly push_chain: ActionChain<IEvent>;
     readonly finish_chain: ActionChain<IEvent>;
 
+    readonly data: {
+        [field: string]: number|IKnownCard|boolean|null,
+        arena_entered: null | IArena
+    }
     /** 不可覆寫！ */
     setUpgrade(upgrade: IUpgrade): void;
     unsetUpgrade(u: IUpgrade): void;
 }
 
 interface IArena extends IKnownCard {
-    position: number;
     readonly char_list: Array<ICharacter|null>;
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
+
+    readonly data: {
+        [field: string]: DataField
+        position: number
+    };
 
     readonly exploit_chain: ActionChain<ICharacter|Player>;
     readonly enter_chain: ActionChain<ICharacter>;
@@ -167,7 +181,10 @@ interface IEvent extends IKnownCard {
     setTimeCount(time_count: number): void;
 }
 interface ISpell extends IKnownCard {
-    casters: Array<ICharacter>;
+    readonly data: {
+        [field: string]: DataField
+        casters: ICharacter[]
+    };
 }
 
 const TypeGaurd = {

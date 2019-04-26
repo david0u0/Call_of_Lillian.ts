@@ -17,7 +17,7 @@ export default class C4 extends Character {
         this.my_master.card_play_chain.appendCheck((t, card) => {
             if(TypeGaurd.isUpgrade(card)) {
                 let u = card;
-                if(this.isEqual(u.character_equipped)) {
+                if(this.isEqual(u.data.character_equipped)) {
                     return { var_arg: true };
                 }
             }

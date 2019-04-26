@@ -13,6 +13,8 @@ export default class A extends Arena implements IArena {
     basic_mana_cost = 4;
     basic_exploit_cost = 3;
 
+    // TODO: 功能的選擇應該放在 before exploit chain
+
     async onExploit(char: ICharacter|Player) {
         let player = TypeGaurd.isCard(char) ? char.owner : char;
         let _index = await this.g_master.selecter.selectText(player, this, ["恢復2情緒", "造成對手1情緒傷害"]);

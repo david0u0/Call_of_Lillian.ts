@@ -113,7 +113,7 @@ export class PlayerMaster {
         t_master.start_building_chain.append(async () => {
             // 所有角色解除疲勞並離開場所
             for(let char of this.characters) {
-                if(char.arena_entered) {
+                if(char.data.arena_entered) {
                     await this.exitArena(char);
                 }
                 await this.changeCharTired(char, false);
@@ -298,9 +298,9 @@ export class PlayerMaster {
         } else if(!checkCardStat(card, CardStat.Hand)) {
             throw new BadOperationError("想打出手上沒有的牌？", card);
         }
-        card.rememberFields();
+        card.rememberDatas();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
-            card.recoverFields();
+            card.recoverDatas();
             return false;
         }
         // 支付代價
@@ -313,7 +313,7 @@ export class PlayerMaster {
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
-            card.recoverFields();
+            card.recoverDatas();
         });
         if(!card.instance) {
             await this.t_master.spendAction();
@@ -325,13 +325,13 @@ export class PlayerMaster {
         await this.add_card_chain.trigger(card, async () => {
             if(TG.isUpgrade(card)) {
                 // 把這件升級加入角色的裝備欄
-                if(card.character_equipped) {
-                    card.character_equipped.setUpgrade(card);
+                if(card.data.character_equipped) {
+                    card.data.character_equipped.setUpgrade(card);
                 }
             } else if(TG.isArena(card)) {
                 // 打出場所的規則（把之前的建築拆了）
                 for(let a of this.arenas) {
-                    if(!a.isEqual(card) && a.position == card.position) {
+                    if(!a.isEqual(card) && a.data.position == card.data.position) {
                         await this.retireCard(a);
                     }
                 }
@@ -378,7 +378,7 @@ export class PlayerMaster {
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
         if(TG.isCharacter(card)) {
-            if(card.arena_entered) {
+            if(card.data.arena_entered) {
                 await this.exitArena(card);
             }
             // 銷毀所有升級
@@ -386,9 +386,9 @@ export class PlayerMaster {
                 await this.retireCard(u);
             }
         } else if(TG.isUpgrade(card)) {
-            if(card.character_equipped) {
+            if(card.data.character_equipped) {
                 // 升級卡離場時，通知角色修改裝備欄
-                card.character_equipped.unsetUpgrade(card);
+                card.data.character_equipped.unsetUpgrade(card);
             }
         }
         await card.card_leave_chain.trigger(null);
@@ -570,12 +570,12 @@ export class PlayerMaster {
     }
 
     async exitArena(char: ICharacter) {
-        let _arena = char.arena_entered;
+        let _arena = char.data.arena_entered;
         if(_arena) {
             let arena = _arena;
             await this.exit_chain.trigger({ char, arena }, async () => {
                 char.char_status = CharStat.StandBy;
-                char.arena_entered = null;
+                char.data.arena_entered = null;
                 arena.exit(char);
                 await this.changeCharTired(char, true);
             });

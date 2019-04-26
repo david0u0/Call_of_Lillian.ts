@@ -18,7 +18,7 @@ export default class S extends Spell {
     get_mana_cost_chain = (() => {
         let chain = new GetterChain<number, null>();
         chain.append(cost => {
-            let minus = this.casters.length * 2;
+            let minus = this.data.casters.length * 2;
             return { var_arg: cost - minus };
         });
         return chain;

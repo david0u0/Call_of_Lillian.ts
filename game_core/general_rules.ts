@@ -35,7 +35,9 @@ export class SoftRule {
             // 對各類卡牌的檢查
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的限制
-                if(card.character_equipped && card.character_equipped.char_status != CharStat.StandBy) {
+                if(card.data.character_equipped
+                    && card.data.character_equipped.char_status != CharStat.StandBy
+                ) {
                     // 指定的角色不在待命區
                     throwIfIsBackend("指定的角色不在待命區", card);
                     return { var_arg: false };
@@ -100,7 +102,7 @@ export class SoftRule {
                 throwIfIsBackend("只能在收獲階段使用場所");
                 return { var_arg: false };
             } else if(TG.isCard(char)) {
-                if(!arena.isEqual(char.arena_entered)) {
+                if(!arena.isEqual(char.data.arena_entered)) {
                     throwIfIsBackend("只能開發自身所在的場所");
                     return { var_arg: false };
                 }
@@ -144,7 +146,7 @@ export class SoftRule {
             // 改建的費用可以下降
             if(TG.isArena(card)) {
                 for(let a of getArenas()) {
-                    if(a.position == card.position) {
+                    if(a.data.position == card.data.position) {
                         let new_cost = Math.max(0, cost - a.basic_mana_cost);
                         return { var_arg: new_cost };
                     }
@@ -192,7 +194,7 @@ export class HardRule {
     public static onEnter(char: ICharacter, arena: IArena) {
         // 讓角色跟場所記得對方
         char.char_status = CharStat.InArena;
-        char.arena_entered = arena;
+        char.data.arena_entered = arena;
         arena.enter(char);
     }
     /** 這裡的 char 可以是一個玩家 */
@@ -230,11 +232,11 @@ export class HardRule {
         event.push();
     }
     private static checkPlayUpgrade(u: IUpgrade): boolean {
-        if(u.character_equipped) {
-            if(u.character_equipped.card_status != CardStat.Onboard) {
+        if(u.data.character_equipped) {
+            if(u.data.character_equipped.card_status != CardStat.Onboard) {
                 throwIfIsBackend("指定的角色不在場上", u);
                 return false;
-            } else if(u.character_equipped.owner != u.owner) {
+            } else if(u.data.character_equipped.owner != u.owner) {
                 throwIfIsBackend("指定的角色不屬於你", u);
                 return false;
             } else {
@@ -246,7 +248,7 @@ export class HardRule {
         }
     }
     private static checkPlayArena(a: IArena): boolean {
-        if(a.position >= Constant.MAX_ARENA || a.position < 0) {
+        if(a.data.position >= Constant.MAX_ARENA || a.data.position < 0) {
             throwIfIsBackend("場所的位置超過範圍");
             return false;
         } else {

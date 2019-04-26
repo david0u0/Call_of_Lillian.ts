@@ -13,7 +13,7 @@ export default class C extends Character {
     setupAliveEffect() {
         let chains = [this.my_master.enter_chain, this.enemy_master.enter_chain];
         this.addActionWhileAlive(true, chains, ({ char, arena }) => {
-            if(!char.isEqual(this) && arena.isEqual(this.arena_entered)) {
+            if(!char.isEqual(this) && arena.isEqual(this.data.arena_entered)) {
                 this.g_master.getMyMaster(char).addEmo(1, [char]);
             }
         });

@@ -16,31 +16,34 @@ export default class S extends Spell {
     max_caster = 0;
     min_caster = 0;
 
-    protected target: ICharacter | null = null;
+    readonly data: {
+        casters: ICharacter[],
+        target: ICharacter | null
+    } = {
+        casters: [],
+        target: null
+    }
 
     async initialize(): Promise<boolean> {
-        this.target = await this.g_master.selecter.promptUI("指定施放者")
+        this.data.target = await this.g_master.selecter.promptUI("指定施放者")
         .selectCard(this.owner, this, {
             guard: TypeGaurd.isCharacter,
             stat: CardStat.Onboard
         }, c => {
             return c.char_status == CharStat.InWar;
         });
-        if(this.target) {
+        if(this.data.target) {
             return this.my_master.checkCanPlay(this);
         } else {
             return false;
         }
     }
-    recoverFields() {
-        this.target = null;
-    }
 
     setupAliveEffect() {
-        if(!this.target) {
+        if(!this.data.target) {
             throw new BadOperationError("未指定對象就施放咒語", this);
         }
-        this.addGetterWhileAlive(true, this.target.get_strength_chain, str => {
+        this.addGetterWhileAlive(true, this.data.target.get_strength_chain, str => {
             return { var_arg: str + 2 };
         });
         this.addActionWhileAlive(true, this.g_master.w_master.end_war_chain, () => {
@@ -49,8 +52,8 @@ export default class S extends Spell {
     }
 
     async onPlay() {
-        if(this.target) {
-            await this.my_master.changeCharTired(this.target, false);
+        if(this.data.target) {
+            await this.my_master.changeCharTired(this.data.target, false);
         }
     }
 }

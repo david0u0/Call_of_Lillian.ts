@@ -60,7 +60,7 @@ export class GameMaster {
         if(TG.isArena(arena)) {
             arena.card_status = CardStat.Onboard;
             await this.getMyMaster(owner).addCard(arena);
-            arena.position = pos;
+            arena.data.position = pos;
             await this.getMyMaster(owner).dangerouslySetToBoard(arena);
             return arena;
         } else {
