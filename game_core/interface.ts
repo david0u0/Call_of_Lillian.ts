@@ -96,6 +96,7 @@ interface ICharacter extends IKnownCard {
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
     readonly enter_arena_chain: ActionChain<IArena>;
     readonly get_battle_role_chain: GetterChain<BattleRole, null>;
+    readonly repulse_chain: ActionChain<ICharacter[]>;
 
     readonly release_chain: ActionChain<null>;
 
@@ -191,17 +192,18 @@ const TypeGaurd = {
     isEvent: function(c: ICard): c is IEvent {
         return c.card_type == CardType.Event;
     },
-    isCard: function(c: ICard|null|number|undefined): c is ICard {
-        if(c) {
-            return typeof(c) == "object";
-        } else {
-            return false;
+    isCard: function(c: any): c is ICard {
+        if(c && typeof(c) == "object") {
+            if(c instanceof Card) {
+                return true;
+            }
         }
+        return false;
     }
 };
 
-class UnknownCard implements ICard {
-    public readonly card_type = CardType.Unknown;
+abstract class Card implements ICard {
+    public abstract card_type: CardType;
     public card_status = CardStat.Deck;
     constructor(public readonly seq: number, public readonly owner: Player) { }
     isEqual(card: ICard|null) {
@@ -211,6 +213,10 @@ class UnknownCard implements ICard {
             return false;
         }
     }
+}
+
+class UnknownCard extends Card implements ICard {
+    public readonly card_type = CardType.Unknown;
 }
 
 type SelectConfig<T extends ICard> = {
@@ -236,6 +242,6 @@ interface ISelecter {
 
 export {
     ICard, IKeeper, IKnownCard, ICharacter,
-    IUpgrade, IArena, IEvent, ISpell, UnknownCard,
+    IUpgrade, IArena, IEvent, ISpell, UnknownCard, Card,
     TypeGaurd, ISelecter, Ability, SelectConfig
 };

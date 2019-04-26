@@ -48,10 +48,10 @@ export class GameMaster {
         this.getMyMaster(owner).addCard(c);
         return c;
     }
-    genCardToHand(owner: Player, name: string): IKnownCard {
+    async genCardToHand(owner: Player, name: string): Promise<IKnownCard> {
         let c = this.genCard(owner, name);
         c.card_status = CardStat.Hand;
-        this.getMyMaster(owner).addCard(c);
+        await this.getMyMaster(owner).addCard(c);
         return c;
     }
     // 應該就一開始會用到而已 吧？

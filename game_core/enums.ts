@@ -33,5 +33,7 @@ export enum GamePhase {
 
 export enum RuleEnums {
     ExitAfterExploit,
-    RecoverEmoAfterRelease
+    RecoverEmoAfterRelease,
+    CustomPushCheck,
+    PunishOnFail
 }

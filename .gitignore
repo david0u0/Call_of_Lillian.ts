@@ -8,6 +8,8 @@
 *.jpg
 *.gif
 
+*.js
+
 **/generate_card.ts
 **/assets/
 

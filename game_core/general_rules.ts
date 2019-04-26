@@ -72,8 +72,7 @@ export class SoftRule {
             if(this.getPhase() != GamePhase.InAction) {
                 throwIfIsBackend("只能在主階段的行動時移動");
                 return { var_arg: false };
-            }
-            else if(char.char_status != CharStat.StandBy) {
+            } else if(char.char_status != CharStat.StandBy) {
                 throwIfIsBackend("在場所中的角色不能移動");
                 return { var_arg: false };
             } else if(char.is_tired) {
@@ -102,7 +101,7 @@ export class SoftRule {
                 return { var_arg: false };
             } else if(TG.isCard(char)) {
                 if(!arena.isEqual(char.arena_entered)) {
-                    // 角色不可開發自身所在地之外的場所
+                    throwIfIsBackend("只能開發自身所在的場所");
                     return { var_arg: false };
                 }
             }
@@ -113,27 +112,18 @@ export class SoftRule {
             if(this.getPhase() != GamePhase.InAction) {
                 throwIfIsBackend("只能在主階段行動時推進事件");
                 return { var_arg: false };
-            } else if(event.cur_time_count <= 0) {
-                // 不可推進倒數為0的事件
-                return { var_arg: false };
             } else if(event.cur_progress_count >= event.goal_progress_count) {
-                // 不可推進已到達目標的事件
+                throwIfIsBackend("不可推進已達目標的事件");
                 return { var_arg: false };
             } else if(TG.isCard(char) && char.is_tired) {
-                // 不可用疲勞的角色來推進
-                return { var_arg: false };
+                if(char.is_tired) {
+                    throwIfIsBackend("不可用疲勞的角色來推進");
+                    return { var_arg: false };
+                } else if(char.char_status != CharStat.StandBy) {
+                    throwIfIsBackend("只可用待命中的角色來推進");
+                    return { var_arg: false };
+                }
             }
-        });
-    }
-    // 理論上，當任務失敗，應該扣掉等同基礎開銷的魔力，多出來的話一比一變成情緒傷害。
-    public onFail(fail_chain: ActionChain<IEvent>, getMana: () => number,
-        addMana: (mana: number) => void, addEmo: (emo: number) => void
-    ) {
-        fail_chain.append(evt => {
-            let mana_cost = Math.min(getMana(), evt.basic_mana_cost);
-            let emo_cost = evt.basic_mana_cost - mana_cost;
-            addMana(-mana_cost);
-            addEmo(emo_cost);
         });
     }
     // 理論上，當任務成功，完成的角色應該退場

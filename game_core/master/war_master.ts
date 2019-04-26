@@ -1,5 +1,5 @@
 import { IArena, ICharacter, ICard, ISelecter, TypeGaurd as TG } from "../interface";
-import { Player, GamePhase, CharStat } from "../enums";
+import { Player, GamePhase, CharStat, CardStat } from "../enums";
 import { TimeMaster } from "./time_master";
 import { BadOperationError, throwIfIsBackend } from "../errors";
 import { ActionChain, ActionFunc, GetterChain, GetterFunc } from "../hook";
@@ -30,6 +30,8 @@ export class WarMaster {
         if(char) {
             if(char.owner != player) {
                 return false;
+            } else if(char.card_status != CardStat.Onboard) {
+                throw new BadOperationError("不在場上的角色也想參與戰鬥？");
             } else if(this.t_master.cur_phase == GamePhase.InWar) {
                 if(char.char_status != CharStat.InWar) {
                     return false;
@@ -38,6 +40,8 @@ export class WarMaster {
                 ) {
                     return false;
                 }
+            } else if(char.char_status != CharStat.InArena) {
+                throw new BadOperationError("只有場所中的角色可參加戰鬥");
             }
         }
         return true;
@@ -345,7 +349,8 @@ export class WarMaster {
                 await this.repulseChar(char);
             }
         } else {
-            await this.repulse_chain.trigger({ loser, winner }, async () => {
+            await loser.repulse_chain.chain(this.repulse_chain, { loser, winner })
+            .trigger(winner, async () => {
                 await this.getMyMaster(loser).exitArena(loser);
             });
         }

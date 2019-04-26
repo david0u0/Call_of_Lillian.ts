@@ -14,7 +14,7 @@ export default class U1 extends Upgrade {
         let role_chain = this.my_master.get_battle_role_chain;
         this.addGetterWhileAlive(true, role_chain, (role, char) => {
             if(char.isEqual(this.character_equipped)) {
-                return { var_arg: { ...role, can_be_blocked: false } };
+                return { var_arg: { ...role, can_not_be_blocked: true } };
             }
         });
     }

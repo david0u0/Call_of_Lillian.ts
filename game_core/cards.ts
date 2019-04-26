@@ -1,14 +1,14 @@
 // TODO: 為了達成斷線復原的功能，應該把入場曲跟在場效果分清楚（多一個 setAliveChain 方法）
 
-import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
-import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, ICard, Ability } from "./interface";
+import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase, RuleEnums } from "./enums";
+import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, ICard, Ability, Card } from "./interface";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
 import { PlayerMaster } from "./master/player_master";
 import { GameMaster } from "./master/game_master";
 
-abstract class KnownCard implements IKnownCard {
+abstract class KnownCard extends Card implements IKnownCard {
     public abstract readonly card_type: CardType;
     public abstract readonly name: string;
     public abstract readonly description: string;
@@ -47,6 +47,7 @@ abstract class KnownCard implements IKnownCard {
     constructor(public readonly seq: number, public readonly owner: Player,
         public readonly g_master: GameMaster
     ) {
+        super(seq, owner);
         this.my_master = g_master.getMyMaster(owner);
         this.enemy_master = g_master.getEnemyMaster(owner);
     }
@@ -171,6 +172,7 @@ abstract class Character extends KnownCard implements ICharacter {
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
     public readonly enter_arena_chain = new ActionChain<IArena>();
     public readonly release_chain = new ActionChain<null>();
+    readonly repulse_chain = new ActionChain<ICharacter[]>();
 
     public readonly exploit_chain = new ActionChain<IArena>();
     public readonly enter_chain = new ActionChain<IArena>();
@@ -294,7 +296,7 @@ abstract class Event extends KnownCard implements IEvent {
         let chain = new ActionChain<ICharacter|null>();
         chain.appendCheck((t, char) => {
             return { var_arg: this.checkCanPush(char) };
-        });
+        }, undefined, RuleEnums.CustomPushCheck);
         return chain;
     })();
     
