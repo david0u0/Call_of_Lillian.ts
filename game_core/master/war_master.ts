@@ -1,5 +1,5 @@
 import { IArena, ICharacter, ICard, ISelecter, TypeGaurd as TG } from "../interface";
-import { Player, GamePhase, CharStat } from "../enums";
+import { Player, GamePhase, CharStat, CardStat } from "../enums";
 import { TimeMaster } from "./time_master";
 import { BadOperationError, throwIfIsBackend } from "../errors";
 import { ActionChain, ActionFunc, GetterChain, GetterFunc } from "../hook";
@@ -8,7 +8,7 @@ import { PlayerMaster } from "./player_master";
 import { ActionChainFactory } from "./action_chain_factory";
 
 export enum DetailedWarPhase { Attaking, Blocking, None };
-enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
+export enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
  */
@@ -30,6 +30,8 @@ export class WarMaster {
         if(char) {
             if(char.owner != player) {
                 return false;
+            } else if(char.card_status != CardStat.Onboard) {
+                throw new BadOperationError("不在場上的角色也想參與戰鬥？");
             } else if(this.t_master.cur_phase == GamePhase.InWar) {
                 if(char.char_status != CharStat.InWar) {
                     return false;
@@ -38,6 +40,8 @@ export class WarMaster {
                 ) {
                     return false;
                 }
+            } else if(char.char_status != CharStat.InArena) {
+                throw new BadOperationError("只有場所中的角色可參加戰鬥");
             }
         }
         return true;
@@ -106,7 +110,7 @@ export class WarMaster {
     public inMainField(char?: ICharacter) {
         if(this.war_field) {
             if(char) {
-                return this.war_field.isEqual(char.arena_entered);
+                return this.war_field.isEqual(char.data.arena_entered);
             } else {
                 return true;
             }
@@ -117,12 +121,12 @@ export class WarMaster {
     public getAllWarFields(arena: IArena) {
         let arenas = [];
         for(let a of this.getMyMaster(arena).arenas) {
-            if(Math.abs(a.position - arena.position) <= 1) {
+            if(Math.abs(a.data.position - arena.data.position) <= 1) {
                 arenas.push(a);
             }
         }
         for(let a of this.getEnemyMaster(arena.owner).arenas) {
-            if(Math.abs(a.position - arena.position) == 0) {
+            if(Math.abs(a.data.position - arena.data.position) == 0) {
                 arenas.push(a);
             }
         }
@@ -345,7 +349,8 @@ export class WarMaster {
                 await this.repulseChar(char);
             }
         } else {
-            await this.repulse_chain.trigger({ loser, winner }, async () => {
+            await loser.repulse_chain.chain(this.repulse_chain, { loser, winner })
+            .trigger(winner, async () => {
                 await this.getMyMaster(loser).exitArena(loser);
             });
         }

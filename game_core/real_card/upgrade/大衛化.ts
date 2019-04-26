@@ -15,7 +15,7 @@ export default class U extends Upgrade {
             if(emo > cur_emo) {
                 // 代表是承受傷害不是治癒
                 for(let card of caller) {
-                    if(card.isEqual(this.character_equipped)) {
+                    if(card.isEqual(this.data.character_equipped)) {
                         // 代表真的是由裝備者承受傷害
                         await this.enemy_master.addEmo(1);
                     }

@@ -55,7 +55,7 @@ export class ArenaArea {
             }
             return;
         } else {
-            let index = card.position;
+            let index = card.data.position;
             let offset = index * (this.card_w + this.card_gap) + this.card_gap;
             if(card.name == Constant.DUMMY_NAME) {
                 let rec = new PIXI.Graphics();
@@ -110,7 +110,7 @@ export class ArenaArea {
         });
     }
     private async enterChar(arena: IArena, char: ICharacter) {
-        let index = arena.position;
+        let index = arena.data.position;
 
         let { width, height } = getCardSize(this.card_gap * 0.6, this.card_h * 1.1);
 

@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
 
-import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter, ICard } from "../interface";
+import { IKnownCard, ICharacter, IUpgrade, ISpell, IEvent, IArena, TypeGaurd, ISelecter, ICard, SelectConfig } from "../interface";
 import { BadOperationError } from "../errors";
 import { Player } from "../enums";
-import { GameMaster } from "../game_master";
+import { GameMaster } from "../master/game_master";
 import { KnownCard } from "../cards";
 
 export class TestSelecter implements ISelecter {
@@ -66,35 +66,43 @@ export class TestSelecter implements ISelecter {
      * 前端沒有「取消」的選項
      * 應用實例：某個事件已確定發生，你必需選一個目標來回應，如強迫棄牌、強迫擊退等。
      */
-    public selectCardsInteractive<T extends ICard>(guard: (c: ICard) => c is T,
-        max=1, min=1, checkCanSelect=(card: T[]) => true
-    ): T[] {
-        return [];
+    public async selectCardInteractive<T extends ICard>(player: Player,
+        caller: IKnownCard[]|IKnownCard|null,
+        conf: SelectConfig<T>,
+        check=(card: T) => true
+    ) {
+        return null;
     }
 
-    /**
-     * 此函式不（該）只是 selectCards 的閹割版。
-     * 因為一次只選一張，程式可以非常清楚地指出哪些牌可以選。
-     * 而一次選多張卡的函式則難以枚舉所有狀況，也難以用 UI 表示出來。
-     */
-    public selectSingleCard<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
-        checkCanSelect=(card: T) => true
-    ): Promise<T|null> {
-        let list = this._selectCards(guard, 1, 1, list => {
-            return checkCanSelect(list[0]);
-        });
-        return new Promise<T|null>((resolve) => {
-            if(list) {
-                resolve(list[0]);
-            } else {
-                resolve(null);
+    public async selectCard<T extends ICard>(player: Player,
+        caller: IKnownCard[]|IKnownCard|null,
+        conf: SelectConfig<T>,
+        check=(card: T) => true
+    ) {
+        let res = this._selectCards(conf.guard, 1, 1, (c_arr: T[]) => {
+            let c = c_arr[0];
+            if(typeof(conf.owner) != "undefined" && c.owner != conf.owner) {
+                return false;
             }
+            return check(c);
         });
+        if(res) {
+            return res[0];
+        } else {
+            return null;
+        }
     }
-    public selectSingleCardInteractive<T extends ICard>(caller: IKnownCard, guard: (c: ICard) => c is T,
-        checkCanSelect = (card: T) => true
-    ): Promise<T | null> {
-        throw "Not yet implemented";
+    public async selectText(player: Player, caller: IKnownCard|null, text: string[]) {
+        return -1;
+    }
+    public async selectConfirm(player: Player, caller: IKnownCard|null, msg: string) {
+        return true;
+    }
+    cancelUI(msg?: string) {
+        return this;
+    }
+    promptUI(msg: string) {
+        return this;
     }
 }
 

@@ -2,7 +2,7 @@ import * as assert from "assert";
 
 import { Player, CardStat, BattleRole, CharStat } from "../enums";
 import { Character, Upgrade } from "../cards";
-import { GameMaster } from "../game_master";
+import { GameMaster } from "../master/game_master";
 import { ICharacter, IEvent, IArena } from "../interface";
 
 import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
@@ -28,8 +28,8 @@ describe("測試事件卡功能", () => {
         enemy_master = gm.getEnemyMaster(p1);
         await pm.addMana(1000);
         await enemy_master.addMana(1000);
-        char = gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
-        char2 = gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
+        char = await gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
+        char2 = await gm.genCardToHand(p1, "雨季的魔女．語霽") as ICharacter;
 
         await gm.t_master.startMainPhase();
         await gm.t_master.startTurn(p1);
@@ -39,7 +39,7 @@ describe("測試事件卡功能", () => {
     });
     describe("測試基本的事件卡（違停派對）", () => {
         beforeEach(async () => {
-            event = gm.genCardToHand(p1, "違停派對") as IEvent;
+            event = await gm.genCardToHand(p1, "違停派對") as IEvent;
             await pm.playCard(event);
         });
         it("玩家的魔力應該是1000-4-4-4+7=995", () => {
@@ -72,7 +72,7 @@ describe("測試事件卡功能", () => {
             await pm.pushEvent(event, char2);
             assert.equal(pm.mana, 998, "完成事件後魔力不對");
             assert.equal(pm.getScore(), 1, "完成後總分不對");
-            assert.equal(event.card_status, CardStat.Finished, "完成後事件沒有標記為完成");
+            assert.equal(event.is_finished, true, "完成後事件沒有標記為完成");
         });
         it("事件如果失敗，魔力應該變成995-4-2=989", async () => {
             assert.equal(pm.mana, 995, "事件失敗前魔力不對");
@@ -84,13 +84,13 @@ describe("測試事件卡功能", () => {
         let hospital: IArena;
         let e_hospital: IArena;
         beforeEach(async () => {
-            event = gm.genCardToHand(p1, "緊急醫療") as IEvent;
+            event = await gm.genCardToHand(p1, "緊急醫療") as IEvent;
             await pm.playCard(event);
-            hospital = gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
-            e_hospital = gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
+            hospital = await gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
+            e_hospital = await gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
         });
-        it("玩家的魔力應該是1000-4-4-4=988", () => {
-            assert.equal(pm.mana, 988);
+        it("玩家的魔力應該是1000-4-4-3=989", () => {
+            assert.equal(pm.mana, 989);
         });
         it("進入醫院前應該無法推進", async () => {
             await checkBadOperationErrorAsync(async () => {
@@ -98,16 +98,16 @@ describe("測試事件卡功能", () => {
             });
         });
         it("進入醫院後應該就可以推進了", async () => {
-            await gm.enterArena(hospital, char);
-            assert.doesNotThrow(async () => {
+            await pm.enterArena(hospital, char);
+            await checkBadOperationErrorAsync(async () => {
                 await pm.pushEvent(event, char2);
-            });
+            }, false);
         });
         it("進入敵方的醫院應該也可以推進了", async () => {
-            await gm.enterArena(e_hospital, char);
-            assert.doesNotThrow(async () => {
+            await pm.enterArena(e_hospital, char);
+            await checkBadOperationErrorAsync(async () => {
                 await pm.pushEvent(event, char2);
-            });
+            }, false);
         });
     });
 });

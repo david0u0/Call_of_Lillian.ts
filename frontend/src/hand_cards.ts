@@ -49,7 +49,7 @@ class HandUI {
         let { x, y } = getOffset(this.view);
         this.view.position.set(x, y);
 
-        gm.getMyMaster(player).draw_card_chain.append(async card => {
+        gm.getMyMaster(player).add_card_to_hand_chain.append(async card => {
             await this.add(card);
         });
     }

@@ -21,21 +21,21 @@ export default class E extends Event implements IEvent {
         return true;
     }
 
-    onPlay() {
-        this.my_master.addMana(7);
+    async onPlay() {
+        await this.my_master.addMana(7);
     }
 
-    onFinish() {
-        this.my_master.addMana(5);
+    async onFinish() {
+        await this.my_master.addMana(5);
     }
 
     onPush() { }
 
-    onFail() {
+    async onFail() {
         let mana_cost = Math.min(2, this.my_master.mana);
         let emo_cost = 2 - mana_cost;
-        this.my_master.addMana(-mana_cost);
-        this.my_master.addEmo(-emo_cost);
+        await this.my_master.addMana(-mana_cost);
+        await this.my_master.addEmo(-emo_cost);
     }
     setupFinishEffect() { }
 }

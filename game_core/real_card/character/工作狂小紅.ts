@@ -11,14 +11,18 @@ export default class C extends Character {
     basic_strength = 0;
     basic_battle_role = { can_attack: true, can_block: true, is_melee: true };
 
-    private has_exploited = false;
+    public readonly data = {
+        arena_entered: null,
+        has_exploited: false
+    }
+
     setupAliveEffect() {
         this.g_master.t_master.start_exploit_chain.append(() => {
-            this.has_exploited = false;
+            this.data.has_exploited = false;
         });
         this.exploit_chain.append(() => {
-            if(!this.has_exploited) {
-                this.has_exploited = true;
+            if(!this.data.has_exploited) {
+                this.data.has_exploited = true;
                 return { mask_id: RuleEnums.ExitAfterExploit };
             }
         });

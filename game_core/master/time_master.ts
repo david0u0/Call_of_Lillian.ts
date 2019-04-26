@@ -13,7 +13,8 @@ export class TimeMaster {
     public get action_point() { return this._action_point; }
     private _cur_phase = GamePhase.Setup;
     public get cur_phase() { return this._cur_phase; }
-    private first_player = Player.Player1;
+    private _first_player = Player.Player1;
+    public get first_player() { return this._first_player; }
 
     public readonly start_building_chain = this.acf.new<null>();
     public readonly start_main_chain = this.acf.new<null>();
@@ -38,7 +39,7 @@ export class TimeMaster {
             await this.setRest(Player.Player1, false);
             await this.setRest(Player.Player2, false);
             this._cur_phase = GamePhase.Building;
-            await this.startTurn(this.first_player);
+            await this.startTurn(this._first_player);
         });
     }
     public async startMainPhase() {
@@ -46,7 +47,7 @@ export class TimeMaster {
             await this.setRest(Player.Player1, false);
             await this.setRest(Player.Player2, false);
             this._cur_phase = GamePhase.InAction;
-            await this.startTurn(this.first_player);
+            await this.startTurn(this._first_player);
             this._action_point = MAIN_FIRST_ACTION_P; // 第一個回合的行動點不同
         });
     }
@@ -55,7 +56,7 @@ export class TimeMaster {
         await this.setRest(Player.Player2, false);
         await this.start_exploit_chain.trigger(null, async () => {
             this._cur_phase = GamePhase.Exploit;
-            await this.startTurn(this.first_player);
+            await this.startTurn(this._first_player);
         });
     }
 
@@ -110,7 +111,7 @@ export class TimeMaster {
             await this.rest_chain.byKeeper(by_keeper).trigger(player, () => {
                 if(!this.someoneResting()) {
                     // 下個世代的起始玩家
-                    this.first_player = player;
+                    this._first_player = player;
                 }
             });
         }

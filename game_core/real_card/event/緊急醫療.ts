@@ -20,8 +20,8 @@ export default class E extends Event implements IEvent {
     checkCanPush(_char: ICharacter|null) {
         let list = this.g_master.getAll(TG.isCharacter, char => {
             if(char.owner == this.owner) {
-                if(char.arena_entered) {
-                    let arena = char.arena_entered;
+                if(char.data.arena_entered) {
+                    let arena = char.data.arena_entered;
                     if(arena.series.indexOf(CardSeries.Hospital) != -1) {
                         return true;
                     }

@@ -10,7 +10,7 @@ export class PhaseNotifier {
     private anime_playing = false;
     public readonly view = new PIXI.Container();
 
-    constructor(private gm: GameMaster, player: Player,
+    constructor(private gm: GameMaster, private me: Player,
         private selecter: FrontendSelecter, private ticker: PIXI.ticker.Ticker
     ) {
         let { width, height } = getWinSize();
@@ -36,7 +36,7 @@ export class PhaseNotifier {
         phase_txt.position.set(width, height);
         this.view.addChild(phase_txt);
 
-        let anime = (txt_content) => {
+        let anime = (txt_content: string, lasting_time=600) => {
             if(this.anime_playing) {
                 let pending = () => anime(txt_content);
                 this.pending_anime = [pending, ...this.pending_anime];
@@ -47,7 +47,7 @@ export class PhaseNotifier {
                 let time = Date.now();
                 let fade_out = () => {
                     this.anime_playing = true;
-                    if(Date.now() - time > 600) {
+                    if(Date.now() - time > lasting_time) {
                         if(txt.alpha > 0) {
                             txt.alpha -= 0.02;
                         } else {
@@ -82,7 +82,7 @@ export class PhaseNotifier {
         gm.w_master.declare_war_chain.append(() => {
             phase_txt.text = "戰鬥中";
             anime("戰鬥開始");
-            anime("請點選我方角色作為攻擊者\n再點選敵方角色作為攻擊目標");
+            anime("攻方選擇角色作為攻擊者\n再點選敵方角色作為攻擊目標", 1000);
         });
         gm.w_master.end_war_chain.append(() => {
             phase_txt.text = "主階段";
@@ -103,6 +103,14 @@ export class PhaseNotifier {
             return {
                 after_effect: async () => this.askIfSkip()
             };
+        });
+
+        gm.end_game_chain.append(player => {
+            if(me == player) {
+                alert("你贏惹！！");
+            } else {
+                alert("你輸惹！！GGGGGG");
+            }
         });
     };
 

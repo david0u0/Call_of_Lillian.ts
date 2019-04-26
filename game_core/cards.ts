@@ -1,14 +1,12 @@
-// TODO: 為了達成斷線復原的功能，應該把入場曲跟在場效果分清楚（多一個 setAliveChain 方法）
-
-import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
-import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, ICard, Ability } from "./interface";
+import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase, RuleEnums } from "./enums";
+import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, Ability, DataField, Card } from "./interface";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
 import { PlayerMaster } from "./master/player_master";
 import { GameMaster } from "./master/game_master";
 
-abstract class KnownCard implements IKnownCard {
+abstract class KnownCard extends Card implements IKnownCard {
     public abstract readonly card_type: CardType;
     public abstract readonly name: string;
     public abstract readonly description: string;
@@ -16,6 +14,9 @@ abstract class KnownCard implements IKnownCard {
     public abstract can_play_phase: GamePhase[];
     public series: CardSeries[] = []
     public instance = false;
+
+    public readonly data: { [field: string]: DataField } = {};
+    private readonly _mem_data: { [field: string]: DataField } = {};
 
     public card_status = CardStat.Deck;
 
@@ -47,8 +48,10 @@ abstract class KnownCard implements IKnownCard {
     constructor(public readonly seq: number, public readonly owner: Player,
         public readonly g_master: GameMaster
     ) {
+        super(seq, owner);
         this.my_master = g_master.getMyMaster(owner);
         this.enemy_master = g_master.getEnemyMaster(owner);
+        this._mem_data = { ...this.data };
     }
 
     public isEqual(card: IKnownCard|null) {
@@ -58,8 +61,16 @@ abstract class KnownCard implements IKnownCard {
             return false;
         }
     }
-    public rememberFields() { }
-    public recoverFields() { }
+    public rememberDatas() {
+        for(let field in this.data) {
+            this._mem_data[field] = this.data[field];
+        }
+    }
+    public recoverDatas() {
+        for(let field in this._mem_data) {
+            this.data[field] = this._mem_data[field];
+        }
+    }
 
     addGetterWhileAlive<T, U>(append: boolean,
         chain: GetterChain<T, U>[]|GetterChain<T, U>, func: GetterFunc<T, U>
@@ -69,30 +80,26 @@ abstract class KnownCard implements IKnownCard {
                 this.addGetterWhileAlive(append, c, func);
             }
         } else {
-            let hook = (() => {
-                if(append) {
-                    return chain.append(func, () => (this.card_status == CardStat.Onboard));
-                } else {
-                    return chain.dominant(func, () => (this.card_status == CardStat.Onboard));
-                }
-            })();
+            if(append) {
+                return chain.append(func, () => (this.card_status == CardStat.Onboard));
+            } else {
+                return chain.dominant(func, () => (this.card_status == CardStat.Onboard));
+            }
         }
     }
     addCheckWhileAlive<U>(append: boolean,
-        chain: ActionChain<U>[]|ActionChain<U>, func: GetterFunc<boolean, U>
+        chain: ActionChain<U>[] | ActionChain<U>, func: GetterFunc<boolean, U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
                 this.addCheckWhileAlive(append, c, func);
             }
         } else {
-            let hook = (() => {
-                if(append) {
-                    return chain.appendCheck(func, () => (this.card_status == CardStat.Onboard));
-                } else {
-                    return chain.dominantCheck(func, () => (this.card_status == CardStat.Onboard));
-                }
-            })();
+            if(append) {
+                return chain.appendCheck(func, () => (this.card_status == CardStat.Onboard));
+            } else {
+                return chain.dominantCheck(func, () => (this.card_status == CardStat.Onboard));
+            }
         }
     }
     addActionWhileAlive<U>(append: boolean,
@@ -103,13 +110,11 @@ abstract class KnownCard implements IKnownCard {
                 this.addActionWhileAlive(append, c, func);
             }
         } else {
-            let hook = (() => {
-                if(append) {
-                    return chain.append(func, () => (this.card_status == CardStat.Onboard));
-                } else {
-                    return chain.dominant(func, () => (this.card_status == CardStat.Onboard));
-                }
-            })();
+            if(append) {
+                return chain.append(func, () => (this.card_status == CardStat.Onboard));
+            } else {
+                return chain.dominant(func, () => (this.card_status == CardStat.Onboard));
+            }
         }
     }
 }
@@ -118,12 +123,15 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public card_type = CardType.Upgrade;
     public can_play_phase = [GamePhase.InAction];
     public abstract readonly basic_strength: number;
-    public character_equipped: ICharacter | null = null;
     public readonly instance = true; // 升級卡不會暫用時間
     
+    public readonly data: {
+        character_equipped: ICharacter | null
+    } = {
+        character_equipped: null
+    };
+    
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
-
-    private mem_character_equipped: ICharacter | null = this.character_equipped;
 
     public async initialize() {
         let char = await this.g_master.selecter.promptUI("指定裝備者")
@@ -132,23 +140,16 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
             owner: this.owner,
             stat: CardStat.Onboard
         }, char => {
-            this.character_equipped = char;
+            this.data.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
             return can_play;
         });
         if(char) {
-            this.character_equipped = char;
+            this.data.character_equipped = char;
             return true;
         } else {
             return false;
         }
-    }
-
-    rememberFields() {
-        this.mem_character_equipped = this.character_equipped;
-    }
-    recoverFields() {
-        this.character_equipped = this.mem_character_equipped;
     }
 }
 
@@ -160,7 +161,6 @@ abstract class Character extends KnownCard implements ICharacter {
 
     private _upgrade_list: IUpgrade[] = [];
     public get upgrade_list() { return [...this._upgrade_list]; };
-    public arena_entered: IArena | null = null;
     public char_status = CharStat.StandBy;
     public is_tired = false;
     public way_worn = false;
@@ -171,6 +171,7 @@ abstract class Character extends KnownCard implements ICharacter {
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
     public readonly enter_arena_chain = new ActionChain<IArena>();
     public readonly release_chain = new ActionChain<null>();
+    readonly repulse_chain = new ActionChain<ICharacter[]>();
 
     public readonly exploit_chain = new ActionChain<IArena>();
     public readonly enter_chain = new ActionChain<IArena>();
@@ -181,6 +182,12 @@ abstract class Character extends KnownCard implements ICharacter {
     public readonly get_push_cost_chain = new GetterChain<number, IEvent>();
     public readonly push_chain = new ActionChain<IEvent>();
     public readonly finish_chain = new ActionChain<IEvent>();
+
+    public readonly data: {
+        arena_entered: IArena | null
+    } = {
+        arena_entered: null
+    };
 
     setUpgrade(u: IUpgrade) {
         this._upgrade_list.push(u);
@@ -197,25 +204,20 @@ abstract class Character extends KnownCard implements ICharacter {
             this._upgrade_list = [...list.slice(0, i), ...list.slice(i+1)];
         }
     }
-
-    private mem_arena_entered = this.arena_entered;
-    rememberFields() {
-        this.mem_arena_entered = this.arena_entered;
-    }
-    recoverFields() {
-        this.arena_entered = this.mem_arena_entered;
-    }
 }
 
 abstract class Arena extends KnownCard implements IArena {
     public readonly card_type = CardType.Arena;
     public can_play_phase = [GamePhase.Building];
-    public position = -1;
     public readonly abstract basic_exploit_cost: number;
 
     public readonly max_capacity = C.ARENA_CAPACITY;
     private _char_list = new Array<ICharacter|null>(this.max_capacity).fill(null);
     public get char_list() { return [...this._char_list]; };
+
+    public readonly data = {
+        position: -1
+    };
 
     public readonly exploit_chain = new ActionChain<ICharacter|Player>();
     public readonly enter_chain = new ActionChain<ICharacter>();
@@ -260,17 +262,15 @@ abstract class Arena extends KnownCard implements IArena {
             owner: this.owner,
             stat: CardStat.Onboard
         }, arena => {
-            this.position = arena.position;
+            this.data.position = arena.data.position;
             return this.my_master.checkCanPlay(this);
         });
         if(old_arena) {
+            this.data.position = old_arena.data.position;
             return true;
         } else {
             return false;
         }
-    }
-    recoverFields() {
-        this.position = -1;
     }
 }
 
@@ -294,7 +294,7 @@ abstract class Event extends KnownCard implements IEvent {
         let chain = new ActionChain<ICharacter|null>();
         chain.appendCheck((t, char) => {
             return { var_arg: this.checkCanPush(char) };
-        });
+        }, undefined, RuleEnums.CustomPushCheck);
         return chain;
     })();
     
@@ -327,12 +327,16 @@ abstract class Event extends KnownCard implements IEvent {
 
 abstract class Spell extends KnownCard implements ISpell {
     public readonly card_type = CardType.Spell;
-    public casters = new Array<ICharacter>();
     protected max_caster = 1;
     protected min_caster = 1;
+
+    readonly data = {
+        casters: new Array<ICharacter>()
+    };
+
     public async initialize(): Promise<boolean> {
         while(true) {
-            let caller = [this, ...this.casters];
+            let caller = [this, ...this.data.casters];
             let c = await this.g_master.selecter.cancelUI().promptUI("指定施放者")
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,
@@ -344,16 +348,19 @@ abstract class Spell extends KnownCard implements ISpell {
             });
             if(c) {
                 let cancel = false;
-                for(let [i, card] of this.casters.entries()) {
+                for(let [i, card] of this.data.casters.entries()) {
                     if(card.isEqual(c)) {
-                        this.casters = [...this.casters.slice(0, i), ...this.casters.slice(i+1)];
+                        this.data.casters = [
+                            ...this.data.casters.slice(0, i),
+                            ...this.data.casters.slice(i+1)
+                        ];
                         cancel = true;
                         break;
                     }
                 }
                 if(!cancel) {
-                    this.casters.push(c);
-                    if(this.casters.length == this.max_caster) {
+                    this.data.casters.push(c);
+                    if(this.data.casters.length == this.max_caster) {
                         break;
                     }
                 }
@@ -361,20 +368,16 @@ abstract class Spell extends KnownCard implements ISpell {
                 break;
             }
         }
-        if(this.casters.length < this.min_caster) {
+        if(this.data.casters.length < this.min_caster) {
             return false;
         } else {
             return this.my_master.checkCanPlay(this);
         }
     }
     async onPlay() {
-        for(let c of this.casters) {
+        for(let c of this.data.casters) {
             await this.my_master.changeCharTired(c, true);
         }
-    }
-
-    recoverFields() {
-        this.casters = [];
     }
 }
 

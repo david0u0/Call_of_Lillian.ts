@@ -26,8 +26,10 @@ export default class C_Test0 extends Character {
         let enemy_master = this.enemy_master;
 
         // NOTE: 我方戰力加5
-        this.addGetterWhileAlive(true, my_master.get_strength_chain, (str, char) => {
-            return { var_arg: str + 5};
+        this.addGetterWhileAlive(true, my_master.get_strength_chain, (str, { card }) => {
+            if(TypeGaurd.isCharacter(card)) {
+                return { var_arg: str + 5 };
+            }
         });
 
         // NOTE: 任一角色退場造成情緒傷害
@@ -43,7 +45,7 @@ export default class C_Test0 extends Character {
         // NOTE: 裝備免費
         this.addGetterWhileAlive(true, my_master.get_mana_cost_chain, (cost, card) => {
             if(card instanceof Upgrade) {
-                if(this.isEqual(card.character_equipped)) {
+                if(this.isEqual(card.data.character_equipped)) {
                     return { var_arg: 0 };
                 }
             }

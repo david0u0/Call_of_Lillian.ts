@@ -19,7 +19,7 @@ export default class C extends Character implements ICharacter {
                 return { var_arg: { ...role, can_attack: true, can_block: true }};
             }
         });
-        this.attack_chain.append(enemy => {
+        this.repulse_chain.append(() => {
             this.enemy_master.addMana(-1, [this]);
         });
     }
