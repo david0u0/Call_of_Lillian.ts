@@ -42,12 +42,10 @@ describe("測試事件卡功能", () => {
             event = await gm.genCardToHand(p1, "違停派對") as IEvent;
             await pm.playCard(event);
         });
-        it("玩家的魔力應該是1000-4-4-4+7=995", () => {
-            assert.equal(pm.mana, 995);
-        });
-        it("玩家推進一次之後魔力應該變為995-1=994", async () => {
+        it("玩家推進一次之後魔力應該減1", async () => {
+            let mana = pm.mana;
             await pm.pushEvent(event, char);
-            assert.equal(pm.mana, 994);
+            assert.equal(pm.mana, mana - 1);
         });
         it("推進一次之後進度應該變成1", async () => {
             assert.equal(event.cur_progress_count, 0);
@@ -65,19 +63,19 @@ describe("測試事件卡功能", () => {
                 await pm.pushEvent(event, char);
             });
         });
-        it("推進兩次之後會成功，魔力應該變為995-1-1+5=998，總分變成1", async () => {
+        it("推進兩次之後會成功，魔力應該變為-1-1+5總共加3，總分變成1", async () => {
             assert.equal(pm.getScore(), 0, "一開始總分不為0");
-            assert.equal(pm.mana, 995, "打出角色後魔力不對");
+            let mana = pm.mana;
             await pm.pushEvent(event, char);
             await pm.pushEvent(event, char2);
-            assert.equal(pm.mana, 998, "完成事件後魔力不對");
+            assert.equal(pm.mana, mana+3, "完成事件後魔力不對");
             assert.equal(pm.getScore(), 1, "完成後總分不對");
             assert.equal(event.is_finished, true, "完成後事件沒有標記為完成");
         });
-        it("事件如果失敗，魔力應該變成995-4-2=989", async () => {
-            assert.equal(pm.mana, 995, "事件失敗前魔力不對");
+        it("事件如果失敗，魔力應該-4-2總共減6", async () => {
+            let mana = pm.mana;
             await pm.failEvent(event);
-            assert.equal(pm.mana, 989, "事件失敗後魔力不對");
+            assert.equal(pm.mana, mana - 6, "事件失敗後魔力不對");
         });
     });
     describe("測試比較複雜的事件（會根據場地狀況來判斷可不可推進）", () => {
@@ -88,9 +86,6 @@ describe("測試事件卡功能", () => {
             await pm.playCard(event);
             hospital = await gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
             e_hospital = await gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
-        });
-        it("玩家的魔力應該是1000-4-4-3=989", () => {
-            assert.equal(pm.mana, 989);
         });
         it("進入醫院前應該無法推進", async () => {
             await checkBadOperationErrorAsync(async () => {

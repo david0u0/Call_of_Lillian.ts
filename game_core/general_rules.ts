@@ -28,10 +28,6 @@ export class SoftRule {
     public checkPlay(card_play_chain: ActionChain<IKnownCard>, getCharQuota: () => number) {
         card_play_chain.appendCheck((can_play, card) => {
             let phase = this.getPhase();
-            // 針對遊戲階段的檢查
-            if(phase == GamePhase.Setup) {
-                return { var_arg: true, break_chain: true };
-            }
             // 對各類卡牌的檢查
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的限制

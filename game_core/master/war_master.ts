@@ -348,8 +348,8 @@ export class WarMaster {
                 await this.repulseChar(char);
             }
         } else {
-            await loser.repulse_chain.chain(this.repulse_chain, { loser, winner })
-            .trigger(winner, async () => {
+            await this.repulse_chain.chain(loser.repulse_chain, winner)
+            .trigger({ loser, winner }, async () => {
                 await this.getMyMaster(loser).exitArena(loser);
             });
         }

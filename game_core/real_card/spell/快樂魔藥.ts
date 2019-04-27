@@ -4,8 +4,8 @@ import { ICharacter } from "../../interface";
 import { GetterChain } from "../../hook";
 
 let name = "快樂魔藥";
-let description = `*快樂魔藥*需要一個施放者，且敵人的情緒必須為4或以上。
-本咒語會留在場上直到對手將情緒歸零。此期間，對手每次進入場所需額外支付1魔力。`;
+let description = `*快樂魔藥*需要一個施術者，且對手的情緒必須為4或以上。
+本咒語會留在場上直到對手將情緒歸零。此期間，對手每次進入場所需額外支付1魔力（不足者轉換為情緒傷害）。`;
 
 export default class S extends Spell {
     name = name;
@@ -27,8 +27,8 @@ export default class S extends Spell {
     })();
 
     setupAliveEffect() {
-        this.addGetterWhileAlive(true, this.enemy_master.get_enter_cost_chain, (cost) => {
-            return { var_arg: cost + 1 };
+        this.addActionWhileAlive(true, this.enemy_master.enter_chain, () => {
+            this.enemy_master.punish(1);
         });
         this.addActionWhileAlive(true, this.enemy_master.set_emo_chain, async ({ emo }) => {
             if(emo == 0) {

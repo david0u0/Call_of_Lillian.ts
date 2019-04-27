@@ -97,6 +97,7 @@ type CallBack = (() => void)|(() => Promise<void>);
 
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
+    private default_list = new Array<ActionHook<U>>();
     private check_chain = new GetterChain<boolean, U>();
 
     public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
@@ -107,23 +108,23 @@ class ActionChain<U> {
         let h = { func, isActive, id };
         this.action_list = [h, ...this.action_list];
     }
+    public appendDefault(func: ActionFunc<U>, isActive=() => true, id?: number) {
+        let h = { func, isActive, id };
+        this.default_list.push(h);
+    }
     public appendCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.append(func, isActive, id);
     }
     public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.dominant(func, isActive, id);
     }
-    public async triggerFullResult(const_arg: U): Promise<ActionResult> {
-        if(this.by_keeper) {
-            this.keeperCallback(const_arg);
-        }
-        this.by_keeper = false;
-
+    public async triggerFullResult(const_arg: U, is_default: boolean): Promise<ActionResult> {
+        let list = is_default ? this.default_list : this.action_list;
         let after_effect = new Array<() => void|Promise<void>>();
         let break_chain = false;
         let intercept_effect = false;
         let mask_id: { [id: number]: boolean } = {};
-        for(let hook of this.action_list) {
+        for(let hook of list) {
             if(checkActive(hook, mask_id)) {
                 let _result = hook.func(const_arg);
                 if(_result) {
@@ -168,22 +169,29 @@ class ActionChain<U> {
      * 為什麼不先推進完再使角色疲勞？因為我希望 after_effect 是整個事件中最後執行的東西。
      */
     public async trigger(const_arg: U, callback?: CallBack, cleanup?: CallBack) {
-        let res = await (this.triggerFullResult(const_arg));
+        if(this.by_keeper) {
+            this.keeperCallback(const_arg);
+        }
+        this.by_keeper = false;
+
+        let res = await (this.triggerFullResult(const_arg, false));
         if(res.intercept_effect) {
             if(cleanup) {
                 await Promise.resolve(cleanup());
             }
             return false;
         } else {
+            let res_default = await this.triggerFullResult(const_arg, true);
             if(callback) {
                 await Promise.resolve(callback());
             }
-            if(res.after_effect instanceof Array) {
-                for(let effect of res.after_effect) {
+            if(res.after_effect instanceof Array && res_default.after_effect instanceof Array) {
+                let after_effect = [...res.after_effect, ...res_default.after_effect];
+                for(let effect of after_effect) {
                     await Promise.resolve(effect());
                 }
             } else {
-                throw throwDevError("後期作用不知竟然不是個陣列");
+                throw throwDevError("後期作用不知為何竟然不是個陣列");
             }
             return true;
         }
@@ -202,6 +210,10 @@ class ActionChain<U> {
                 }
             });
         }
+        new_chain.setKeeperCallback(arg => {
+            this.keeperCallback(arg);
+            next_chain.keeperCallback(next_arg);
+        });
 
         return new_chain;
     }
@@ -212,7 +224,6 @@ class ActionChain<U> {
     }
 
     private by_keeper = false;
-
     public byKeeper(by_keeper=true) {
         this.by_keeper = true;
         return this;
