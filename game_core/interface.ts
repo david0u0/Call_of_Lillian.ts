@@ -9,7 +9,7 @@ interface ICard {
     readonly seq: number;
     readonly owner: Player;
     card_status: CardStat;
-    isEqual(card: ICard|null): boolean;
+    isEqual(card: any): boolean;
 }
 
 type Ability = {
@@ -84,6 +84,7 @@ interface ISpell extends IKnownCard { };
 interface IUpgrade extends IKnownCard {
     readonly basic_strength: number;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
+    readonly assault: boolean;
     readonly data: {
         [field: string]: number|IKnownCard|boolean|null,
         character_equipped: null | ICharacter
@@ -224,9 +225,9 @@ abstract class Card implements ICard {
     public abstract card_type: CardType;
     public card_status = CardStat.Deck;
     constructor(public readonly seq: number, public readonly owner: Player) { }
-    isEqual(card: ICard|null) {
-        if(card) {
-            return this.seq == card.seq;
+    isEqual(obj: any): boolean {
+        if(TypeGaurd.isCard(obj)) {
+            return this.seq == obj.seq;
         } else {
             return false;
         }

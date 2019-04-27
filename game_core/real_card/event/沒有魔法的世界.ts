@@ -61,9 +61,7 @@ export default class E extends Event implements IEvent {
         for(let p of [Player.Player1, Player.Player2]) {
             let pm = this.g_master.getMyMaster(p);
             pm.get_score_chain.append(score => {
-                let evts = pm.getAll(TypeGaurd.isEvent, e => {
-                    return e.is_finished && !e.is_ending;
-                });
+                let evts = pm.events_finished.filter(e => !e.is_ending);
                 if(evts.length == 0) {
                     return { var_arg: score + 2 };
                 }

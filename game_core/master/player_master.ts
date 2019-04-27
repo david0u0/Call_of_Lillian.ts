@@ -57,7 +57,7 @@ export class PlayerMaster {
         return this.getAll(TG.isArena, c => c.card_status == CardStat.Onboard);
     }
     public get events_ongoing() {
-        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard);
+        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard && !c.is_finished);
     }
     public get events_finished() {
         return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard && c.is_finished);

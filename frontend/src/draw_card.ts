@@ -378,6 +378,7 @@ export class CharUI {
         this.view.addChild(tired_mask);
         // 角色行動或能力
         this.ability_icon = drawAbilityIcon(gm, selecter, char, img.width / 3);
+        this.ability_icon.view.x = img.width;
 
         this.view.addChild(this.upgrade_area.view);
         this.view.addChild(this.s_area.view);

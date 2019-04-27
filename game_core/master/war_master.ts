@@ -330,8 +330,8 @@ export class WarMaster {
                 await this.repulseChar(def, atk_chars);
                 this._atk_win_count++;
             } else {
-                await this.repulseChar(atk_chars);
-                await this.repulseChar(def);
+                await this.repulseChar(atk_chars, [def]);
+                await this.repulseChar(def, atk_chars);
             }
         }
         await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, async () => {

@@ -54,13 +54,6 @@ abstract class KnownCard extends Card implements IKnownCard {
         this._mem_data = { ...this.data };
     }
 
-    public isEqual(card: IKnownCard|null) {
-        if(card) {
-            return this.seq == card.seq;
-        } else {
-            return false;
-        }
-    }
     public rememberDatas() {
         for(let field in this.data) {
             let tar = this.data[field];
@@ -134,6 +127,7 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public can_play_phase = [GamePhase.InAction];
     public abstract readonly basic_strength: number;
     public readonly instance = true; // 升級卡不會暫用時間
+    public readonly assault: boolean = false;
     
     public readonly data: {
         character_equipped: ICharacter | null
@@ -173,7 +167,15 @@ abstract class Character extends KnownCard implements ICharacter {
     public char_status = CharStat.StandBy;
     public is_tired = false;
     public way_worn = false;
-    public assault = false;
+    public get assault() {
+        for(let u of this.upgrade_list) {
+            if(u.assault) {
+                return true;
+            }
+        }
+        return this._assault;
+    }
+    protected readonly _assault: boolean = false;
 
     public readonly change_char_tired_chain = new ActionChain<boolean>();
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
