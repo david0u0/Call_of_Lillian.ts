@@ -4,8 +4,7 @@ import { ICharacter, TypeGaurd } from "../../interface";
 import { GetterChain } from "../../hook";
 
 let name = "修羅事變";
-let description = `本咒語需要一個戰力為X的施放者。
-對手必須讓一個戰力為X或以上的角色退場。若無法這麼做，則由你指定退場的角色。隨後，施放者必須退場。`;
+let description = "對手必須犧牲一個戰力大於或等於施術者的角色。若無法這麼做，則由你指定退場的角色。隨後，施放者必須退場。";
 
 export default class S extends Spell {
     name = name;

@@ -3,7 +3,7 @@
 import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, IUpgrade } from "../interface";
 import { GetterChain } from "../hook";
-import { throwIfIsBackend, BadOperationError, throwDevError } from "../errors";
+import { throwIfIsBackend, BadOperationError, throwDebugError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
 import { TimeMaster } from "./time_master";
 import { ActionChainFactory } from "./action_chain_factory";
@@ -105,12 +105,6 @@ export class PlayerMaster {
                 return { var_arg: false };
             }
         });
-        this.ability_chain.appendCheck((b, { ability }) => {
-            if(ability.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
-                // 如果現在不是能打該牌的階段，就不讓他打
-                return { var_arg: false };
-            }
-        });
         t_master.start_building_chain.append(async () => {
             // 所有角色解除疲勞並離開場所
             for(let char of this.characters) {
@@ -125,6 +119,8 @@ export class PlayerMaster {
             }
             // 打角色的額度恢復
             this._char_quota = 1;
+            // 抽牌
+            await this.draw();
         });
         t_master.start_turn_chain.append(async () => {
             if(t_master.cur_phase == GamePhase.InAction) {
@@ -257,7 +253,7 @@ export class PlayerMaster {
     /** 扣除魔力，不足者轉換為情緒 */
     async punish(n: number, caller: IKnownCard[] = []) {
         if(n <= 0) {
-            throwDevError("都要懲罰了數值卻小於0？");
+            throwDebugError("都要懲罰了數值卻小於0？");
         }
         let mana_cost = Math.max(this.mana, n);
         let emo_cost = n - mana_cost;
@@ -422,7 +418,7 @@ export class PlayerMaster {
                 });
             }
         } else {
-            throwDevError("欲銷毀的卡牌不在場上", card);
+            throwDebugError("欲銷毀的卡牌不在場上", card);
         }
     }
     async exileCard(card: IKnownCard) {
@@ -597,7 +593,7 @@ export class PlayerMaster {
                 await this.changeCharTired(char, true);
             });
         } else {
-            throw new BadOperationError("不在場所的角色還想離開？");
+            throwDebugError("不在場所的角色還想離開？");
         }
     }
 

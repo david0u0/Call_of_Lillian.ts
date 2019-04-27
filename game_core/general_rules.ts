@@ -14,7 +14,7 @@ export const Constant = {
     PUSH_COST: 1,
     DECK_COUNT: 20,
     INIT_MANA: 7,
-    INIT_HAND: 5,
+    INIT_HAND: 4,
     DUMMY_NAME: "dummy_arena",
 };
 

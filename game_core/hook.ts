@@ -1,4 +1,4 @@
-import { throwDevError } from "./errors";
+import { throwDebugError } from "./errors";
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
@@ -188,7 +188,7 @@ class ActionChain<U> {
                     await Promise.resolve(effect());
                 }
             } else {
-                throw throwDevError("後期作用不知為何竟然不是個陣列");
+                throw throwDebugError("後期作用不知為何竟然不是個陣列");
             }
             return true;
         }

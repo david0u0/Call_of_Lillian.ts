@@ -4,7 +4,7 @@ import { ICharacter, TypeGaurd } from "../../interface";
 import { GetterChain } from "../../hook";
 
 let name = "質因數分解魔法";
-let description = "獲得6魔力。你可以指定一至四個角色做為施放者，每個角色降低本咒語2點魔力成本";
+let description = "獲得6魔力。你可以指定一至四個角色做為施術者，每個角色降低本咒語2點魔力成本";
 
 export default class S extends Spell {
     name = name;

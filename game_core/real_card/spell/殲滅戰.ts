@@ -5,7 +5,8 @@ import { GetterChain } from "../../hook";
 import { BadOperationError } from "../../errors";
 
 let name = "殲滅戰";
-let description = "選擇一個場所並宣戰。若你贏得戰鬥（擊退較多角色），則對手的魔力歸零。";
+let description = `本咒語不需要施術者。
+選擇一個場所並宣戰。若你贏得戰鬥（擊退較多角色），則對手的魔力歸零。`;
 
 export default class S extends Spell {
     name = name;

@@ -18,6 +18,8 @@ type StartSelectFunc = () => Promise<{
 export default class FrontendSelecter implements ISelecter {
     public view = new PIXI.Container();
     public cancel_view = new PIXI.Graphics();
+    public prompt_txt: PIXI.Text;
+
     private _mem = new Array<number>();
     
     private resolve_card: (arg: CardLike|PromiseLike<CardLike>) => void = null;
@@ -33,10 +35,9 @@ export default class FrontendSelecter implements ISelecter {
 
     constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
         let { width, height } = getWinSize();
-        this.cancel_view.beginFill(0);
+        this.cancel_view.beginFill(0, 0);
         this.cancel_view.drawRect(0, 0, width, height);
         this.cancel_view.endFill();
-        this.cancel_view.alpha = 0;
         this.cancel_view.interactive = true;
         this.cancel_view.on("click", evt => {
             if(this.selecting != SelectState.None
@@ -51,6 +52,18 @@ export default class FrontendSelecter implements ISelecter {
         let { ew, eh } = getEltSize();
         this.view.addChild(this.cancel_btn.view);
         this.cancel_btn.view.position.set(ew, 39*eh);
+
+        this.prompt_txt = new PIXI.Text("", new PIXI.TextStyle({
+            fontSize: 3*ew,
+            fontWeight: "bold",
+            fontFamily: "微軟正黑體",
+            fill: getPlayerColor(this.me, true),
+            strokeThickness: 2
+        }));
+        this.prompt_txt.anchor.set(0.5, 0.5);
+        this.prompt_txt.position.set(ew * 21, eh * 21);
+        this.prompt_txt.visible = false;
+        this.prompt_txt.alpha = 0.7;
     }
     public clearMem() {
         this._mem = [];
@@ -68,6 +81,7 @@ export default class FrontendSelecter implements ISelecter {
         this.lines = [];
         this.view.removeAllListeners();
 
+        this.show_cancel_ui = null;
         if(this.cancel_btn.selecting) {
             this.cancel_btn.stopBtn();
         }
@@ -75,7 +89,9 @@ export default class FrontendSelecter implements ISelecter {
             this._selecting = SelectState.Btn;
         }
 
-        this.show_cancel_ui = null;
+        this.prompt_txt.visible = false;
+        this.show_prompt_ui = null;
+
         for(let func of this.cleanup) {
             func();
         }
@@ -106,7 +122,6 @@ export default class FrontendSelecter implements ISelecter {
         } else if(this.selecting != SelectState.None) {
             throw new BadOperationError("selectText: 正在選擇時呼叫選擇器", caller);
         }
-        this.showCancelUI();
         this._selecting = SelectState.Text;
         let { height, width } = getWinSize();
         let tmp_view = new PIXI.Container();
@@ -163,7 +178,6 @@ export default class FrontendSelecter implements ISelecter {
             }
             this._selecting = SelectState.Card;
             this._select_conf = { ...conf };
-            this.showCancelUI();
             this.filter_func = card => {
                 if(conf.guard(card)
                     && (typeof(conf.owner) == "undefined" || card.owner == conf.owner)
@@ -244,6 +258,8 @@ export default class FrontendSelecter implements ISelecter {
 
     private async startSelect(cards: IKnownCard[] | IKnownCard): Promise<{ x: number, y: number }[]> {
         if(cards instanceof Array) {
+            this.showCancelUI();
+            this.showPromptUI();
             let pos = new Array<{ x: number, y: number }>();
             for(let c of cards) {
                 let func = this.start_select_talbe[c.seq];
@@ -279,9 +295,15 @@ export default class FrontendSelecter implements ISelecter {
     }
 
     private show_prompt_ui: string | null = null;
-    public promptUI(prompt_ui) {
+    public promptUI(prompt_ui: string) {
         this.show_prompt_ui = prompt_ui;
         return this;
+    }
+    private async showPromptUI() {
+        if(typeof this.show_prompt_ui == "string") {
+            this.prompt_txt.text = this.show_prompt_ui;
+            this.prompt_txt.visible = true;
+        }
     }
 
     public async selectConfirm(

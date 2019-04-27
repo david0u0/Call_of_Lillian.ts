@@ -110,6 +110,7 @@ async function setup() {
     app.stage.addChild(f_w_master.view);
     app.stage.addChild(phase_notifier.view);
     app.stage.addChild(selecter.view);
+    app.stage.addChild(selecter.prompt_txt);
 }
 
 document.body.appendChild(app.view);

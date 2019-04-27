@@ -268,7 +268,8 @@ abstract class Arena extends KnownCard implements IArena {
     abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
 
     public async initialize() {
-        let old_arena = await this.g_master.selecter.selectCard(this.owner, this, {
+        let old_arena = await this.g_master.selecter.promptUI("指定建築場所")
+        .selectCard(this.owner, this, {
             guard: TG.isArena,
             owner: this.owner,
         }, arena => {
@@ -368,7 +369,7 @@ abstract class Spell extends KnownCard implements ISpell {
         while(true) {
             let cancel_ui = (this.min_caster == 1 && this.max_caster == 1) ? null : undefined;
             let caller = [this, ...this.data.casters];
-            let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施放者")
+            let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施術者")
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,
                 owner: this.owner
