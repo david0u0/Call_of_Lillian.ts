@@ -49,7 +49,7 @@ class HandUI {
         let { x, y } = getOffset(this.view);
         this.view.position.set(x, y);
 
-        gm.getMyMaster(player).add_card_to_hand_chain.append(async card => {
+        gm.getMyMaster(player).add_card_to_hand_chain.appendDefault(async card => {
             await this.add(card);
         });
     }
@@ -159,7 +159,7 @@ class HandUI {
                     await this.gm.playCard(card, true);
                 }
             });
-            card.card_play_chain.append(() => {
+            card.card_play_chain.appendDefault(() => {
                 return {
                     after_effect: async () => {
                         if(destroy_big_card) {
@@ -169,7 +169,7 @@ class HandUI {
                     }
                 };
             });
-            card.card_leave_chain.append(() => {
+            card.card_leave_chain.appendDefault(() => {
                 return {
                     after_effect: async () => {
                         if(destroy_big_card) {

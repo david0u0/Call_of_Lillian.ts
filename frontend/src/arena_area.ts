@@ -32,17 +32,17 @@ export class ArenaArea {
         this.card_h = res.height;
         this.card_gap = 7 * ew - res.width;
 
-        gm.getMyMaster(this.player).enter_chain.append(({ arena, char }) => {
+        gm.getMyMaster(this.player).enter_chain.appendDefault(({ arena, char }) => {
             if(arena.owner == player) {
                 return { after_effect: async () => await this.enterChar(arena, char) };
             }
         });
-        gm.getEnemyMaster(this.player).enter_chain.append(({ arena, char }) => {
+        gm.getEnemyMaster(this.player).enter_chain.appendDefault(({ arena, char }) => {
             if(arena.owner == player) {
                 return { after_effect: async () => await this.enterChar(arena, char) };
             }
         });
-        gm.getMyMaster(player).add_card_chain.append(card => {
+        gm.getMyMaster(player).add_card_chain.appendDefault(card => {
             if(TG.isArena(card)) {
                 return { after_effect: () => this.addArena(card) };
             }
@@ -142,13 +142,13 @@ export class ArenaArea {
             }
         });
 
-        this.gm.getMyMaster(this.player).exit_chain.append(arg => {
+        this.gm.getMyMaster(this.player).exit_chain.appendDefault(arg => {
             if(char.isEqual(arg.char)) {
                 char_ui.destroy();
                 this.hovering_char = false;
             }
         });
-        this.gm.getEnemyMaster(this.player).exit_chain.append(arg => {
+        this.gm.getEnemyMaster(this.player).exit_chain.appendDefault(arg => {
             if(char.isEqual(arg.char)) {
                 char_ui.destroy();
                 this.hovering_char = false;

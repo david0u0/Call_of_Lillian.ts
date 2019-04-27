@@ -24,7 +24,7 @@ export class EventArea {
         this.view.addChild(mask);
 
         let pm = gm.getMyMaster(player);
-        pm.add_card_chain.append(card => {
+        pm.add_card_chain.appendDefault(card => {
             if(TypeGaurd.isEvent(card)) {
                 return { after_effect: async () => await this.addEvent(card) };
             }
@@ -64,17 +64,17 @@ export class EventArea {
             countdown_txt.text = card.cur_time_count.toString();
         };
         updateTxt();
-        card.push_chain.append(() => {
+        card.push_chain.appendDefault(() => {
             return { after_effect: updateTxt };
         });
-        this.gm.t_master.start_building_chain.append(() => {
+        this.gm.t_master.start_building_chain.appendDefault(() => {
             return { after_effect: updateTxt };
         });
         let destroy_big: () => void = null;
-        card.finish_chain.append(() => {
+        card.finish_chain.appendDefault(() => {
             return { after_effect: () => this.finishEvent(card, destroy_big) };
         });
-        card.card_leave_chain.append(() => {
+        card.card_leave_chain.appendDefault(() => {
             return { after_effect: () => this.removeEvent(card, destroy_big) };
         });
 

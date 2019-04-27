@@ -10,8 +10,8 @@ export class ActionChainFactory {
     }
     new<U>() {
         let chain = new ActionChain<U>();
-        chain.append(async () => {
-            let result = await this.callback_chain.triggerFullResult(null, false);
+        chain.appendDefault(async () => {
+            let result = await this.callback_chain.triggerFullResult(null);
             return { after_effect: result.after_effect };
         });
         return chain;

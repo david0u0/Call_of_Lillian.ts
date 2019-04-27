@@ -366,7 +366,7 @@ export class CharUI {
                 this.ticker.remove(fade_out_tired);
             }
         };
-        char.change_char_tired_chain.append(is_tired => {
+        char.change_char_tired_chain.appendDefault(is_tired => {
             this.ticker.remove(fade_in_tired);
             this.ticker.remove(fade_out_tired);
             if(is_tired) {
@@ -386,7 +386,7 @@ export class CharUI {
         this.view.filters = [this.filter];
         this.filter.enabled = false;
 
-        gm.getMyMaster(char).add_card_chain.append(c => {
+        gm.getMyMaster(char).add_card_chain.appendDefault(c => {
             if(TG.isUpgrade(c) && char.isEqual(c.data.character_equipped) && this.active) {
                 this.registerUpgrade(c);
             }

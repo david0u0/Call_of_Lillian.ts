@@ -26,6 +26,7 @@ type ActionFunc<U>
 type ActionHook<U> = {
     isActive: () => boolean;
     func: ActionFunc<U>;
+    is_default?: boolean,
     id?: number
 };
 function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: { [id: number]: boolean }) {
@@ -97,7 +98,6 @@ type CallBack = (() => void)|(() => Promise<void>);
 
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
-    private default_list = new Array<ActionHook<U>>();
     private check_chain = new GetterChain<boolean, U>();
 
     public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
@@ -108,9 +108,9 @@ class ActionChain<U> {
         let h = { func, isActive, id };
         this.action_list = [h, ...this.action_list];
     }
-    public appendDefault(func: ActionFunc<U>, isActive=() => true, id?: number) {
-        let h = { func, isActive, id };
-        this.default_list.push(h);
+    public appendDefault(func: ActionFunc<U>, isActive=() => true) {
+        let h = { func, isActive, is_default: true };
+        this.action_list.push(h);
     }
     public appendCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.append(func, isActive, id);
@@ -118,14 +118,14 @@ class ActionChain<U> {
     public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.dominant(func, isActive, id);
     }
-    public async triggerFullResult(const_arg: U, is_default: boolean): Promise<ActionResult> {
-        let list = is_default ? this.default_list : this.action_list;
+    public async triggerFullResult(const_arg: U): Promise<ActionResult> {
         let after_effect = new Array<() => void|Promise<void>>();
         let break_chain = false;
         let intercept_effect = false;
         let mask_id: { [id: number]: boolean } = {};
-        for(let hook of list) {
-            if(checkActive(hook, mask_id)) {
+        for(let hook of this.action_list) {
+            // 如果是默認的事件，不會被 break_chain 影響
+            if(checkActive(hook, mask_id) && (!break_chain || hook.is_default)) {
                 let _result = hook.func(const_arg);
                 if(_result) {
                     let result = await Promise.resolve(_result);
@@ -139,7 +139,6 @@ class ActionChain<U> {
                         }
                         if(result.break_chain) {
                             break_chain = true;
-                            break;
                         } else if(result.intercept_effect) {
                             intercept_effect = true;
                             break;
@@ -174,20 +173,18 @@ class ActionChain<U> {
         }
         this.by_keeper = false;
 
-        let res = await (this.triggerFullResult(const_arg, false));
+        let res = await (this.triggerFullResult(const_arg));
         if(res.intercept_effect) {
             if(cleanup) {
                 await Promise.resolve(cleanup());
             }
             return false;
         } else {
-            let res_default = await this.triggerFullResult(const_arg, true);
             if(callback) {
                 await Promise.resolve(callback());
             }
-            if(res.after_effect instanceof Array && res_default.after_effect instanceof Array) {
-                let after_effect = [...res.after_effect, ...res_default.after_effect];
-                for(let effect of after_effect) {
+            if(res.after_effect instanceof Array) {
+                for(let effect of res.after_effect) {
                     await Promise.resolve(effect());
                 }
             } else {
@@ -225,7 +222,7 @@ class ActionChain<U> {
 
     private by_keeper = false;
     public byKeeper(by_keeper=true) {
-        this.by_keeper = true;
+        this.by_keeper = by_keeper;
         return this;
     }
 }
