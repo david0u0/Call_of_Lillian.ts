@@ -120,6 +120,28 @@ abstract class KnownCard extends Card implements IKnownCard {
             }
         }
     }
+
+    /** 底下是一些輔助用的函式 */
+    /** 超凡 */
+    protected beyond(n: number) {
+        let chain = new GetterChain<boolean, null>();
+        chain.append(() => {
+            if(this.my_master.getScore() < n) {
+                return { var_arg: false };
+            }
+        }, undefined, RuleEnums.Beyond);
+        return chain;
+    }
+    /** 入魔 */
+    protected posessed(n: number, player=this.owner) {
+        let chain = new GetterChain<boolean, null>();
+        chain.append(() => {
+            if(this.g_master.getMyMaster(player).emo < n) {
+                return { var_arg: false };
+            }
+        }, undefined, RuleEnums.Possessed);
+        return chain;
+    }
 }
 
 abstract class Upgrade extends KnownCard implements IUpgrade {

@@ -16,15 +16,7 @@ export default class S extends Spell {
     protected max_caster = 1;
     protected min_caster = 1;
 
-    check_before_play_chain = (() => {
-        let chain = new GetterChain<boolean, null>();
-        chain.append(() => {
-            if(this.enemy_master.emo < 4) {
-                return { var_arg: false };
-            }
-        });
-        return chain;
-    })();
+    check_before_play_chain = this.posessed(4, this.enemy_master.player);
 
     setupAliveEffect() {
         this.addActionWhileAlive(true, this.enemy_master.enter_chain, () => {

@@ -255,7 +255,7 @@ export class PlayerMaster {
         if(n <= 0) {
             throwDebugError("都要懲罰了數值卻小於0？");
         }
-        let mana_cost = Math.max(this.mana, n);
+        let mana_cost = Math.min(this.mana, n);
         let emo_cost = n - mana_cost;
         await this.addMana(-mana_cost);
         await this.addEmo(emo_cost);

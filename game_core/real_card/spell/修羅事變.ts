@@ -41,8 +41,8 @@ export default class S extends Spell {
         }
 
         if(e_char) {
-            this.enemy_master.retireCard(e_char);
+            await this.enemy_master.retireCard(e_char);
         }
-        this.my_master.retireCard(caster);
+        await this.my_master.retireCard(caster);
     }
 }

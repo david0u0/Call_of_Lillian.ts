@@ -38,7 +38,6 @@ export default class S extends Spell {
 
     async onPlay() {
         if(this.data.war_field) {
-            await this.g_master.t_master.addActionPoint(1);
             await this.g_master.w_master.declareWar(this.owner, this.data.war_field, false);
         } else {
             throw new BadOperationError("未指定宣戰場所");

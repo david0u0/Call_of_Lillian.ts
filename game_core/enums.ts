@@ -36,5 +36,9 @@ export enum RuleEnums {
     RecoverEmoAfterRelease,
     CustomPushCheck,
     PunishOnFail,
-    EndGameAfterFinish
+    EndGameAfterFinish,
+    
+    Possessed,
+    Beyond,
+    
 }
