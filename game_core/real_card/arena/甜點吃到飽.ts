@@ -1,22 +1,23 @@
-import { CardType, CardSeries, BattleRole, Player } from "../../enums";
-import { Character, Upgrade, Arena } from "../../cards";
+import { CardSeries, Player } from "../../enums";
+import { Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
-let name = "傭兵學校";
-let description = "使用：3魔力->招募一名*遊擊隊員*至待命區";
+let name = "甜點吃到飽";
+let description = `（休閒場所）
+使用：3魔力→恢復兩點情緒。`;
 
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 4;
+    basic_mana_cost = 3;
     basic_exploit_cost = 3;
+    series = [ CardSeries.Entertainment ];
 
     async onExploit(char: ICharacter|Player) {
         let caller = new Array<IKnownCard>();
         if(TypeGaurd.isCard(char)) {
             caller.push(char);
         }
-        let p = TypeGaurd.isCard(char) ? char.owner : char;
-        await this.g_master.genCharToBoard(p, "游擊隊員");
+        await this.g_master.getMyMaster(char).addEmo(-2, caller);
     }
 }

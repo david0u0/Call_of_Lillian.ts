@@ -9,7 +9,7 @@ interface ICard {
     readonly seq: number;
     readonly owner: Player;
     card_status: CardStat;
-    isEqual(card: ICard|null): boolean;
+    isEqual(card: any): boolean;
 }
 
 type Ability = {
@@ -84,6 +84,7 @@ interface ISpell extends IKnownCard { };
 interface IUpgrade extends IKnownCard {
     readonly basic_strength: number;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
+    readonly assault: boolean;
     readonly data: {
         [field: string]: number|IKnownCard|boolean|null,
         character_equipped: null | ICharacter
@@ -104,6 +105,7 @@ interface ICharacter extends IKnownCard {
     readonly get_battle_role_chain: GetterChain<BattleRole, null>;
     readonly repulse_chain: ActionChain<ICharacter[]>;
 
+    readonly incited_chain: ActionChain<null>;
     readonly release_chain: ActionChain<null>;
 
     readonly exploit_chain: ActionChain<IArena>;
@@ -223,9 +225,9 @@ abstract class Card implements ICard {
     public abstract card_type: CardType;
     public card_status = CardStat.Deck;
     constructor(public readonly seq: number, public readonly owner: Player) { }
-    isEqual(card: ICard|null) {
-        if(card) {
-            return this.seq == card.seq;
+    isEqual(obj: any): boolean {
+        if(TypeGaurd.isCard(obj)) {
+            return this.seq == obj.seq;
         } else {
             return false;
         }
@@ -238,8 +240,9 @@ class UnknownCard extends Card implements ICard {
 
 type SelectConfig<T extends ICard> = {
     guard: (c: ICard) => c is T,
-    stat: CardStat,
+    stat?: CardStat,
     owner?: Player,
+    must_have_value?: boolean
 }
 interface ISelecter {
     selectCard<T extends ICard>(player: Player,
@@ -253,8 +256,8 @@ interface ISelecter {
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     selectConfirm(player: Player, caller: IKnownCard|null, msg: string): Promise<boolean>;
     setCardTable(table: { [index: number]: ICard }): void;
-    cancelUI(msg?: string): ISelecter;
-    promptUI(msg: string): ISelecter;
+    cancelUI(msg?: string|null): ISelecter;
+    promptUI(msg: string|null): ISelecter;
 }
 
 export {

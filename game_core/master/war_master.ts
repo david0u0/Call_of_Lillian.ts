@@ -325,14 +325,13 @@ export class WarMaster {
             }
             if(atk_strength < tar_strength) {
                 await this.repulseChar(atk_chars, [def]);
-                tar_strength -= atk_strength;
-                this._def_win_count++;
+                this._def_win_count += atk_chars.length;
             } else if(atk_strength > tar_strength) {
                 await this.repulseChar(def, atk_chars);
                 this._atk_win_count++;
             } else {
-                await this.repulseChar(atk_chars);
-                await this.repulseChar(def);
+                await this.repulseChar(atk_chars, [def]);
+                await this.repulseChar(def, atk_chars);
             }
         }
         await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, async () => {
@@ -349,8 +348,8 @@ export class WarMaster {
                 await this.repulseChar(char);
             }
         } else {
-            await loser.repulse_chain.chain(this.repulse_chain, { loser, winner })
-            .trigger(winner, async () => {
+            await this.repulse_chain.chain(loser.repulse_chain, winner)
+            .trigger({ loser, winner }, async () => {
                 await this.getMyMaster(loser).exitArena(loser);
             });
         }

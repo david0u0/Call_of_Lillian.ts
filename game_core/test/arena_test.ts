@@ -78,24 +78,19 @@ describe("測試最基礎的場所卡", () => {
                 });
                 await gm.t_master.startTurn(p1);
             });
-            it("對手的角色進入我方的場所，其魔力應該為1000-4-1=995", () => {
-                assert.equal(995, enemy_master.mana);
-            });
             it("由於角色能力，敵人應該承受了一點情緒傷害", () => {
                 assert.equal(enemy_master.emo, 1);
                 assert.equal(pm.emo, 0);
             });
             describe("測試實際使用場所", () => {
-                it("我方的魔力應該是1000-4-4+1=993", () => {
-                    assert.equal(993, pm.mana);
-                });
                 it("我方的情緒應為0", async () => {
                     assert.equal(0, pm.emo);
                 });
-                it("使用後魔力應該變成993+2=995", async () => {
+                it("使用後魔力應該加2", async () => {
+                    let mana = pm.mana;
                     await gm.t_master.startExploit();
                     await pm.exploit(my_h, rainy);
-                    assert.equal(995, pm.mana);
+                    assert.equal(mana + 2, pm.mana);
                 });
                 it("使用後情緒應該增加1", async () => {
                     assert.equal(1, pm.emo);

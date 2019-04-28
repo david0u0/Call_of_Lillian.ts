@@ -1,5 +1,4 @@
 import { Character } from "../../cards";
-import { BattleRole } from "../../enums";
 import { ICharacter } from "../../interface";
 
 let name = "終末之民";

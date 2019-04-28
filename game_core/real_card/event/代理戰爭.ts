@@ -4,7 +4,7 @@ import { CardSeries, Player } from "../../enums";
 
 let name = "代理戰爭";
 let description = `推進：角色戰力需大於0。
-結算：你在每個世代第一次開戰時，得到5魔力。`;
+結算：你在每個世代第一次開戰時，得4魔力。`;
 
 export default class E extends Event implements IEvent {
     name = name;
@@ -34,7 +34,7 @@ export default class E extends Event implements IEvent {
                 if(declarer == this.owner) {
                     if(this.has_declared) {
                         this.has_declared = true;
-                        await this.my_master.addMana(5);
+                        await this.my_master.addMana(4, [this]);
                     }
                 }
             }

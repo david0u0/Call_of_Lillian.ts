@@ -7,10 +7,10 @@ const ENV = (() => {
 })();
 const OPTION = (() => {
     let o = {
-        debug: true
+        debug: false
     };
-    if(process.env["RELEASE"]) {
-        o.debug = false;
+    if(process.env["DEBUG"]) {
+        o.debug = true;
     }
     return o;
 })();
@@ -43,11 +43,10 @@ export class BadOperationError {
 }
 
 /** 這個錯誤不一定會影響遊戲進行，但可能代表了潛在的問題 */
-export function throwDevError(msg: string, obj_with_name?: any) {
+export function throwDebugError(msg: string, obj_with_name?: any) {
+    console.log(formatErrMsg(msg, obj_with_name));
     if(OPTION.debug) {
         throw new BadOperationError(msg, obj_with_name);
-    } else {
-        console.log(formatErrMsg(msg, obj_with_name));
     }
 }
 

@@ -104,26 +104,26 @@ export class FrontendWarMaster {
     }
 
     constructor(private me: Player, private gm: GameMaster, private selecter: FrontendSelecter) {
-        gm.w_master.declare_war_chain.append(({ declarer }) => {
+        gm.w_master.declare_war_chain.appendDefault(({ declarer }) => {
             //if(declarer == me)
             // 確實是由我宣告的戰爭
             this.loopStopWarBtn();
         });
-        gm.w_master.start_attack_chain.append(() => {
+        gm.w_master.start_attack_chain.appendDefault(() => {
             this.drawConflictLine();
             this.doConflictBtn();
         });
-        gm.w_master.set_block_chain.append(async () => {
+        gm.w_master.set_block_chain.appendDefault(async () => {
             this.drawConflictLine();
             this.doConflictBtn();
         });
-        gm.w_master.before_conflict_chain.append(() => {
+        gm.w_master.before_conflict_chain.appendDefault(() => {
             for(let line of this.lines) {
                 line.destroy();
             }
             this.lines = [];
         });
-        gm.w_master.after_conflict_chain.append(() => {
+        gm.w_master.after_conflict_chain.appendDefault(() => {
             this.loopStopWarBtn();
         });
     }

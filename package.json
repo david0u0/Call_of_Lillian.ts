@@ -7,7 +7,7 @@
     "watch": "tsc --watch",
     "tsc": "tsc",
     "start": "node dist/server/index.js",
-    "test": "mocha dist/game_core/test"
+    "test": "DEBUG=true mocha dist/game_core/test"
   },
   "author": "",
   "license": "ISC",

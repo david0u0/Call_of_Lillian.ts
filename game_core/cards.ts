@@ -54,21 +54,24 @@ abstract class KnownCard extends Card implements IKnownCard {
         this._mem_data = { ...this.data };
     }
 
-    public isEqual(card: IKnownCard|null) {
-        if(card) {
-            return this.seq == card.seq;
-        } else {
-            return false;
-        }
-    }
     public rememberDatas() {
         for(let field in this.data) {
-            this._mem_data[field] = this.data[field];
+            let tar = this.data[field];
+            if(tar instanceof Array) {
+                this._mem_data[field] = [...tar];
+            } else {
+                this._mem_data[field] = tar;
+            }
         }
     }
     public recoverDatas() {
         for(let field in this._mem_data) {
-            this.data[field] = this._mem_data[field];
+            let tar = this._mem_data[field];
+            if(tar instanceof Array) {
+                this.data[field] = [...tar];
+            } else {
+                this.data[field] = tar;
+            }
         }
     }
 
@@ -117,6 +120,28 @@ abstract class KnownCard extends Card implements IKnownCard {
             }
         }
     }
+
+    /** 底下是一些輔助用的函式 */
+    /** 超凡 */
+    protected beyond(n: number) {
+        let chain = new GetterChain<boolean, null>();
+        chain.append(() => {
+            if(this.my_master.getScore() < n) {
+                return { var_arg: false };
+            }
+        }, undefined, RuleEnums.Beyond);
+        return chain;
+    }
+    /** 入魔 */
+    protected posessed(n: number, player=this.owner) {
+        let chain = new GetterChain<boolean, null>();
+        chain.append(() => {
+            if(this.g_master.getMyMaster(player).emo < n) {
+                return { var_arg: false };
+            }
+        }, undefined, RuleEnums.Possessed);
+        return chain;
+    }
 }
 
 abstract class Upgrade extends KnownCard implements IUpgrade {
@@ -124,6 +149,7 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public can_play_phase = [GamePhase.InAction];
     public abstract readonly basic_strength: number;
     public readonly instance = true; // 升級卡不會暫用時間
+    public readonly assault: boolean = false;
     
     public readonly data: {
         character_equipped: ICharacter | null
@@ -138,7 +164,6 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
         .selectCard(this.owner, this, {
             guard: TG.isCharacter,
             owner: this.owner,
-            stat: CardStat.Onboard
         }, char => {
             this.data.character_equipped = char;
             let can_play = this.my_master.checkCanPlay(this);
@@ -164,14 +189,24 @@ abstract class Character extends KnownCard implements ICharacter {
     public char_status = CharStat.StandBy;
     public is_tired = false;
     public way_worn = false;
-    public assault = false;
+    public get assault() {
+        for(let u of this.upgrade_list) {
+            if(u.assault) {
+                return true;
+            }
+        }
+        return this._assault;
+    }
+    protected readonly _assault: boolean = false;
 
     public readonly change_char_tired_chain = new ActionChain<boolean>();
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
     public readonly get_battle_role_chain = new GetterChain<BattleRole, null>();
     public readonly enter_arena_chain = new ActionChain<IArena>();
+    
     public readonly release_chain = new ActionChain<null>();
-    readonly repulse_chain = new ActionChain<ICharacter[]>();
+    public readonly incited_chain = new ActionChain<null>();
+    public readonly repulse_chain = new ActionChain<ICharacter[]>();
 
     public readonly exploit_chain = new ActionChain<IArena>();
     public readonly enter_chain = new ActionChain<IArena>();
@@ -257,10 +292,10 @@ abstract class Arena extends KnownCard implements IArena {
     abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
 
     public async initialize() {
-        let old_arena = await this.g_master.selecter.selectCard(this.owner, this, {
+        let old_arena = await this.g_master.selecter.promptUI("指定建築場所")
+        .selectCard(this.owner, this, {
             guard: TG.isArena,
             owner: this.owner,
-            stat: CardStat.Onboard
         }, arena => {
             this.data.position = arena.data.position;
             return this.my_master.checkCanPlay(this);
@@ -327,20 +362,40 @@ abstract class Event extends KnownCard implements IEvent {
 
 abstract class Spell extends KnownCard implements ISpell {
     public readonly card_type = CardType.Spell;
-    protected max_caster = 1;
-    protected min_caster = 1;
+    protected max_caster = 0;
+    protected min_caster = 0;
 
     readonly data = {
         casters: new Array<ICharacter>()
     };
 
+    constructor(public readonly seq: number, public readonly owner: Player,
+        public readonly g_master: GameMaster
+    ) {
+        super(seq, owner, g_master);
+        this.check_before_play_chain.append(() => {
+            let casters_may_be = this.getMaybeCasters();
+            if(casters_may_be.length < this.min_caster) {
+                return { var_arg: false };
+            }
+        });
+    }
+
+    protected getMaybeCasters() {
+        return this.my_master.getAll(TG.isCharacter, ch => {
+            return ch.char_status == CharStat.StandBy
+                && ch.card_status == CardStat.Onboard
+                && !ch.is_tired;
+        });
+    }
+
     public async initialize(): Promise<boolean> {
         while(true) {
+            let cancel_ui = (this.min_caster == 1 && this.max_caster == 1) ? null : undefined;
             let caller = [this, ...this.data.casters];
-            let c = await this.g_master.selecter.cancelUI().promptUI("指定施放者")
+            let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施術者")
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,
-                stat: CardStat.Onboard,
                 owner: this.owner
             }, c => {
                 return c.char_status == CharStat.StandBy

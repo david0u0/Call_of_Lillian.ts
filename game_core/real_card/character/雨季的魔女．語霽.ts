@@ -2,13 +2,15 @@ import { Character, Upgrade } from "../../cards";
 import { CardType, CardStat, BattleRole } from "../../enums";
 
 let name = "雨季的魔女．語霽";
-let description = "**呼喚不幸的體質**：當其它角色進入同一個場所時，該角色承受一點情緒傷害。";
+let description = `瞬間
+**呼喚不幸的體質**：當其它角色進入同一個場所時，該角色承受一點情緒傷害。`;
 
 export default class C extends Character {
     name = name;
     description = description;
-    basic_strength = 1;
-    basic_mana_cost = 4;
+    basic_strength = 0;
+    basic_mana_cost = 3;
+    instance = true;
 
     setupAliveEffect() {
         let chains = [this.my_master.enter_chain, this.enemy_master.enter_chain];

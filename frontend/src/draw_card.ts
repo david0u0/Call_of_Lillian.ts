@@ -366,7 +366,7 @@ export class CharUI {
                 this.ticker.remove(fade_out_tired);
             }
         };
-        char.change_char_tired_chain.append(is_tired => {
+        char.change_char_tired_chain.appendDefault(is_tired => {
             this.ticker.remove(fade_in_tired);
             this.ticker.remove(fade_out_tired);
             if(is_tired) {
@@ -378,6 +378,7 @@ export class CharUI {
         this.view.addChild(tired_mask);
         // 角色行動或能力
         this.ability_icon = drawAbilityIcon(gm, selecter, char, img.width / 3);
+        this.ability_icon.view.x = img.width;
 
         this.view.addChild(this.upgrade_area.view);
         this.view.addChild(this.s_area.view);
@@ -386,7 +387,7 @@ export class CharUI {
         this.view.filters = [this.filter];
         this.filter.enabled = false;
 
-        gm.getMyMaster(char).add_card_chain.append(c => {
+        gm.getMyMaster(char).add_card_chain.appendDefault(c => {
             if(TG.isUpgrade(c) && char.isEqual(c.data.character_equipped) && this.active) {
                 this.registerUpgrade(c);
             }

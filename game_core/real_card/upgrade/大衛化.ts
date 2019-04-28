@@ -17,7 +17,7 @@ export default class U extends Upgrade {
                 for(let card of caller) {
                     if(card.isEqual(this.data.character_equipped)) {
                         // 代表真的是由裝備者承受傷害
-                        await this.enemy_master.addEmo(1);
+                        await this.enemy_master.addEmo(1, [this]);
                     }
                 }
             }

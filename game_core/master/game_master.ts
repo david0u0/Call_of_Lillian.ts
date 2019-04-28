@@ -90,6 +90,19 @@ export class GameMaster {
             throw new BadOperationError("嘗試將非角色卡加入角色區");
         }
     }
+    async genEventToBoard(owner: Player, name: string, is_finished: boolean): Promise<IEvent> {
+        let evt = this.genCard(owner, name);
+        if(TG.isEvent(evt)) {
+            await this.getMyMaster(owner).addCard(evt);
+            await this.getMyMaster(owner).dangerouslySetToBoard(evt);
+            if(is_finished) {
+                await this.getMyMaster(owner).finishEvent(null, evt);
+            }
+            return evt;
+        } else {
+            throw new BadOperationError("嘗試將非事件卡加入事件區");
+        }
+    }
 
     getMyMaster(arg: Player | ICard): PlayerMaster {
         if(TG.isCard(arg)) {

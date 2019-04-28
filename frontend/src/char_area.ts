@@ -34,7 +34,7 @@ export class CharArea {
         this.view.addChild(dummy);
 
         // 向主持人註冊事件
-        this.gm.getMyMaster(player).add_card_chain.append(card => {
+        this.gm.getMyMaster(player).add_card_chain.appendDefault(card => {
             if(TypeGaurd.isCharacter(card)) {
                 return { after_effect: () => this.addChar(card) };
             }
@@ -80,7 +80,7 @@ export class CharArea {
     private setupCharUI(char_ui: CharUI, index: number) {
         let char = char_ui.char;
         // 角色離開場面（不論退場還是放逐）
-        char.card_leave_chain.append(() => {
+        char.card_leave_chain.appendDefault(() => {
             return {
                 after_effect: async () => {
                     char_ui.destroy();
@@ -91,7 +91,7 @@ export class CharArea {
         // 向選擇器註冊
         char_ui.register();
         // 角色回到場邊
-        this.gm.getMyMaster(this.player).exit_chain.append(arg => {
+        this.gm.getMyMaster(this.player).exit_chain.appendDefault(arg => {
             if(arg.char.isEqual(char)) {
                 char_ui.show();
                 char_ui.register();
@@ -108,7 +108,6 @@ export class CharArea {
                 (async () => {
                     let c_selected = await this.selecter.selectCard(this.player, char, {
                         guard,
-                        stat: CardStat.Onboard
                     });
                     if(TypeGaurd.isCard(c_selected)) {
                         if(TypeGaurd.isArena(c_selected)) {

@@ -41,7 +41,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
 
     let mana_label_txt = new PIXI.Text("魔力", labelStyle(0.2*height));
     let mana_txt = new PIXI.Text(pm.mana.toString(), numericStyle(0.2*height));
-    pm.set_mana_chain.append(() => {
+    pm.set_mana_chain.appendDefault(() => {
         return {
             after_effect: () => { mana_txt.text = pm.mana.toString(); }
         };
@@ -55,7 +55,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
 
     let emo_label_txt = new PIXI.Text("情緒", labelStyle(0.2*height));
     let emo_txt = new PIXI.Text(pm.emo.toString(), numericStyle(0.2*height));
-    pm.set_emo_chain.append(() => {
+    pm.set_emo_chain.appendDefault(() => {
         return {
             after_effect: () => { emo_txt.text = pm.emo.toString(); }
         };
@@ -69,7 +69,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
 
     let filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(pm.player, true), 0.5);
     avatar.filters = [filter];
-    gm.t_master.start_turn_chain.append(({ prev, next }) => {
+    gm.t_master.start_turn_chain.appendDefault(({ prev, next }) => {
         return {
             after_effect: () => {
                 if(next == pm.player) {
@@ -88,7 +88,7 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
     rest_txt.x = width;
     rest_txt.alpha = 0;
     container.addChild(rest_txt);
-    gm.t_master.rest_state_change_chain.append(({ player, resting }) => {
+    gm.t_master.rest_state_change_chain.appendDefault(({ player, resting }) => {
         if(player == pm.player) {
             rest_txt.alpha = resting ? 1 : 0;
         }
@@ -222,7 +222,6 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     let char = await selecter.selectCard(player, null, {
                         guard: TG.isCharacter,
                         owner: 1-player,
-                        stat: CardStat.Onboard
                     });
                     if(char) {
                         await gm.getMyMaster(char).incite(char, player, true);
@@ -233,7 +232,6 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     selecter.setInitPos(x, y);
                     let arena = await selecter.selectCard(player, null, {
                         guard: TG.isArena,
-                        stat: CardStat.Onboard
                     }, a => {
                         return gm.w_master.checkCanDeclare(player, a);
                     });
@@ -242,7 +240,16 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     }
                 };
             } else {
-                return async (x: number, y: number) => alert(label);
+                return async (x: number, y: number) => {
+                    selecter.setInitPos(x, y);
+                    let char = await selecter.selectCard(player, null, {
+                        guard: TG.isCharacter,
+                        owner: player,
+                    });
+                    if(char) {
+                        await gm.getMyMaster(char).release(char, true);
+                    }
+                };
             }
         })();
         container.addChild(drawIcon(label, i, expand, func));

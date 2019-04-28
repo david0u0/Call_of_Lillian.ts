@@ -5,16 +5,14 @@ import { GetterChain } from "../../hook";
 import { BadOperationError } from "../../errors";
 
 let name = "勇氣之歌";
-let description = "你只能在戰鬥中施放本咒語，令一個戰鬥中的角色從疲勞中恢復，並使其戰力增加2，直到戰鬥結束。";
+let description = `本咒語不需要施術者。
+你只能在戰鬥中施放本咒語，令一個戰鬥中的角色從疲勞中恢復，並使其戰力增加2，直到戰鬥結束。`;
 
 export default class S extends Spell {
     name = name;
     description = description;
     basic_mana_cost = 2;
     can_play_phase = [GamePhase.InWar];
-
-    max_caster = 0;
-    min_caster = 0;
 
     readonly data: {
         casters: ICharacter[],

@@ -24,9 +24,9 @@ export class EventArea {
         this.view.addChild(mask);
 
         let pm = gm.getMyMaster(player);
-        pm.add_card_chain.append(card => {
+        pm.add_card_chain.appendDefault(card => {
             if(TypeGaurd.isEvent(card)) {
-                return { after_effect: () => this.addEvent(card) };
+                return { after_effect: async () => await this.addEvent(card) };
             }
         });
 
@@ -35,7 +35,15 @@ export class EventArea {
         this.view.addChild(score_icon);
         this.view.addChild(this.event_view);
     }
-    addEvent(card: IEvent) {
+    addEvent(card: IEvent): Promise<void> {
+        return new Promise<void>(resolve => {
+            my_loader.add(card.name).load(() => {
+                this.addEventLoaded(card);
+                resolve();
+            });
+        });
+    }
+    private addEventLoaded(card: IEvent) {
         let { ew, eh } = getEltSize();
         let evt_ui = new PIXI.Container();
 
@@ -43,38 +51,50 @@ export class EventArea {
         this.list.push(card);
 
         let card_face = drawCardFace(card, 2.5 * ew, 4 * eh, true);
+        card_face.x = (5.5 * ew - card_face.width) / 2;
+
         let push_txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: ew * 0.8,
             fill: 0xffffff
         }));
+
         let countdown_txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: ew * 0.8,
             fill: 0xffffff
         }));
-        let updateTxt = () => {
-            push_txt.text = `${card.cur_progress_count}/${card.goal_progress_count}`;
-            countdown_txt.text = card.cur_time_count.toString();
-        };
-        updateTxt();
-        card.push_chain.append(() => {
-            return { after_effect: updateTxt };
-        });
-        this.gm.t_master.start_building_chain.append(() => {
-            return { after_effect: updateTxt };
-        });
-        let destroy_big: () => void = null;
-        card.finish_chain.append(() => {
-            return { after_effect: () => this.finishEvent(card, destroy_big) };
-        });
-        card.card_leave_chain.append(() => {
-            return { after_effect: () => this.removeEvent(card, destroy_big) };
-        });
 
-        card_face.x = (5.5 * ew - card_face.width) / 2;
         push_txt.anchor.set(1, 0.5);
         push_txt.position.set(card_face.x, card_face.height / 4);
         countdown_txt.anchor.set(0, 0.5);
         countdown_txt.position.set(card_face.width + card_face.x, card_face.height / 4);
+
+        let push_img = new PIXI.Sprite(PIXI.loader.resources["goal_prompt"].texture);
+        push_img.anchor.set(0.5, 0.5);
+        push_img.scale.set(0.8 * ew / push_img.width);
+        push_img.alpha = 0.8;
+
+        let countdown_img = new PIXI.Sprite(PIXI.loader.resources["countdown_prompt"].texture);
+        countdown_img.anchor.set(0.5, 0.5);
+        countdown_img.scale.set(0.8 * ew / countdown_img.width);
+        countdown_img.alpha = 0.8;
+        let updateTxt = () => {
+            push_txt.text = `${card.cur_progress_count}/${card.goal_progress_count}`;
+            countdown_txt.text = card.cur_time_count.toString();
+            push_img.position.set(push_txt.x - push_txt.width/2, push_txt.y);
+            countdown_img.position.set(countdown_txt.x+countdown_txt.width/2, countdown_txt.y);
+        };
+        updateTxt();
+        this.gm.acf.setAfterEffect(() => updateTxt());
+        let destroy_big: () => void = null;
+        card.finish_chain.appendDefault(() => {
+            return { after_effect: () => this.finishEvent(card, destroy_big) };
+        });
+        card.card_leave_chain.appendDefault(() => {
+            return { after_effect: () => this.removeEvent(card, destroy_big) };
+        });
+
+        evt_ui.addChild(push_img);
+        evt_ui.addChild(countdown_img);
         evt_ui.addChild(card_face);
         evt_ui.addChild(push_txt);
         evt_ui.addChild(countdown_txt);
@@ -131,8 +151,8 @@ export class EventArea {
             txt.text = pm.getScore().toString();
         };
         updateScore();
-        pm.finish_chain.append(() => {
-            return { after_effect: updateScore };
+        this.gm.acf.setAfterEffect(() => {
+            updateScore();
         });
         txt.x = (size-txt.width)/2;
         txt.y = (size-txt.height)/2;

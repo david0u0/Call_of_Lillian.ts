@@ -1,10 +1,9 @@
-// NOTE: 所有的鏈在觸發時，先觸發卡片事件（特例），再觸發世界事件（通則）。
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
 import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, IUpgrade } from "../interface";
 import { GetterChain } from "../hook";
-import { throwIfIsBackend, BadOperationError, throwDevError } from "../errors";
+import { throwIfIsBackend, BadOperationError, throwDebugError } from "../errors";
 import { SoftRule as SR, HardRule as HR, Constant as C, SoftRule } from "../general_rules";
 import { TimeMaster } from "./time_master";
 import { ActionChainFactory } from "./action_chain_factory";
@@ -58,7 +57,7 @@ export class PlayerMaster {
         return this.getAll(TG.isArena, c => c.card_status == CardStat.Onboard);
     }
     public get events_ongoing() {
-        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard);
+        return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard && !c.is_finished);
     }
     public get events_finished() {
         return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard && c.is_finished);
@@ -97,15 +96,11 @@ export class PlayerMaster {
                 }
             };
         }, undefined, RuleEnums.ExitAfterExploit);
-        this.card_play_chain.appendCheck((b, card) => {
-            if(card.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
-                // 如果現在不是能打該牌的階段，就不讓他打
-                throwIfIsBackend("在錯的時間做事");
-                return { var_arg: false };
+        this.check_before_play_chain.append((b, card) => {
+            if(this.t_master.cur_phase == GamePhase.Setup) {
+                return { var_arg: true, break_chain: true };
             }
-        });
-        this.ability_chain.appendCheck((b, { ability }) => {
-            if(ability.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
+            if(card.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
                 // 如果現在不是能打該牌的階段，就不讓他打
                 return { var_arg: false };
             }
@@ -126,7 +121,6 @@ export class PlayerMaster {
             this._char_quota = 1;
             // 抽牌
             await this.draw();
-            // TODO: 換牌
         });
         t_master.start_turn_chain.append(async () => {
             if(t_master.cur_phase == GamePhase.InAction) {
@@ -145,13 +139,20 @@ export class PlayerMaster {
             }
         });
         this.incited_chain.appendCheck(() => {
-            if(this.emo <= C.INCITE_EMO) {
+            if(this.emo < C.INCITE_EMO) {
                 throwIfIsBackend("情緒還不夠就想煽動我？");
                 return { var_arg: false };
             } else if(this.t_master.cur_phase != GamePhase.InAction) {
                 throwIfIsBackend("只能在主階段行動中執行煽動");
                 return { var_arg: false };
             }
+        });
+        this.release_chain.appendCheck(() => {
+            if(this.t_master.cur_phase != GamePhase.InAction) {
+                throwIfIsBackend("只能在主階段行動中執行釋放");
+                return { var_arg: false };
+            }
+
         });
         this.release_chain.append(() => {
             return {
@@ -239,8 +240,8 @@ export class PlayerMaster {
     }
 
     getManaCost(card: IKnownCard) {
-        return card.get_mana_cost_chain.chain(this.get_mana_cost_chain, card)
-        .trigger(card.basic_mana_cost, null);
+        return this.get_mana_cost_chain.chain(card.get_mana_cost_chain, null)
+        .trigger(card.basic_mana_cost, card);
     }
 
     async addMana(n: number, caller: IKnownCard[] = []) {
@@ -248,6 +249,16 @@ export class PlayerMaster {
         await this.set_mana_chain.trigger({ mana: new_mana, caller }, () => {
             this._mana = new_mana;
         });
+    }
+    /** 扣除魔力，不足者轉換為情緒 */
+    async punish(n: number, caller: IKnownCard[] = []) {
+        if(n <= 0) {
+            throwDebugError("都要懲罰了數值卻小於0？");
+        }
+        let mana_cost = Math.min(this.mana, n);
+        let emo_cost = n - mana_cost;
+        await this.addMana(-mana_cost);
+        await this.addEmo(emo_cost);
     }
 
     public get_score_chain = new GetterChain<number, null>();
@@ -263,8 +274,8 @@ export class PlayerMaster {
                 strength += this.getStrength(u);
             }
         }
-        strength = card.get_strength_chain.chain(this.get_strength_chain, { card, enemy })
-        .trigger(strength, enemy);
+        strength = this.get_strength_chain.chain(card.get_strength_chain, enemy)
+        .trigger(strength, { enemy, card });
         if(TG.isCharacter(card) && card.char_status == CharStat.InWar && card.is_tired) {
             return Math.min(0, strength);
         } else {
@@ -273,25 +284,26 @@ export class PlayerMaster {
     }
 
     getBattleRole(char: ICharacter) {
-        return char.get_battle_role_chain.chain(this.get_battle_role_chain, char)
-        .trigger(char.basic_battle_role, null);
+        return this.get_battle_role_chain.chain(char.get_battle_role_chain, null)
+        .trigger(char.basic_battle_role, char);
     }
     /** 主要用於UI上的檢查 */
     checkBeforePlay(card: IKnownCard) {
         if(this.t_master.cur_player != this.player) {
             return false;
         }
-        let can_play = this.mana > this.getManaCost(card);
-        return card.check_before_play_chain.chain(this.check_before_play_chain, card)
-        .trigger(can_play, null);
+        let can_play = this.mana >= this.getManaCost(card);
+        return this.check_before_play_chain.chain(card.check_before_play_chain, null)
+        .trigger(can_play, card);
     }
     checkCanPlay(card: IKnownCard) {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
-            return card.card_play_chain.chain(this.card_play_chain, card)
-            .checkCanTrigger(null);
-        } else {
-            return false;
+            if(this.checkBeforePlay(card)) {
+                return this.card_play_chain.chain(card.card_play_chain, null)
+                .checkCanTrigger(card);
+            }
         }
+        return false;
     }
     async playCard(card: IKnownCard, by_keeper=false) {
         // 檢查
@@ -308,10 +320,10 @@ export class PlayerMaster {
         // 支付代價
         await this.addMana(-this.getManaCost(card));
         // 實際行動
-        await card.card_play_chain.chain(this.card_play_chain, card).byKeeper(by_keeper)
-        .trigger(null, async () => {
-            await Promise.resolve(card.onPlay());
+        await this.card_play_chain.chain(card.card_play_chain, null).byKeeper(by_keeper)
+        .trigger(card, async () => {
             await this.dangerouslySetToBoard(card);
+            await Promise.resolve(card.onPlay());
         }, () => {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
@@ -371,15 +383,14 @@ export class PlayerMaster {
     }
 
     async changeCharTired(char: ICharacter, is_tired: boolean) {
-        await char.change_char_tired_chain.chain(this.change_char_tired_chain, { is_tired, char })
-        .trigger(is_tired, () => {
+        await this.change_char_tired_chain.chain(char.change_char_tired_chain, is_tired)
+        .trigger({ char, is_tired }, () => {
             char.is_tired = is_tired;
         });
     }
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
     private async _leaveCard(card: IKnownCard) {
-        await card.card_leave_chain.trigger(null);
         if(TG.isCharacter(card)) {
             if(card.data.arena_entered) {
                 await this.exitArena(card);
@@ -394,19 +405,20 @@ export class PlayerMaster {
                 card.data.character_equipped.unsetUpgrade(card);
             }
         }
+        await card.card_leave_chain.trigger(null);
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
-            let chain = card.card_retire_chain.chain(this.card_retire_chain, card);
-            let can_die = chain.checkCanTrigger(null);
+            let chain = this.card_retire_chain.chain(card.card_retire_chain, null);
+            let can_die = chain.checkCanTrigger(card);
             if(can_die) {
-                await chain.trigger(null, async () => {
+                await chain.trigger(card, async () => {
                     card.card_status = CardStat.Retired;
                     await this._leaveCard(card);
                 });
             }
         } else {
-            throwDevError("重複銷毀一張卡片", card);
+            throwDebugError("欲銷毀的卡牌不在場上", card);
         }
     }
     async exileCard(card: IKnownCard) {
@@ -422,8 +434,8 @@ export class PlayerMaster {
         }
     }
     async failEvent(event: IEvent) {
-        await event.fail_chain.chain(this.fail_chain, event)
-        .trigger(null, async () => {
+        await this.fail_chain.chain(event.fail_chain, null)
+        .trigger(event, async () => {
             await Promise.resolve(event.onFail());
             await this.retireCard(event);
         });
@@ -431,20 +443,22 @@ export class PlayerMaster {
 
     async finishEvent(char: ICharacter | null, event: IEvent) {
         // 應該不太需要 checkCanTrigger 啦 @@
-        await event.finish_chain.chain(this.finish_chain, { event, char })
-        .trigger(char, async () => {
+        let finish_chain = this.finish_chain.chain(event.finish_chain, char);
+        if(char) {
+            finish_chain = finish_chain.chain(char.finish_chain, event);
+        }
+        await finish_chain.trigger({ char, event }, async () => {
             event.is_finished = true;
             await Promise.resolve(event.onFinish(char));
             await Promise.resolve(event.setupFinishEffect(char));
         });
     }
     getPushCost(char: ICharacter | null, event: IEvent) {
-        let cost_chain = event.get_push_cost_chain
-        .chain(this.get_push_cost_chain, { event, char });
-        if(TG.isCard(char)) {
-            cost_chain.chain(char.get_push_cost_chain, event);
+        let get_push_cost_chain = this.get_push_cost_chain.chain(event.get_push_cost_chain, char);
+        if(char) {
+            get_push_cost_chain = get_push_cost_chain.chain(char.get_push_cost_chain, event);
         }
-        return cost_chain.trigger(event.push_cost, char);
+        return get_push_cost_chain.trigger(event.push_cost, { char, event });
     }
     async pushEvent(event: IEvent, char: ICharacter | null, by_keeper=false) {
         // TODO: 這裡應該要有一條 pre-push 動作鏈
@@ -459,18 +473,17 @@ export class PlayerMaster {
         let cost = this.getPushCost(char, event);
 
         if(HR.checkPush(event, char, this.mana, cost)) {
-            let push_chain = event.push_chain;
+            let push_chain = this.push_chain.chain(event.push_chain, char);
             if(TG.isCard(char)) {
                 push_chain = push_chain.chain(char.push_chain, event);
             }
-            push_chain = push_chain.chain(this.push_chain, { event, char });
-            if(push_chain.checkCanTrigger(char)) {
+            if(push_chain.checkCanTrigger({ event, char })) {
                 await this.addMana(-cost);
                 if(char) {
                     await this.changeCharTired(char, true);
                 }
 
-                await push_chain.byKeeper(by_keeper).trigger(char, async () => {
+                await push_chain.byKeeper(by_keeper).trigger({ event, char }, async () => {
                     HR.onPushEvent(event);
                     await Promise.resolve(event.onPush(char));
                     if(event.cur_progress_count == event.goal_progress_count) {
@@ -489,9 +502,9 @@ export class PlayerMaster {
     // 底下所有函式都是「我的角色」與「任何人的場所」
     getEnterCost(char: ICharacter, arena: IArena): number {
         // NOTE: 觸發順序：場所 -> 角色 -> 世界
-        return arena.get_enter_cost_chain.chain(char.get_enter_cost_chain, arena)
-        .chain(this.get_enter_cost_chain, { char, arena })
-        .trigger(0, char);
+        return this.get_enter_cost_chain.chain(arena.get_enter_cost_chain, char)
+        .chain(char.get_enter_cost_chain, arena)
+        .trigger(0, { char, arena });
     }
     async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
         // TODO: 這裡應該要有一條 pre-enter 動作鏈
@@ -505,15 +518,15 @@ export class PlayerMaster {
 
         let cost = this.getEnterCost(char, arena);
         if(HR.checkEnter(char, arena, this.mana, cost)) {
-            let enter_chain = arena.enter_chain.chain(char.enter_arena_chain, arena)
-            .chain(this.enter_chain, { char, arena });
-            if(enter_chain.checkCanTrigger(char)) {
+            let enter_chain = this.enter_chain.chain(arena.enter_chain, char)
+            .chain(char.enter_chain, arena);
+            if(enter_chain.checkCanTrigger({ arena, char })) {
                 await this.addMana(-cost);
                 if(!char.assault) {
                     await this.changeCharTired(char, true);
                 }
                 
-                await enter_chain.byKeeper(by_keeper).trigger(char, () => {
+                await enter_chain.byKeeper(by_keeper).trigger({ char, arena }, () => {
                     HR.onEnter(char, arena);
                 });
                 await this.t_master.spendAction();
@@ -524,12 +537,12 @@ export class PlayerMaster {
         return false;
     }
     getExploitCost(arena: IArena, char: ICharacter | Player) {
-        let get_cost_chain = arena.get_exploit_cost_chain
-        .chain(this.get_exploit_cost_chain, { arena, char });
+        let get_cost_chain = this.get_exploit_cost_chain
+        .chain(arena.get_exploit_cost_chain, char);
         if(TG.isCard(char)) {
             get_cost_chain.chain(char.get_exploit_cost_chain, arena);
         }
-        return get_cost_chain.trigger(arena.basic_exploit_cost, char);
+        return get_cost_chain.trigger(arena.basic_exploit_cost, { char, arena });
     }
     async exploit(arena: IArena, char: ICharacter | Player, by_keeper=false) {
         let p = (() => {
@@ -549,14 +562,13 @@ export class PlayerMaster {
         // TODO: 這裡應該要有一條 pre-exploit 動作鏈
         let cost = this.getExploitCost(arena, char);
         if(HR.checkExploit(arena, char, this.mana, cost)) {
-            let exploit_chain = arena.exploit_chain;
+            let exploit_chain = this.exploit_chain.chain(arena.exploit_chain, char);
             if(TG.isCard(char)) {
                 exploit_chain = exploit_chain.chain(char.exploit_chain, arena);
             }
-            exploit_chain = exploit_chain.chain(this.exploit_chain, { arena, char });
-            if(exploit_chain.checkCanTrigger(char)) {
+            if(exploit_chain.checkCanTrigger({ char, arena })) {
                 await this.addMana(-cost);
-                await exploit_chain.byKeeper(by_keeper).trigger(char, async () => {
+                await exploit_chain.byKeeper(by_keeper).trigger({ char, arena }, async () => {
                     let caller = [];
                     if(TG.isCard(char)) {
                         caller.push(char);
@@ -581,7 +593,7 @@ export class PlayerMaster {
                 await this.changeCharTired(char, true);
             });
         } else {
-            throw new BadOperationError("不在場所的角色還想離開？");
+            throwDebugError("不在場所的角色還想離開？");
         }
     }
 
@@ -602,16 +614,31 @@ export class PlayerMaster {
         } else if(!checkCardStat(char)) {
             throw new BadOperationError("角色不在場上");
         }
+        let incited_chain = this.incited_chain.chain(char.incited_chain, null);
         let enemy_master = this.getMaster(player);
         if(enemy_master.mana > C.INCITE_COST
-            && char.card_status == CardStat.Onboard
-            && this.incited_chain.checkCanTrigger(char)
+            && incited_chain.checkCanTrigger(char)
         ) {
             enemy_master.addMana(-C.INCITE_COST);
-            this.incited_chain.byKeeper(by_keeper).trigger(char, () => {
+            incited_chain.byKeeper(by_keeper).trigger(char, () => {
                 this.retireCard(char);
             });
             this.t_master.spendAction();
+        }
+    }
+    async release(char: ICharacter, by_keeper=false) {
+        if(this.t_master.cur_player != this.player) {
+            throw new BadOperationError("想在別人的回合執行釋放？");
+        } else if(char.owner != this.player) {
+            throw new BadOperationError("要釋約放角色，請找她的主人");
+        } else if(!checkCardStat(char)) {
+            throw new BadOperationError("角色不在場上");
+        }
+        let release_chain = this.release_chain.chain(char.release_chain, null);
+        if(release_chain.checkCanTrigger(char)) {
+            await this.retireCard(char);
+            await release_chain.byKeeper(by_keeper).trigger(char);
+            await this.t_master.spendAction();
         }
     }
 }

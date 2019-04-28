@@ -1,4 +1,4 @@
-import { throwDevError } from "./errors";
+import { throwDebugError } from "./errors";
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
@@ -26,6 +26,7 @@ type ActionFunc<U>
 type ActionHook<U> = {
     isActive: () => boolean;
     func: ActionFunc<U>;
+    is_default?: boolean,
     id?: number
 };
 function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: { [id: number]: boolean }) {
@@ -107,6 +108,10 @@ class ActionChain<U> {
         let h = { func, isActive, id };
         this.action_list = [h, ...this.action_list];
     }
+    public appendDefault(func: ActionFunc<U>, isActive=() => true) {
+        let h = { func, isActive, is_default: true };
+        this.action_list.push(h);
+    }
     public appendCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.append(func, isActive, id);
     }
@@ -114,17 +119,13 @@ class ActionChain<U> {
         this.check_chain.dominant(func, isActive, id);
     }
     public async triggerFullResult(const_arg: U): Promise<ActionResult> {
-        if(this.by_keeper) {
-            this.keeperCallback(const_arg);
-        }
-        this.by_keeper = false;
-
         let after_effect = new Array<() => void|Promise<void>>();
         let break_chain = false;
         let intercept_effect = false;
         let mask_id: { [id: number]: boolean } = {};
         for(let hook of this.action_list) {
-            if(checkActive(hook, mask_id)) {
+            // 如果是默認的事件，不會被 break_chain 影響
+            if(checkActive(hook, mask_id) && (!break_chain || hook.is_default)) {
                 let _result = hook.func(const_arg);
                 if(_result) {
                     let result = await Promise.resolve(_result);
@@ -138,7 +139,6 @@ class ActionChain<U> {
                         }
                         if(result.break_chain) {
                             break_chain = true;
-                            break;
                         } else if(result.intercept_effect) {
                             intercept_effect = true;
                             break;
@@ -168,6 +168,11 @@ class ActionChain<U> {
      * 為什麼不先推進完再使角色疲勞？因為我希望 after_effect 是整個事件中最後執行的東西。
      */
     public async trigger(const_arg: U, callback?: CallBack, cleanup?: CallBack) {
+        if(this.by_keeper) {
+            this.keeperCallback(const_arg);
+        }
+        this.by_keeper = false;
+
         let res = await (this.triggerFullResult(const_arg));
         if(res.intercept_effect) {
             if(cleanup) {
@@ -183,7 +188,7 @@ class ActionChain<U> {
                     await Promise.resolve(effect());
                 }
             } else {
-                throw throwDevError("後期作用不知竟然不是個陣列");
+                throw throwDebugError("後期作用不知為何竟然不是個陣列");
             }
             return true;
         }
@@ -202,6 +207,10 @@ class ActionChain<U> {
                 }
             });
         }
+        new_chain.setKeeperCallback(arg => {
+            this.keeperCallback(arg);
+            next_chain.keeperCallback(next_arg);
+        });
 
         return new_chain;
     }
@@ -212,9 +221,8 @@ class ActionChain<U> {
     }
 
     private by_keeper = false;
-
     public byKeeper(by_keeper=true) {
-        this.by_keeper = true;
+        this.by_keeper = by_keeper;
         return this;
     }
 }

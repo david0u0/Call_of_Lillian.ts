@@ -64,27 +64,27 @@ export class PhaseNotifier {
             }
         };
 
-        gm.t_master.start_building_chain.append(() => {
+        gm.t_master.start_building_chain.appendDefault(() => {
             phase_txt.text = "建築階段";
             anime(`第${++this.cur_era}世代 - 建築階段`);
             anime("本階段只能打出場所卡");
         });
-        gm.t_master.start_main_chain.append(() => {
+        gm.t_master.start_main_chain.appendDefault(() => {
             phase_txt.text = "主階段";
             anime(`第${this.cur_era}世代 - 主階段`);
             anime("請點選角色進入場所，或打出卡牌");
         });
-        gm.t_master.start_exploit_chain.append(() => {
+        gm.t_master.start_exploit_chain.appendDefault(() => {
             phase_txt.text = "收獲階段";
             anime(`第${this.cur_era}世代 - 收獲階段`);
             anime("如欲使用場所，請點選其上的角色");
         });
-        gm.w_master.declare_war_chain.append(() => {
+        gm.w_master.declare_war_chain.appendDefault(() => {
             phase_txt.text = "戰鬥中";
             anime("戰鬥開始");
             anime("攻方選擇角色作為攻擊者\n再點選敵方角色作為攻擊目標", 1000);
         });
-        gm.w_master.end_war_chain.append(() => {
+        gm.w_master.end_war_chain.appendDefault(() => {
             phase_txt.text = "主階段";
             anime("戰鬥結束");
             return {
@@ -92,20 +92,20 @@ export class PhaseNotifier {
             };
         });
 
-        gm.t_master.start_turn_chain.append(() => {
+        gm.t_master.start_turn_chain.appendDefault(() => {
             if(gm.t_master.cur_phase != GamePhase.InWar) {
                 return {
                     after_effect: () => this.askIfSkip()
                 };
             }
         });
-        gm.t_master.spend_action_chain.append(() => {
+        gm.t_master.spend_action_chain.appendDefault(() => {
             return {
                 after_effect: async () => this.askIfSkip()
             };
         });
 
-        gm.end_game_chain.append(player => {
+        gm.end_game_chain.appendDefault(player => {
             if(me == player) {
                 alert("你贏惹！！");
             } else {
