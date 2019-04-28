@@ -8,7 +8,7 @@ let description = "使用：承受1情緒，賺取2+X魔力，X為使用角色�
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 4;
+    basic_mana_cost = 2;
     basic_exploit_cost = 0;
     series = [ CardSeries.Hospital ];
 

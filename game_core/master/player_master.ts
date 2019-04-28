@@ -171,7 +171,7 @@ export class PlayerMaster {
      */
     public check_before_play_chain = new GetterChain<boolean, IKnownCard>();
 
-    public change_char_tired_chain = this.acf.new<{is_tired: boolean, char: ICharacter}>();
+    public change_char_tired_chain = this.acf.new<{ is_tired: boolean, char: ICharacter }>();
 
     public card_play_chain = this.acf.new<IKnownCard>();
     public card_retire_chain = this.acf.new<IKnownCard>();

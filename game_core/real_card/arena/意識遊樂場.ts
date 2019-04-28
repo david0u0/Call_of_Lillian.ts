@@ -9,7 +9,7 @@ let description = `（休閒場所）
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 4;
+    basic_mana_cost = 3;
     basic_exploit_cost = 3;
     series = [ CardSeries.Entertainment ];
 

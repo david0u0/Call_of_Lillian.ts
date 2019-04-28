@@ -188,7 +188,6 @@ abstract class Character extends KnownCard implements ICharacter {
     public get upgrade_list() { return [...this._upgrade_list]; };
     public char_status = CharStat.StandBy;
     public is_tired = false;
-    public way_worn = false;
     public get assault() {
         for(let u of this.upgrade_list) {
             if(u.assault) {
