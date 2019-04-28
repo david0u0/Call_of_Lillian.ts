@@ -8,7 +8,7 @@ let description = "使用：3魔力->招募一名*遊擊隊員*至待命區";
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 4;
+    basic_mana_cost = 3;
     basic_exploit_cost = 3;
 
     async onExploit(char: ICharacter|Player) {

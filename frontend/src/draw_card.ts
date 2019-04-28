@@ -393,8 +393,18 @@ export class CharUI {
             }
         });
     }
-    highlight(high=true) {
-        this.filter.enabled = high;
+    private _high_count = 0;
+    highlight(high=true, force=false) {
+        if(high) {
+            this._high_count++;
+        } else if(this._high_count > 0) {
+            if(force) {
+                this._high_count = 0;
+            } else {
+                this._high_count--;
+            }
+        }
+        this.filter.enabled = (this._high_count > 0);
     }
     register() {
         this.selecter.registerCardStartSelect(this.char, () => {

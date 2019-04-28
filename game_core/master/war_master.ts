@@ -7,7 +7,7 @@ import { Constant } from "../general_rules";
 import { PlayerMaster } from "./player_master";
 import { ActionChainFactory } from "./action_chain_factory";
 
-export enum DetailedWarPhase { Attaking, Blocking, None };
+export enum DetailedWarPhase { Attaking, Blocking, Conflict, None };
 export enum ConflictEnum { Attacking, Blokcing, Targeted, OutOfConflict, OutOfWar };
 /**
  * 流程：將遊戲進程設為InWar => 進行數次衝突 => 結束戰鬥 => 將遊戲進程設為InAction => 告知時間管理者減少行動點。
@@ -197,6 +197,17 @@ export class WarMaster {
         }
     }
     public checkCanAttack(atk: ICharacter | ICharacter[], target?: ICharacter) {
+        if(!this.checkBasic(this.def_player, target) || !this.inMainField(target)) {
+            return false;
+        } else {
+            if(target) {
+                let role = this.getMyMaster(target).getBattleRole(target);
+                if(role.can_not_be_target) {
+                    return false;
+                }
+            }
+        }
+
         if(atk instanceof Array) {
             for(let a of atk) {
                 if(!this.checkCanAttack(a, target)) {
@@ -207,15 +218,9 @@ export class WarMaster {
         } else {
             if(!this.checkBasic(this.atk_player, atk) || atk.is_tired) {
                 return false;
-            } else if(!this.checkBasic(this.def_player, target) || !this.inMainField(target)) {
-                return false;
             } else {
                 let atk_role = this.getMyMaster(atk).getBattleRole(atk);
-                let can_not_be_attacked: boolean | undefined = false;
-                if(target) {
-                    ({ can_not_be_attacked } = this.getMyMaster(target).getBattleRole(target));
-                }
-                if(!atk_role.can_attack || can_not_be_attacked) {
+                if(!atk_role.can_attack) {
                     return false;
                 }
             }
@@ -291,6 +296,7 @@ export class WarMaster {
     }
 
     public async startConflict() {
+        this._detailed_phase = DetailedWarPhase.Conflict;
         await this.t_master.startTurn(this.atk_player);
         // 逐一比較戰力
         let rest_atkers = new Array<ICharacter>();
@@ -337,6 +343,7 @@ export class WarMaster {
         await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, async () => {
             // 令所有參戰者陷入疲勞
             await this.getMyMaster(def).changeCharTired(def, true);
+            
             for(let atk of atk_chars) {
                 await this.getMyMaster(atk).changeCharTired(atk, true);
             }
@@ -366,8 +373,10 @@ export class WarMaster {
             throwIfIsBackend("至少要攻擊一次才可停戰");
             return false;
         } else {
-            this.t_master.setWarPhase(GamePhase.EndWar);
-            this._detailed_phase = DetailedWarPhase.None;
+            await this.end_war_chain.byKeeper(by_keeper).trigger(null, () => {
+                this._detailed_phase = DetailedWarPhase.None;
+                this.t_master.setWarPhase(GamePhase.EndWar);
+            });
             // TODO: 讓玩家可以執行某些行動
             await this.t_master.startTurn(this.atk_player);
             // 所有參與的角色從疲勞中恢復，且角色狀態改回 InArena
@@ -380,7 +389,6 @@ export class WarMaster {
             }
             this.t_master.setWarPhase(GamePhase.InAction);
             this._war_seq++; // 每次戰鬥的編號都會增加
-            await this.end_war_chain.byKeeper(by_keeper).trigger(null);
             await this.t_master.spendAction();
             return true;
         }

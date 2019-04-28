@@ -3,7 +3,7 @@ import { IEvent, ICharacter, TypeGaurd } from "../../interface";
 import { CharStat, CardStat, Player } from "../../enums";
 
 let name = "集體飛升";
-let description = `（結局）當*集體飛升*存在事件區中，每個基礎戰力為0的角色額外得到1點戰力。
+let description = `（結局）當*集體飛升*存在場上中，每個基礎戰力為0的角色額外得到1點戰力。
 推進：你必需有5個或更多角色處於場所中。
 結算：雙方場上與歷史區每有一個角色，加2分。`;
 
@@ -13,10 +13,10 @@ export default class E extends Event implements IEvent {
 
     readonly is_ending = true;
     readonly score = 4;
-    readonly goal_progress_count = 5;
+    readonly goal_progress_count = 4;
     readonly init_time_count = 3;
 
-    basic_mana_cost = 6;
+    basic_mana_cost = 4;
 
     setupAliveEffect() {
         for(let p of [Player.Player1, Player.Player2]) {

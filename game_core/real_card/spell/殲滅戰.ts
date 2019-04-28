@@ -11,7 +11,7 @@ let description = `本咒語不需要施術者。
 export default class S extends Spell {
     name = name;
     description = description;
-    basic_mana_cost = 2;
+    basic_mana_cost = 3;
     can_play_phase = [GamePhase.InAction];
 
     readonly data: {

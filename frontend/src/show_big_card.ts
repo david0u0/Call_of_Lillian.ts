@@ -68,8 +68,8 @@ function drawSingleBig(gm: GameMaster, card: ICard, index: number,
 ) {
     let view = new PIXI.Container();
     let { ew, eh } = getEltSize();
-    let width = ew * 23;
-    let height = eh * 23;
+    let width = ew * 21;
+    let height = eh * 21;
     let alpha = 1;
     let descriptioin = true;
     if(conf) {

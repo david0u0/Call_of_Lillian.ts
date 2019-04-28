@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 
 import { ICharacter, TypeGaurd as TG } from "../../game_core/interface";
-import { Player, CardSeries, CardStat } from "../../game_core/enums";
+import { Player, CardSeries, CardStat, CharStat, GamePhase } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { BadOperationError } from "../../game_core/errors";
@@ -103,7 +103,34 @@ export class FrontendWarMaster {
         }
     }
 
+    private highlightAvailableChars() {
+        if(this.gm.t_master.cur_phase != GamePhase.InWar) {
+            return;
+        }
+        let wm = this.gm.w_master;
+        let chars = this.gm.getAll(TG.isCharacter, ch => ch.char_status == CharStat.InWar);
+        for(let ch of chars) {
+            let highlight = false;
+            if(wm.detailed_phase == DetailedWarPhase.Attaking
+                || wm.detailed_phase == DetailedWarPhase.Conflict
+            ) {
+                if(wm.checkCanAttack(ch) || wm.checkCanAttack([], ch)) {
+                    highlight = true;
+                }
+            } else if(wm.checkCanBlock(ch) && wm.detailed_phase == DetailedWarPhase.Blocking) {
+                highlight = true;
+            }
+            
+            if(highlight) {
+                this.char_ui_table[ch.seq].highlight();
+            } else {
+                this.char_ui_table[ch.seq].highlight(false, true);
+            }
+        }
+    }
+    
     constructor(private me: Player, private gm: GameMaster, private selecter: FrontendSelecter) {
+        gm.acf.setAfterEffect(() => this.highlightAvailableChars());
         gm.w_master.declare_war_chain.appendDefault(({ declarer }) => {
             //if(declarer == me)
             // 確實是由我宣告的戰爭
@@ -125,6 +152,12 @@ export class FrontendWarMaster {
         });
         gm.w_master.after_conflict_chain.appendDefault(() => {
             this.loopStopWarBtn();
+        });
+        gm.w_master.end_war_chain.appendDefault(() => {
+            let chars = this.gm.getAll(TG.isCharacter, ch => ch.char_status == CharStat.InWar);
+            for(let ch of chars) {
+                this.char_ui_table[ch.seq].highlight(false, true);
+            }
         });
     }
 

@@ -8,7 +8,7 @@ export enum CharStat { StandBy, InArena, InWar };
 export type BattleRole = {
     can_attack: boolean,
     can_block: boolean,
-    can_not_be_attacked?: boolean,
+    can_not_be_target?: boolean,
     // 即狙擊
     can_not_be_blocked?: boolean,
     // 近程角色不可以攻擊鄰近場所的目標。
