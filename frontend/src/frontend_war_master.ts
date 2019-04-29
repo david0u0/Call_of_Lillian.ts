@@ -8,11 +8,6 @@ import { BadOperationError } from "../../game_core/errors";
 import { CharUI } from "./draw_card";
 import { DetailedWarPhase } from "../../game_core/master/war_master";
 
-const CHAR_CONF = {
-    guard: TG.isCharacter,
-    stat: CardStat.Onboard
-};
-
 export class FrontendWarMaster {
     public view = new PIXI.Container();
 
@@ -168,14 +163,17 @@ export class FrontendWarMaster {
         let target: ICharacter = null;
         while(true) {
             let ch = await this.selecter
-            .selectCard(w_master.atk_player, this.attacking, CHAR_CONF, _ch => {
-                if(w_master.checkCanAttack(_ch)) {
-                    return true;
-                } else if(w_master.checkCanAttack(this.attacking, _ch)) {
-                    if(this.attacking.length > 0) {
+            .selectCard(w_master.atk_player, this.attacking, {
+                guard: TG.isCharacter,
+                check: _ch => {
+                    if(w_master.checkCanAttack(_ch)) {
                         return true;
-                    } else {
-                        return false;
+                    } else if(w_master.checkCanAttack(this.attacking, _ch)) {
+                        if(this.attacking.length > 0) {
+                            return true;
+                        } else {
+                            return false;
+                        }
                     }
                 }
             });
@@ -219,11 +217,10 @@ export class FrontendWarMaster {
         this.selecter.stopConfirm();
         let wm = this.gm.w_master;
         let atk_char = await this.selecter
-        .selectCard(wm.def_player,
-            block_char, CHAR_CONF, c => {
-                return wm.checkCanBlock(block_char, c);
-            }
-        );
+        .selectCard(wm.def_player, block_char, {
+            guard: TG.isCharacter,
+            check: c => wm.checkCanBlock(block_char, c)
+        });
         await wm.setBlock(atk_char, block_char);
     }
 }

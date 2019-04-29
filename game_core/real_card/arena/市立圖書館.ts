@@ -31,11 +31,7 @@ export default class A extends Arena implements IArena {
             owner: player,
             must_have_value: true
         });
-        if(card) {
-            let _card = await this.g_master.exposeCard(card);
-            await this.g_master.getMyMaster(char).exileCard(_card);
-        } else {
-            throw new BadOperationError("未選擇棄卡", this);
-        }
+        let _card = await this.g_master.exposeCard(card);
+        await this.g_master.getMyMaster(char).exileCard(_card);
     }
 }

@@ -117,7 +117,7 @@ export class CharArea {
                                 // 隱藏UI
                                 char_ui.hide();
                             }
-                        } else if(TypeGaurd.isEvent(c_selected)) {
+                        } else if(TypeGaurd.isEvent(c_selected) && !c_selected.is_finished) {
                             await this.gm.getMyMaster(this.player).pushEvent(c_selected, char, true);
                         }
                     }
