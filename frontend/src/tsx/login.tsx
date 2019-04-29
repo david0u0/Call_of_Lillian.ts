@@ -1,34 +1,38 @@
 import * as React from 'react'
+import { PageProps } from './props';
 
 type State = {
-    name: string,
+    userid: string,
     password: string
 };
 
-export class LoginPage extends React.Component<{}, State> {
-    constructor(props: {}) {
+export class LoginPage extends React.Component<PageProps, State> {
+    constructor(props: PageProps) {
         super(props);
         this.state = {
-            name: "",
+            userid: "",
             password: ""
         };
     }
-    onNameChange(evt: React.FormEvent<HTMLInputElement>) {
-        this.setState({ name: evt.currentTarget.value })
+    onIDChange(evt: React.FormEvent<HTMLInputElement>) {
+        this.setState({ userid: evt.currentTarget.value })
     }
     onPassChange(evt: React.FormEvent<HTMLInputElement>) {
         this.setState({ password: evt.currentTarget.value })
     }
     async doLogin() {
-        let res = await fetch("/login", {
+        let res = await fetch("/api/user/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
-                name: this.state.name,
+                userid: this.state.userid,
                 password: this.state.password
             }),
-            method: "POST"
         })
-        if(res.status >= 200 && res.status < 300) {
-            
+        if(res.ok) {
+            this.props.changeLoginState(this.state.userid);
         }
     }
     keyDown(evt: React.KeyboardEvent) {
@@ -39,11 +43,11 @@ export class LoginPage extends React.Component<{}, State> {
     render() {
         return (
             <div>
-                <input type="text" onChange={this.onNameChange.bind(this)}
-                    onKeyDown={this.keyDown.bind(this)} value={this.state.name}/>
-                <br/>
+                <input type="text" onChange={this.onIDChange.bind(this)}
+                    onKeyDown={this.keyDown.bind(this)} value={this.state.userid} />
+                <br />
                 <input type="password" onChange={this.onPassChange.bind(this)}
-                    onKeyDown={this.keyDown.bind(this)} value={this.state.password}/>
+                    onKeyDown={this.keyDown.bind(this)} value={this.state.password} />
                 <button onClick={this.doLogin.bind(this)}>登入</button>
             </div>
         );
