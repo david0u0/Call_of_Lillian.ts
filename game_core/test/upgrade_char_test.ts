@@ -165,7 +165,7 @@ describe("角色能力是即使戰力0仍不會變為平民，升級卡會給予
             selecter.setSelectedSeqs(waste_land_char.seq);
             await pm.playCard(ferry_bomb_upgrade);
         });
-        it("裝備後，角色的戰力應該是增加", () => {
+        it("裝備後，角色的戰力應該增加", () => {
             assert.equal(ferry_bomb_upgrade.basic_strength, pm.getStrength(waste_land_char));
         });
         it("由於裝備的影響，角色的戰鬥職位變成「狙擊」", () => {

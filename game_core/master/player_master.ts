@@ -322,15 +322,16 @@ export class PlayerMaster {
         // 支付代價
         await this.addMana(-this.getManaCost(card));
         // 實際行動
-        await this.card_play_chain.chain(card.card_play_chain, null).byKeeper(by_keeper)
+        let res = await this.card_play_chain.chain(card.card_play_chain, null).byKeeper(by_keeper)
         .trigger(card, async () => {
             await this.dangerouslySetToBoard(card);
             await Promise.resolve(card.onPlay());
-        }, () => {
+        });
+        if(!res) {
             // NOTE: card 變回手牌而不是進退場區或其它鬼地方。
             // 通常 intercept_effect 為真的狀況早就在觸發鏈中報錯了，我也不曉得怎麼會走到這裡 @@
             card.recoverDatas();
-        });
+        }
         if(!card.instance) {
             await this.t_master.spendAction();
         }

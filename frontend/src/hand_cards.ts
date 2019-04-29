@@ -52,6 +52,19 @@ class HandUI {
         gm.getMyMaster(player).add_card_to_hand_chain.appendDefault(async card => {
             await this.add(card);
         });
+        this.gm.acf.setAfterEffect(() => {
+            this.highlightPlayable();
+        });
+        this.highlightPlayable();
+    }
+    private highlightPlayable() {
+        for(let [i, card] of this.list.entries()) {
+            if(TG.isKnown(card) && this.gm.getMyMaster(card).checkBeforePlay(card)) {
+                this.view.children[i].filters[0].enabled = true;
+            } else {
+                this.view.children[i].filters[0].enabled = false;
+            }
+        }
     }
     private resize() {
         if(this.list.length > 8) {
@@ -133,6 +146,9 @@ class HandUI {
         this.resize();
         let children_to_move = this.view.children.slice(this.view.children.length - 1);
         let goal_x = children_to_move[0].x + this.card_gap;
+
+        let filter = new Filters.GlowFilter(20, 1, 2, getPlayerColor(card.owner, true), 0.5);
+        card_ui.filters = [filter];
 
         await this.move(children_to_move, goal_x);
         this.view.addChildAt(card_ui, index);
