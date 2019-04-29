@@ -26,9 +26,8 @@ export default class S extends Spell {
         this.data.target = await this.g_master.selecter.promptUI("指定施放者")
         .selectCard(this.owner, this, {
             guard: TypeGaurd.isCharacter,
-            stat: CardStat.Onboard
-        }, c => {
-            return c.char_status == CharStat.InWar;
+            stat: CardStat.Onboard,
+            char_stat: CharStat.InWar
         });
         if(this.data.target) {
             return this.my_master.checkCanPlay(this);

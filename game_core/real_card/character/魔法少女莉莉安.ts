@@ -25,8 +25,10 @@ export default class C2 extends Character implements ICharacter {
         let evt = await this.g_master.selecter.selectCard(this.owner, this, {
             guard: TypeGaurd.isEvent,
             owner: this.owner,
-        }, evt => {
-            return (evt.is_finished && evt.score >= 2);
+            is_finished: true,
+            check: e => {
+                return e.score >= 2;
+            }
         });
 
         if(evt == null) {

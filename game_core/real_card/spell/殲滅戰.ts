@@ -25,8 +25,9 @@ export default class S extends Spell {
     async initialize() {
         this.data.war_field = await this.g_master.selecter.selectCard(this.owner, this, {
             guard: TypeGaurd.isArena,
-        }, arena => {
-            return this.g_master.w_master.checkCanDeclare(this.owner, arena);
+            check: arena => {
+                return this.g_master.w_master.checkCanDeclare(this.owner, arena);
+            }
         });
 
         if(this.data.war_field) {

@@ -27,12 +27,8 @@ export default class U extends Upgrade {
                         owner: this.owner,
                         must_have_value: true
                     });
-                    if(to_discard) {
-                        let known = await this.g_master.exposeCard(to_discard);
-                        await this.my_master.exileCard(known);
-                    } else {
-                        throw new BadOperationError("未選擇棄牌");
-                    }
+                    let known = await this.g_master.exposeCard(to_discard);
+                    await this.my_master.exileCard(known);
                 }
             }
         });

@@ -70,8 +70,8 @@ export class TestSelecter implements ISelecter {
         caller: IKnownCard[]|IKnownCard|null,
         conf: SelectConfig<T>,
         check=(card: T) => true
-    ) {
-        return null;
+    ): Promise<T> {
+        throw "Not implemented!";
     }
 
     public async selectCard<T extends ICard>(player: Player,
@@ -89,7 +89,7 @@ export class TestSelecter implements ISelecter {
         if(res) {
             return res[0];
         } else {
-            return null;
+            throw "不夠選了";
         }
     }
     public async selectText(player: Player, caller: IKnownCard|null, text: string[]) {
@@ -98,10 +98,10 @@ export class TestSelecter implements ISelecter {
     public async selectConfirm(player: Player, caller: IKnownCard|null, msg: string) {
         return true;
     }
-    cancelUI(msg?: string) {
+    cancelUI(msg?: string|null) {
         return this;
     }
-    promptUI(msg: string) {
+    promptUI(msg: string|null) {
         return this;
     }
 }

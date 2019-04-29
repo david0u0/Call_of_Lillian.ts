@@ -238,21 +238,53 @@ class UnknownCard extends Card implements ICard {
     public readonly card_type = CardType.Unknown;
 }
 
-type SelectConfig<T extends ICard> = {
+type Caller = IKnownCard | IKnownCard[] | null;
+type _SelectBasicConfig<T extends ICard, F extends true | undefined = undefined> = {
     guard: (c: ICard) => c is T,
+    check?: (c: T) => boolean,
     stat?: CardStat,
     owner?: Player,
-    must_have_value?: boolean
-}
+    must_have_value?: F
+};
+type _SelectCharConfig<F extends true | undefined>
+    = _SelectBasicConfig<ICharacter, F> & { is_tired?: boolean, char_stat?: CharStat };
+type _SelectEventConfig<F extends true | undefined>
+    = _SelectBasicConfig<IEvent, F> & { is_finished?: boolean };
+
+type _SelectConfig<T extends ICard, F extends true | undefined> = _SelectBasicConfig<T, F> & {
+    is_tired?: boolean
+    char_stat?: CharStat,
+    is_finished?: boolean,
+};
+type SelectConfig<T extends ICard> = _SelectConfig<T, true> | _SelectConfig<T, undefined>;
+
+type _SelectBasic = <T extends ICard>
+(p: Player, caller: Caller, conf: _SelectBasicConfig<T>)
+    => Promise<T | null>;
+type _SelectBasicForceValue = <T extends ICard>
+(p: Player, caller: Caller, conf: _SelectBasicConfig<T, true>)
+    => Promise<T>;
+
+type _SelectChar<N extends null | ICharacter, F extends true | undefined>
+    = (p: Player, caller: Caller, conf: _SelectCharConfig<F>)
+        => Promise<ICharacter | N>;
+type _SelectEvt<N extends null | IEvent, F extends true | undefined>
+    = (p: Player, caller: Caller, conf: _SelectEventConfig<F>)
+        => Promise<IEvent | N>;
+
+type _SelectCard = _SelectChar<null, undefined>
+    & _SelectEvt<null, undefined>
+    & _SelectBasic;
+
+type _SelectCardForceValue = _SelectChar<ICharacter, true>
+    & _SelectEvt<IEvent, true>
+    & _SelectBasicForceValue;
+
+type SelectCard = _SelectCard & _SelectCardForceValue;
+
 interface ISelecter {
-    selectCard<T extends ICard>(player: Player,
-        caller: IKnownCard|IKnownCard[]|null,
-        conf: SelectConfig<T>,
-        check?: (card: T) => boolean): Promise<T | null>;
-    selectCardInteractive<T extends ICard>(player: Player,
-        caller: ICard|ICard[]|null,
-        conf: SelectConfig<T>,
-        check?: (card: T) => boolean): Promise<T | null>;
+    selectCard: SelectCard,
+    selectCardInteractive: SelectCard,
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     selectConfirm(player: Player, caller: IKnownCard|null, msg: string): Promise<boolean>;
     setCardTable(table: { [index: number]: ICard }): void;

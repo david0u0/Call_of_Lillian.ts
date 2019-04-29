@@ -164,10 +164,11 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
         .selectCard(this.owner, this, {
             guard: TG.isCharacter,
             owner: this.owner,
-        }, char => {
-            this.data.character_equipped = char;
-            let can_play = this.my_master.checkCanPlay(this);
-            return can_play;
+            check: char => {
+                this.data.character_equipped = char;
+                let can_play = this.my_master.checkCanPlay(this);
+                return can_play;
+            }
         });
         if(char) {
             this.data.character_equipped = char;
@@ -295,9 +296,10 @@ abstract class Arena extends KnownCard implements IArena {
         .selectCard(this.owner, this, {
             guard: TG.isArena,
             owner: this.owner,
-        }, arena => {
-            this.data.position = arena.data.position;
-            return this.my_master.checkCanPlay(this);
+            check: arena => {
+                this.data.position = arena.data.position;
+                return this.my_master.checkCanPlay(this);
+            }
         });
         if(old_arena) {
             this.data.position = old_arena.data.position;
@@ -325,22 +327,22 @@ abstract class Event extends KnownCard implements IEvent {
 
     public readonly push_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
-        let chain = new ActionChain<ICharacter|null>();
+        let chain = new ActionChain<ICharacter | null>();
         chain.appendCheck((t, char) => {
             return { var_arg: this.checkCanPush(char) };
         }, undefined, RuleEnums.CustomPushCheck);
         return chain;
     })();
-    
-    public readonly get_push_cost_chain = new GetterChain<number, ICharacter|null>();
-    public readonly fail_chain = new ActionChain<null>();
-    public readonly finish_chain = new ActionChain<ICharacter|null>();
 
-    public abstract checkCanPush(char: ICharacter|null): boolean;
-    public abstract onPush(char: ICharacter|null): Promise<void>|void;
-    public abstract onFinish(char: ICharacter|null): Promise<void>|void;
+    public readonly get_push_cost_chain = new GetterChain<number, ICharacter | null>();
+    public readonly fail_chain = new ActionChain<null>();
+    public readonly finish_chain = new ActionChain<ICharacter | null>();
+
+    public abstract checkCanPush(char: ICharacter | null): boolean;
+    public abstract onPush(char: ICharacter | null): Promise<void> | void;
+    public abstract onFinish(char: ICharacter | null): Promise<void> | void;
     public onFail() { }
-    public abstract setupFinishEffect(char: ICharacter|null): void;
+    public abstract setupFinishEffect(char: ICharacter | null): void;
 
 
     public push() {
@@ -395,10 +397,8 @@ abstract class Spell extends KnownCard implements ISpell {
             let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施術者")
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,
-                owner: this.owner
-            }, c => {
-                return c.char_status == CharStat.StandBy
-                    && c.is_tired == false;
+                owner: this.owner,
+                is_tired: false,
             });
             if(c) {
                 let cancel = false;
@@ -406,7 +406,7 @@ abstract class Spell extends KnownCard implements ISpell {
                     if(card.isEqual(c)) {
                         this.data.casters = [
                             ...this.data.casters.slice(0, i),
-                            ...this.data.casters.slice(i+1)
+                            ...this.data.casters.slice(i + 1)
                         ];
                         cancel = true;
                         break;

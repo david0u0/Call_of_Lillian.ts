@@ -24,14 +24,15 @@ export default class S extends Spell {
         let char_can_select = this.enemy_master.getAll(TypeGaurd.isCharacter, ch => {
             return this.my_master.getStrength(caster) <= this.enemy_master.getStrength(ch);
         });
-        let e_char: ICharacter | null = null;
+        let e_char: ICharacter | null;
         if(char_can_select.length > 0) { // 由對手選
             e_char = await this.g_master.selecter.selectCardInteractive(enemy, [this, caster], {
                 guard: TypeGaurd.isCharacter,
                 owner: enemy,
                 must_have_value: true,
-            }, char => {
-                return this.my_master.getStrength(caster) <= this.enemy_master.getStrength(char);
+                check: char => {
+                    return this.my_master.getStrength(caster) <= this.enemy_master.getStrength(char);
+                }
             });
         } else { // 由我選
             e_char = await this.g_master.selecter.selectCard(this.owner, [this, caster], {

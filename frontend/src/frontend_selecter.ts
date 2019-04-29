@@ -24,7 +24,7 @@ export default class FrontendSelecter implements ISelecter {
     
     private resolve_card: (arg: CardLike|PromiseLike<CardLike>) => void = null;
     private card_table: { [index: number]: ICard } = {};
-    private filter_func: (c: IKnownCard) => boolean;
+    private filter_func: (c: ICard) => boolean;
     private lines: PIXI.Graphics[] = [];
     private cancel_btn = new StackableBtn();
 
@@ -158,8 +158,7 @@ export default class FrontendSelecter implements ISelecter {
         });
     }
     selectCard<T extends ICard>(player: Player, caller: IKnownCard|IKnownCard[]|null,
-        conf: SelectConfig<T>,
-        check=(card: T) => true
+        conf: SelectConfig<T>
     ): Promise<T | null> {
         if(this.selecting == SelectState.Btn) {
             this.cancel_btn.stackBtn();
@@ -183,7 +182,22 @@ export default class FrontendSelecter implements ISelecter {
                     && (typeof(conf.owner) == "undefined" || card.owner == conf.owner)
                     && card.card_status == conf.stat
                 ) {
-                    return check(card);
+                    if(TypeGaurd.isCharacter(card)) {
+                        if(typeof conf.is_tired != "undefined" && card.is_tired != conf.is_tired) {
+                            return false;
+                        } else if(typeof conf.char_stat!= "undefined" && card.char_status != conf.char_stat) {
+                            return false;
+                        }
+                    } else if(TypeGaurd.isEvent(card)) {
+                        if(typeof conf.is_finished != "undefined" && card.is_finished != conf.is_finished) {
+                            return false;
+                        }
+                    }
+                    if(conf.check) {
+                        return conf.check(card);
+                    } else {
+                        return true;
+                    }
                 } else {
                     return false;
                 }
@@ -218,10 +232,9 @@ export default class FrontendSelecter implements ISelecter {
 
     selectCardInteractive<T extends ICard>(player: Player,
         caller: IKnownCard | IKnownCard[], conf: SelectConfig<T>,
-        check=(card: T) => true
     ): Promise<T | null> {
         // FIXME: 
-        return this.selectCard(player, caller, conf, check);
+        return this.selectCard(player, caller, conf);
     }
 
     /**

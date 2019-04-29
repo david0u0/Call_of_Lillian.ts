@@ -232,8 +232,7 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                     selecter.setInitPos(x, y);
                     let arena = await selecter.selectCard(player, null, {
                         guard: TG.isArena,
-                    }, a => {
-                        return gm.w_master.checkCanDeclare(player, a);
+                        check: a => gm.w_master.checkCanDeclare(player, a)
                     });
                     if(arena) {
                         await gm.w_master.declareWar(player, arena, true);
