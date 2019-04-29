@@ -58,22 +58,6 @@ interface IKnownCard extends ICard {
     /** 記憶與恢復變數，理論上只有前端會用到（因為後端檢查沒過會直接爆錯） */
     rememberDatas(): void;
     recoverDatas(): void;
-
-    /**
-     * 創造一個新的規則，接上某條規則鏈。當 this 這張卡牌死亡時，該規則也會失效。
-     * @param append 若為真就接在尾巴，為否就接在開頭
-     * @param chain 欲接上的那條規則鏈
-     * @param func 欲接上的規則
-     */
-    addGetterWhileAlive<T, U>(append: boolean, chain: GetterChain<T, U>[]|GetterChain<T, U>,
-        func: GetterFunc<T, U>): void;
-
-    addCheckWhileAlive<U>(append: boolean, chain: ActionChain<U>[]|ActionChain<U>,
-        func: GetterFunc<boolean, U>): void
-
-    addActionWhileAlive<U>(append: boolean, chain: ActionChain<U>[]|ActionChain<U>,
-        func: ActionFunc<U>): void
-
 }
 interface ICharacter extends IKnownCard { };
 interface IUpgrade extends IKnownCard { };
@@ -288,6 +272,9 @@ interface ISelecter {
     selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
     selectConfirm(player: Player, caller: IKnownCard|null, msg: string): Promise<boolean>;
     setCardTable(table: { [index: number]: ICard }): void;
+    /** 
+     * @param msg 若為 null 代表不顯示取消的UI，隨處點擊即可取消
+     */
     cancelUI(msg?: string|null): ISelecter;
     promptUI(msg: string|null): ISelecter;
 }

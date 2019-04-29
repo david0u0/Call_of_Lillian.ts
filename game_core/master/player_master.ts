@@ -105,6 +105,11 @@ export class PlayerMaster {
                 return { var_arg: false };
             }
         });
+        this.check_before_play_chain.append((before, card) => {
+            if(this.mana < this.getManaCost(card)) {
+                return { var_arg: false };
+            }
+        }, undefined, RuleEnums.CheckPriceBeforePlay);
         t_master.start_building_chain.append(async () => {
             // 所有角色解除疲勞並離開場所
             for(let char of this.characters) {
@@ -140,17 +145,14 @@ export class PlayerMaster {
         });
         this.incited_chain.appendCheck(() => {
             if(this.emo < C.INCITE_EMO) {
-                throwIfIsBackend("情緒還不夠就想煽動我？");
-                return { var_arg: false };
+                return { var_arg: "情緒還不夠就想煽動我？" };
             } else if(this.t_master.cur_phase != GamePhase.InAction) {
-                throwIfIsBackend("只能在主階段行動中執行煽動");
-                return { var_arg: false };
+                return { var_arg: "只能在主階段行動中執行煽動" };
             }
         });
         this.release_chain.appendCheck(() => {
             if(this.t_master.cur_phase != GamePhase.InAction) {
-                throwIfIsBackend("只能在主階段行動中執行釋放");
-                return { var_arg: false };
+                return { var_arg: "只能在主階段行動中執行釋放" };
             }
 
         });
@@ -292,9 +294,8 @@ export class PlayerMaster {
         if(this.t_master.cur_player != this.player) {
             return false;
         }
-        let can_play = this.mana >= this.getManaCost(card);
         return this.check_before_play_chain.chain(card.check_before_play_chain, null)
-        .trigger(can_play, card);
+        .trigger(true, card);
     }
     checkCanPlay(card: IKnownCard) {
         if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
@@ -315,6 +316,7 @@ export class PlayerMaster {
         card.rememberDatas();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
             card.recoverDatas();
+            throwIfIsBackend("出牌過程取消");
             return false;
         }
         // 支付代價

@@ -45,6 +45,7 @@ abstract class KnownCard extends Card implements IKnownCard {
     public setupAliveEffect() { }
     public onRetrieve() { }
 
+    protected prepare() { }
     constructor(public readonly seq: number, public readonly owner: Player,
         public readonly g_master: GameMaster
     ) {
@@ -52,6 +53,7 @@ abstract class KnownCard extends Card implements IKnownCard {
         this.my_master = g_master.getMyMaster(owner);
         this.enemy_master = g_master.getEnemyMaster(owner);
         this._mem_data = { ...this.data };
+        this.prepare();
     }
 
     public rememberDatas() {
@@ -91,7 +93,7 @@ abstract class KnownCard extends Card implements IKnownCard {
         }
     }
     addCheckWhileAlive<U>(append: boolean,
-        chain: ActionChain<U>[] | ActionChain<U>, func: GetterFunc<boolean, U>
+        chain: ActionChain<U>[] | ActionChain<U>, func: GetterFunc<string | false, U>
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
@@ -329,7 +331,9 @@ abstract class Event extends KnownCard implements IEvent {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
         let chain = new ActionChain<ICharacter | null>();
         chain.appendCheck((t, char) => {
-            return { var_arg: this.checkCanPush(char) };
+            if(!this.checkCanPush(char)) {
+                return { var_arg: "不符合推進條件" };
+            }
         }, undefined, RuleEnums.CustomPushCheck);
         return chain;
     })();
@@ -392,8 +396,8 @@ abstract class Spell extends KnownCard implements ISpell {
 
     public async initialize(): Promise<boolean> {
         while(true) {
-            let cancel_ui = (this.min_caster == 1 && this.max_caster == 1) ? null : undefined;
             let caller = [this, ...this.data.casters];
+            let cancel_ui = (this.data.casters.length < this.min_caster) ? null : "施放";
             let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施術者")
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,

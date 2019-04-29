@@ -37,6 +37,8 @@ export enum RuleEnums {
     CustomPushCheck,
     PunishOnFail,
     EndGameAfterFinish,
+
+    CheckPriceBeforePlay,
     
     Possessed,
     Beyond,

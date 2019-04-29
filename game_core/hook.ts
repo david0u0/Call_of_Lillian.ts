@@ -100,7 +100,7 @@ type CallBack = (() => void)|(() => Promise<void>);
 
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
-    private check_chain = new GetterChain<boolean, U>();
+    private check_chain = new GetterChain<string | boolean, U>();
 
     public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
         let h = { func, isActive, id };
@@ -114,11 +114,27 @@ class ActionChain<U> {
         let h = { func, isActive, is_default: true };
         this.action_list.push(h);
     }
-    public appendCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
-        this.check_chain.append(func, isActive, id);
+
+    private _err_msg = "";
+    public appendCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
+        this.check_chain.append((var_arg, const_arg) => {
+            if(typeof var_arg == "boolean" && var_arg) {
+                return func(false, const_arg);
+            } else if(typeof var_arg == "string") {
+                this._err_msg = var_arg;
+            }
+            return { break_chain: true };
+        }, isActive, id);
     }
-    public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
-        this.check_chain.dominant(func, isActive, id);
+    public dominantCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
+        this.check_chain.dominant((var_arg, const_arg) => {
+            if(typeof var_arg == "boolean" && var_arg) {
+                return func(false, const_arg);
+            } else if(typeof var_arg == "string") {
+                this._err_msg = var_arg;
+            }
+            return { break_chain: true };
+        }, isActive, id);
     }
     public async triggerFullResult(const_arg: U): Promise<{
         intercept_effect: boolean,
@@ -165,8 +181,15 @@ class ActionChain<U> {
         }
         return { intercept_effect, after_effect, mask_id };
     }
+    public get err_msg() { return this._err_msg; }
     public checkCanTrigger(const_arg: U) {
-        return this.check_chain.trigger(true, const_arg);
+        let res = this.check_chain.trigger(true, const_arg);
+        if(typeof res == "string") {
+            this._err_msg = res;
+            return false;
+        } else {
+            return true;
+        }
     }
     /**
      * 注意！！

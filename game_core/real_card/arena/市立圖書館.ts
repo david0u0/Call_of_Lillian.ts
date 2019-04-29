@@ -9,8 +9,8 @@ let description = "使用：2魔力->抽兩張牌，接著放逐一張手牌。"
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
-    basic_mana_cost = 3;
-    basic_exploit_cost = 2;
+    basic_mana_cost = 2;
+    basic_exploit_cost = 1;
 
     async onExploit(char: ICharacter|Player) {
         let caller: Array<IKnownCard> = [this];
