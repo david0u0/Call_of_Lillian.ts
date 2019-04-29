@@ -15,11 +15,13 @@ type GetterHook<T, U> = {
     func: GetterFunc<T, U>;
     id?: number;
 };
+type AfterEffectFunc = () => void | Promise<void>
+type AfterEffectObj = { func: AfterEffectFunc, id: number } | AfterEffectFunc;
 type ActionResult = {
-    intercept_effect?: boolean
-    after_effect?: (() => void|Promise<void>)|Array<() => void|Promise<void>>,
+    intercept_effect?: boolean,
+    after_effect?: AfterEffectFunc,
     break_chain?: boolean,
-    mask_id?: { [id: number]: boolean } | number
+    mask_id?: number | { [id: number]: boolean }
 };
 type ActionFunc<U>
     = (const_arg: U) => void | ActionResult | Promise<ActionResult|void>
@@ -118,8 +120,12 @@ class ActionChain<U> {
     public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
         this.check_chain.dominant(func, isActive, id);
     }
-    public async triggerFullResult(const_arg: U): Promise<ActionResult> {
-        let after_effect = new Array<() => void|Promise<void>>();
+    public async triggerFullResult(const_arg: U): Promise<{
+        intercept_effect: boolean,
+        mask_id: { [id: number]: boolean },
+        after_effect: AfterEffectObj[]
+    }> {
+        let after_effect = new Array<AfterEffectObj>();
         let break_chain = false;
         let intercept_effect = false;
         let mask_id: { [id: number]: boolean } = {};
@@ -131,10 +137,11 @@ class ActionChain<U> {
                     let result = await Promise.resolve(_result);
                     if(result) {
                         if(result.after_effect) {
-                            if(result.after_effect instanceof Array) {
-                                after_effect = [...after_effect, ...result.after_effect];
+                            let effect = result.after_effect;
+                            if(typeof hook.id != "undefined") {
+                                after_effect.push({ func: effect, id: hook.id });
                             } else {
-                                after_effect.push(result.after_effect);
+                                after_effect.push(effect);
                             }
                         }
                         if(result.break_chain) {
@@ -156,7 +163,7 @@ class ActionChain<U> {
                 }
             }
         }
-        return { intercept_effect, break_chain, after_effect, mask_id };
+        return { intercept_effect, after_effect, mask_id };
     }
     public checkCanTrigger(const_arg: U) {
         return this.check_chain.trigger(true, const_arg);
@@ -185,7 +192,11 @@ class ActionChain<U> {
             }
             if(res.after_effect instanceof Array) {
                 for(let effect of res.after_effect) {
-                    await Promise.resolve(effect());
+                    if(typeof effect == "function") {
+                        await Promise.resolve(effect());
+                    } else if(!(effect.id in res.mask_id)) {
+                        await Promise.resolve(effect.func());
+                    }
                 }
             } else {
                 throw throwDebugError("後期作用不知為何竟然不是個陣列");
