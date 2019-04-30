@@ -23,7 +23,7 @@ export default class E extends Event implements IEvent {
 
     setupAliveEffect() {
         // 插入一條沒有id的規則，使它無法被屏蔽。
-        this.push_chain.appendCheck(() => {
+        this.add_progress_chain.appendCheck(() => {
             return { var_arg: false };
         });
 

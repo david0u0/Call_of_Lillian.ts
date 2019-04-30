@@ -1,4 +1,4 @@
-import { GamePhase, CardStat } from "../../enums";
+import { GamePhase, CardStat, RuleEnums } from "../../enums";
 import { Spell } from "../../cards";
 import { ICharacter, TypeGaurd } from "../../interface";
 import { GetterChain } from "../../hook";
@@ -15,17 +15,15 @@ export default class S extends Spell {
     max_caster = 4;
     min_caster = 1;
 
-    check_before_play_chain = (() => {
-        let chain = new GetterChain<boolean, null>();
-        chain.append((b, n) => {
+    prepare() {
+        this.my_master.check_before_play_chain.dominant(() => {
             let casters_may_be = this.getMaybeCasters();
             if(this.my_master.mana >= this.basic_mana_cost - casters_may_be.length * 2) {
                 // 極限狀況下是放得出來的
-                return { var_arg: true };
+                return { mask_id: RuleEnums.CheckPriceBeforePlay };
             }
         });
-        return chain;
-    })();
+    }
 
     get_mana_cost_chain = (() => {
         let chain = new GetterChain<number, null>();

@@ -35,14 +35,12 @@ export class SoftRule {
                     && card.data.character_equipped.char_status != CharStat.StandBy
                 ) {
                     // 指定的角色不在待命區
-                    throwIfIsBackend("指定的角色不在待命區", card);
-                    return { var_arg: false };
+                    return { var_arg: "指定的角色不在待命區" };
                 }
             } else if(TG.isCharacter(card)) {
                 if(getCharQuota() == 0) {
                     // 一回合打出的角色超過上限
-                    throwIfIsBackend("一回合打出的角色超過上限", card);
-                    return { var_arg: false };
+                    return { var_arg: "一回合打出的角色超過上限" };
                 }
             }
         });
@@ -68,17 +66,13 @@ export class SoftRule {
     public checkEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>) {
         enter_chain.appendCheck((can_enter, { arena, char }) => {
             if(this.getPhase() != GamePhase.InAction) {
-                throwIfIsBackend("只能在主階段的行動時移動");
-                return { var_arg: false };
+                return { var_arg: "只能在主階段的行動時移動"};
             } else if(char.char_status != CharStat.StandBy) {
-                throwIfIsBackend("在場所中的角色不能移動");
-                return { var_arg: false };
+                return { var_arg: "在場所中的角色不能移動"};
             } else if(char.is_tired) {
-                throwIfIsBackend("疲勞中的角色不能移動");
-                return { var_arg: false };
+                return { var_arg: "疲勞中的角色不能移動" };
             } else if(arena.find(null) == -1) {
-                throwIfIsBackend("場所中的角色不可超過上限");
-                return { var_arg: false };
+                return { var_arg: "場所中的角色不可超過上限"};
             }
         });
     }
@@ -95,31 +89,27 @@ export class SoftRule {
     public checkExploit(exploit_chain: ActionChain<{ arena: IArena, char: ICharacter | Player }>) {
         exploit_chain.appendCheck((t, { arena, char }) => {
             if(this.getPhase() != GamePhase.Exploit) {
-                throwIfIsBackend("只能在收獲階段使用場所");
-                return { var_arg: false };
+                return { var_arg: "只能在收獲階段使用場所" };
             } else if(TG.isCard(char)) {
                 if(!arena.isEqual(char.data.arena_entered)) {
-                    throwIfIsBackend("只能開發自身所在的場所");
-                    return { var_arg: false };
+                    return { var_arg: "只能開發自身所在的場所"};
                 }
             }
         });
     }
-    public checkPush(push_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>) {
-        push_chain.appendCheck((t, { char, event }) => {
+    public checkPush(
+        add_progress_chain: ActionChain<{ char: ICharacter | null, event: IEvent, n: number }>
+    ) {
+        add_progress_chain.appendCheck((t, { char, event }) => {
             if(this.getPhase() != GamePhase.InAction) {
-                throwIfIsBackend("只能在主階段行動時推進事件");
-                return { var_arg: false };
+                return { var_arg: "只能在主階段行動時推進事件"};
             } else if(event.cur_progress_count >= event.goal_progress_count) {
-                throwIfIsBackend("不可推進已達目標的事件");
-                return { var_arg: false };
+                return { var_arg: "不可推進已達目標的事件"};
             } else if(TG.isCard(char) && char.is_tired) {
                 if(char.is_tired) {
-                    throwIfIsBackend("不可用疲勞的角色來推進");
-                    return { var_arg: false };
+                    return { var_arg: "不可用疲勞的角色來推進" };
                 } else if(char.char_status != CharStat.StandBy) {
-                    throwIfIsBackend("只可用待命中的角色來推進");
-                    return { var_arg: false };
+                    return { var_arg: "只可用待命中的角色來推進" };
                 }
             }
         });

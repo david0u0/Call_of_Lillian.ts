@@ -2,11 +2,14 @@ import * as PIXI from "pixi.js";
 import { getEltSize } from "./get_constant";
 import { drawCard, drawCardFace } from "./draw_card";
 import { my_loader } from "./card_loader";
-import { Player } from "../../game_core/enums";
+import { Player, CardStat } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
 import { IKnownCard, IEvent, TypeGaurd } from "../../game_core/interface";
+
+let { ew, eh } = getEltSize();
+let W = 5.5 * ew;
 
 export class EventArea {
     public readonly view = new PIXI.Container();
@@ -16,7 +19,6 @@ export class EventArea {
     constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
         private showBigCard: ShowBigCard, private ticker: PIXI.ticker.Ticker
     ) {
-        let { ew, eh } = getEltSize();
         let mask = new PIXI.Graphics();
         mask.beginFill(0, 0.5);
         mask.drawRoundedRect(0, 0, 5.5 * ew, 15 * eh, 5);
@@ -44,60 +46,76 @@ export class EventArea {
         });
     }
     private addEventLoaded(card: IEvent) {
-        let { ew, eh } = getEltSize();
         let evt_ui = new PIXI.Container();
 
         let index = this.list.length;
         this.list.push(card);
 
         let card_face = drawCardFace(card, 2.5 * ew, 4 * eh, true);
-        card_face.x = (5.5 * ew - card_face.width) / 2;
+        card_face.x = (W - card_face.width) / 2;
 
         let push_txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: ew * 0.8,
             fill: 0xffffff
         }));
 
-        let countdown_txt = new PIXI.Text("", new PIXI.TextStyle({
-            fontSize: ew * 0.8,
-            fill: 0xffffff
-        }));
-
         push_txt.anchor.set(1, 0.5);
         push_txt.position.set(card_face.x, card_face.height / 4);
-        countdown_txt.anchor.set(0, 0.5);
-        countdown_txt.position.set(card_face.width + card_face.x, card_face.height / 4);
 
         let push_img = new PIXI.Sprite(PIXI.loader.resources["goal_prompt"].texture);
         push_img.anchor.set(0.5, 0.5);
         push_img.scale.set(0.8 * ew / push_img.width);
         push_img.alpha = 0.8;
 
-        let countdown_img = new PIXI.Sprite(PIXI.loader.resources["countdown_prompt"].texture);
-        countdown_img.anchor.set(0.5, 0.5);
-        countdown_img.scale.set(0.8 * ew / countdown_img.width);
-        countdown_img.alpha = 0.8;
-        let updateTxt = () => {
+        let updateProgressUI = () => {
             push_txt.text = `${card.cur_progress_count}/${card.goal_progress_count}`;
-            countdown_txt.text = card.cur_time_count.toString();
             push_img.position.set(push_txt.x - push_txt.width/2, push_txt.y);
-            countdown_img.position.set(countdown_txt.x+countdown_txt.width/2, countdown_txt.y);
         };
-        updateTxt();
-        this.gm.acf.setAfterEffect(() => updateTxt());
-        let destroy_big: () => void = null;
+        let countdown_texture = PIXI.loader.resources["countdown_prompt"].texture;
+        let countdown_area = new PIXI.Container();
+        countdown_area.x = card_face.x + card_face.width;
+        let size = (W - card_face.width - card_face.x) / 3.2;
+        let updateCountdownUI = () => {
+            for(let img of [...countdown_area.children]) {
+                img.destroy();
+            }
+            let count = card.cur_time_count;
+            let [rest, n_ver] = [count % 3, Math.floor(count / 3)];
+            let draw_img = (i: number, j: number) => {
+                let img = new PIXI.Sprite(countdown_texture);
+                img.width = img.height = size;
+                img.position.x = j * size;
+                img.position.y = i * size;
+                countdown_area.addChild(img);
+            };
+            for(let i = 0; i < n_ver; i++) {
+                for(let j = 0; j < 3; j++) {
+                    draw_img(i, j);
+                }
+            }
+            for(let j = 0; j < rest; j++) {
+                draw_img(n_ver, j);
+            }
+        };
+        updateProgressUI();
+        updateCountdownUI();
+        card.add_progress_chain.append(() => {
+            return {
+                after_effect: () => updateProgressUI()
+            };
+        }, () => card.card_status == CardStat.Onboard);
+        card.add_countdown_chain.append(() => {
+            return {
+                after_effect: () => updateCountdownUI()
+            };
+        }, () => card.card_status == CardStat.Onboard);
+
         card.finish_chain.appendDefault(() => {
             return { after_effect: () => this.finishEvent(card, destroy_big) };
         });
         card.card_leave_chain.appendDefault(() => {
             return { after_effect: () => this.removeEvent(card, destroy_big) };
         });
-
-        evt_ui.addChild(push_img);
-        evt_ui.addChild(countdown_img);
-        evt_ui.addChild(card_face);
-        evt_ui.addChild(push_txt);
-        evt_ui.addChild(countdown_txt);
 
         card_face.interactive = true;
         card_face.cursor = "pointer";
@@ -108,6 +126,7 @@ export class EventArea {
                 // NOTE: 沒事應該不會去點事件卡 吧？
             }
         });
+        let destroy_big: () => void = null;
         card_face.on("mouseover", () => {
             destroy_big = this.showBigCard(
                 card_face.worldTransform.tx + card_face.width / 2,
@@ -119,6 +138,10 @@ export class EventArea {
             }
         });
 
+        evt_ui.addChild(push_img);
+        evt_ui.addChild(card_face);
+        evt_ui.addChild(push_txt);
+        evt_ui.addChild(countdown_area);
         evt_ui.y = 0.7 * evt_ui.height * index;
         this.event_view.addChild(evt_ui);
     }
