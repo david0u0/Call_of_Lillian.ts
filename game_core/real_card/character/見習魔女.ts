@@ -22,7 +22,7 @@ export default class C extends Character {
         canTrigger: () => {
             return !this.is_tired && this.char_status == CharStat.StandBy;
         },
-        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit, GamePhase.InWar],
+        can_play_phase: [GamePhase.Any],
         instance: true
     }];
 }

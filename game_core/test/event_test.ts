@@ -8,6 +8,16 @@ import { ICharacter, IEvent, IArena } from "../interface";
 import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad_operation";
 import { TestSelecter, genFunc } from "./mocking_tools";
 
+import H from "../real_card/arena/M市立綜合醫院";
+
+function genHospital(owner: Player, gm: GameMaster, pos: number) {
+    return () => {
+        let arena = new H(-1, owner, gm);
+        arena.data.position = pos;
+        return arena;
+    };
+}
+
 let p1 = Player.Player1;
 let p2 = Player.Player2;
 
@@ -84,8 +94,8 @@ describe("測試事件卡功能", () => {
         beforeEach(async () => {
             event = await gm.genCardToHand(p1, "緊急醫療") as IEvent;
             await pm.playCard(event);
-            hospital = await gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
-            e_hospital = await gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
+            hospital = await gm.genCardToBoard(p1, genHospital(p1, gm, 3));
+            e_hospital = await gm.genCardToBoard(p2, genHospital(p2, gm, 3));
         });
         it("進入醫院前應該無法推進", async () => {
             await checkBadOperationErrorAsync(async () => {

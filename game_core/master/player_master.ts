@@ -99,8 +99,9 @@ export class PlayerMaster {
         this.check_before_play_chain.append((b, card) => {
             if(this.t_master.cur_phase == GamePhase.Setup) {
                 return { var_arg: true, break_chain: true };
-            }
-            if(card.can_play_phase.indexOf(this.t_master.cur_phase) == -1) {
+            } else if(card.can_play_phase.indexOf(GamePhase.Any) == -1
+                && card.can_play_phase.indexOf(this.t_master.cur_phase) == -1
+            ) {
                 // 如果現在不是能打該牌的階段，就不讓他打
                 return { var_arg: false };
             }
@@ -337,9 +338,9 @@ export class PlayerMaster {
         }
     }
     /** 會跳過大多數的檢查、設置、代價與行動鏈 */
-    public readonly add_card_chain = this.acf.new<IKnownCard>();
+    public readonly set_to_board_chain = this.acf.new<IKnownCard>();
     public async dangerouslySetToBoard(card: IKnownCard) {
-        await this.add_card_chain.trigger(card, async () => {
+        await this.set_to_board_chain.trigger(card, async () => {
             if(TG.isUpgrade(card)) {
                 // 把這件升級加入角色的裝備欄
                 if(card.data.character_equipped) {
@@ -393,7 +394,8 @@ export class PlayerMaster {
     }
 
     /** 當角色離開板面，不論退場還是放逐都會呼叫本函式。 */
-    private async _leaveCard(card: IKnownCard) {
+    public readonly card_leave_chain = this.acf.new<{ card: ICard, stat: CardStat }>();
+    private async _leaveCard(card: IKnownCard, stat: CardStat) {
         if(TG.isCharacter(card)) {
             if(card.data.arena_entered) {
                 await this.exitArena(card);
@@ -408,7 +410,8 @@ export class PlayerMaster {
                 card.data.character_equipped.unsetUpgrade(card);
             }
         }
-        await card.card_leave_chain.trigger(null);
+        await this.card_leave_chain.chain(card.card_leave_chain, stat)
+        .trigger({ card, stat });
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
@@ -417,16 +420,16 @@ export class PlayerMaster {
             if(can_die) {
                 await chain.trigger(card, async () => {
                     card.card_status = CardStat.Retired;
-                    await this._leaveCard(card);
+                    await this._leaveCard(card, CardStat.Retired);
                 });
             }
         } else {
             throwDebugError("欲銷毀的卡牌不在場上", card);
         }
     }
-    async exileCard(card: IKnownCard) {
+    async exileCard(card: IKnownCard, stat = CardStat.Exile) {
         card.card_status = CardStat.Exile;
-        await this._leaveCard(card);
+        await this._leaveCard(card, stat);
     }
 
     readonly add_countdown_chain = this.acf.new<{ event: IEvent, n: number }>();

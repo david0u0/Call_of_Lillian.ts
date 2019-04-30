@@ -1,6 +1,8 @@
 import { Player } from "./enums";
 import { Constant } from "./general_rules";
 import { GameMaster } from "./master/game_master";
+import Dummy from "./real_card/arena/dummy_arena";
+import BasicHospital from "./real_card/arena/M市立綜合醫院";
 
 const basic_deck = [
     "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",
@@ -35,6 +37,21 @@ const basic_deck = [
 
 // TODO: 應該要把 Keeper 傳進來?
 
+function genDummy(gm: GameMaster, owner: Player, pos: number) {
+    return () => {
+        let arena = new Dummy(-1, owner, gm);
+        arena.data.position = pos;
+        return arena;
+    };
+}
+function genHospital(gm: GameMaster, owner: Player, pos: number) {
+    return () => {
+        let arena = new BasicHospital(-1, owner, gm);
+        arena.data.position = pos;
+        return arena;
+    };
+}
+
 export default async function initiateGame(gm: GameMaster, deck1: string[]|null, deck2: string[]|null) {
     let decks = [deck1, deck2];
     for(let p of [Player.Player1, Player.Player2]) {
@@ -51,17 +68,17 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
             }
         } else {
             for(let i = 0; i < Constant.DECK_COUNT; i++) {
-                gm.genUnknownToDeck(p);
+                gm.genCardToDeck(p);
             }
         }
-        await gm.genArenaToBoard(p, 0, Constant.DUMMY_NAME);
-        await gm.genArenaToBoard(p, 1, Constant.DUMMY_NAME);
-        await gm.genArenaToBoard(p, 2, "M市立綜合醫院");
-        await gm.genArenaToBoard(p, 3, Constant.DUMMY_NAME);
-        await gm.genArenaToBoard(p, 4, Constant.DUMMY_NAME);
+        await gm.genCardToBoard(p, genDummy(gm, p, 0));
+        await gm.genCardToBoard(p, genDummy(gm, p, 1));
+        await gm.genCardToBoard(p, genHospital(gm, p, 2));
+        await gm.genCardToBoard(p, genDummy(gm, p, 3));
+        await gm.genCardToBoard(p, genDummy(gm, p, 4));
 
-        await gm.genCharToBoard(p, "見習魔女");
-        await gm.genCharToBoard(p, "見習魔女");
+        await gm.genCardToBoard(p, "見習魔女");
+        await gm.genCardToBoard(p, "見習魔女");
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
             await pm.draw();

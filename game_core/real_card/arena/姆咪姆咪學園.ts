@@ -17,6 +17,6 @@ export default class A extends Arena implements IArena {
             caller.push(char);
         }
         let p = TypeGaurd.isCard(char) ? char.owner : char;
-        await this.g_master.genCharToBoard(p, "見習魔女");
+        await this.g_master.genCardToBoard(p, "見習魔女");
     }
 }

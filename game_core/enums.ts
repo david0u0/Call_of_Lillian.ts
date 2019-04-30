@@ -28,7 +28,9 @@ export enum GamePhase {
 
     Exploit,
 
-    EndGame
+    EndGame,
+
+    Any
 };
 
 export enum RuleEnums {

@@ -7,6 +7,8 @@ import { TimeMaster } from "./time_master";
 import { PlayerMaster } from "./player_master";
 import { WarMaster } from "./war_master";
 
+type KnownCardGenerator = (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard;
+
 export class GameMaster {
     private _cur_seq = 1;
     public readonly card_table: { [seq: number]: ICard } = {};
@@ -20,7 +22,7 @@ export class GameMaster {
     private p_master2: PlayerMaster;
 
     constructor(public readonly selecter: ISelecter,
-        private readonly genFunc: (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard
+        private readonly genFunc: KnownCardGenerator
     ) {
         this.p_master1 = new PlayerMaster(this.acf, Player.Player1, this.t_master, c => this.getMyMaster(c));
         this.p_master2 = new PlayerMaster(this.acf, Player.Player2, this.t_master, c => this.getMyMaster(c));
@@ -45,65 +47,69 @@ export class GameMaster {
         }
     }
 
-    genUnknownToDeck(owner: Player) {
-        let c = new UnknownCard(this._cur_seq++, owner);
+    private genCard<T extends IKnownCard>(stat: CardStat, owner: Player,
+        card_init: () => T): Promise<T>;
+    private genCard(stat: CardStat, owner: Player, name: string): Promise<IKnownCard>;
+    private genCard(stat: CardStat, owner: Player): Promise<UnknownCard>;
+    private async genCard<T extends IKnownCard>(stat: CardStat, owner: Player,
+        arg?: string | (() => T)
+    ) {
+        let c: IKnownCard | UnknownCard;
+        if(typeof arg == "undefined") {
+            c = new UnknownCard(this._cur_seq++, owner);
+        } else if(typeof arg == "string") {
+            c = this.genFunc(arg, owner, this._cur_seq++, this);
+        } else {
+            c = arg();
+            c.dangerouslySetSeq(this._cur_seq++);
+        }
         this.card_table[c.seq] = c;
-        this.getMyMaster(owner).addCard(c);
-    }
-    private genCard(owner: Player, name: string): IKnownCard {
-        let c = this.genFunc(name, owner, this._cur_seq++, this);
-        this.card_table[c.seq] = c;
-        return c;
-    }
-    genCardToDeck(owner: Player, name: string): IKnownCard {
-        let c = this.genCard(owner, name);
-        this.getMyMaster(owner).addCard(c);
-        return c;
-    }
-    async genCardToHand(owner: Player, name: string): Promise<IKnownCard> {
-        let c = this.genCard(owner, name);
-        c.card_status = CardStat.Hand;
+        c.card_status = stat;
         await this.getMyMaster(owner).addCard(c);
         return c;
     }
-    // 應該就一開始會用到而已 吧？
-    async genArenaToBoard(owner: Player, pos: number, name: string): Promise<IArena> {
-        let arena = this.genCard(owner, name);
-        if(TG.isArena(arena)) {
-            arena.card_status = CardStat.Onboard;
-            await this.getMyMaster(owner).addCard(arena);
-            arena.data.position = pos;
-            await this.getMyMaster(owner).dangerouslySetToBoard(arena);
-            return arena;
+
+    genCardToDeck(owner: Player, name: string): Promise<IKnownCard>;
+    genCardToDeck(owner: Player): Promise<UnknownCard>;
+    genCardToDeck(owner: Player, name?: string) {
+        if(name) {
+            return this.genCard(CardStat.Deck, owner, name);
         } else {
-            throw new BadOperationError("嘗試將非場所卡加入建築區");
+            return this.genCard(CardStat.Deck, owner);
         }
-    }
-    async genCharToBoard(owner: Player, name: string): Promise<ICharacter> {
-        let char = this.genCard(owner, name);
-        if(TG.isCharacter(char)) {
-            await this.getMyMaster(owner).addCard(char);
-            await this.getMyMaster(owner).dangerouslySetToBoard(char);
-            await this.getMyMaster(owner).changeCharTired(char, true);
-            return char;
-        } else {
-            throw new BadOperationError("嘗試將非角色卡加入角色區");
-        }
-    }
-    async genEventToBoard(owner: Player, name: string, is_finished: boolean): Promise<IEvent> {
-        let evt = this.genCard(owner, name);
-        if(TG.isEvent(evt)) {
-            await this.getMyMaster(owner).addCard(evt);
-            await this.getMyMaster(owner).dangerouslySetToBoard(evt);
-            if(is_finished) {
-                await this.getMyMaster(owner).finishEvent(null, evt);
-            }
-            return evt;
-        } else {
-            throw new BadOperationError("嘗試將非事件卡加入事件區");
-        }
+        
     }
 
+    genCardToHand(owner: Player, name: string): Promise<IKnownCard>;
+    genCardToHand(owner: Player): Promise<UnknownCard>;
+    async genCardToHand(owner: Player, name?: string) {
+        let c: IKnownCard | UnknownCard;
+        if(name) {
+            c = await this.genCard(CardStat.Hand, owner, name);
+        } else {
+            c = await this.genCard(CardStat.Hand, owner);
+        }
+        c.card_status = CardStat.Hand;
+        return c;
+    }
+
+    genCardToBoard(owner: Player, name: string): Promise<IKnownCard>;
+    genCardToBoard<T extends IKnownCard>(owner: Player, card_init: () => T): Promise<T>;
+    async genCardToBoard<T extends IKnownCard = IKnownCard>(
+        owner: Player, arg: string | (() => T)
+    ): Promise<IKnownCard> {
+        let card: IKnownCard;
+        if(typeof arg == "string") {
+            card = await this.genCard(CardStat.Onboard, owner, arg);
+        } else {
+            card = await this.genCard(CardStat.Onboard, owner, arg);
+        }
+        await this.getMyMaster(owner).dangerouslySetToBoard(card);
+        if(TG.isCharacter(card)) {
+            await this.getMyMaster(owner).changeCharTired(card, true);
+        }
+        return card;
+    }
     getMyMaster(arg: Player | ICard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);

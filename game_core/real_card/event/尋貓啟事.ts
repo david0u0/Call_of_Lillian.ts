@@ -1,5 +1,6 @@
 import { Event } from "../../cards";
 import { IEvent, ICharacter } from "../../interface";
+import { CardStat } from "../../enums";
 
 let name = "尋貓啟事";
 let description = "";
@@ -19,4 +20,12 @@ export default class E extends Event implements IEvent {
     onPush() { }
     onFinish() { }
     setupFinishEffect() { }
+    prepare() {
+        this.my_master.set_to_board_chain.append(() => {
+            this.my_master.finishEvent(null, this);
+        }, () => {
+            return this.card_status == CardStat.Onboard
+                && !this.is_finished;
+        });
+    }
 }

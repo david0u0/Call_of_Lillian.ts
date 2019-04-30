@@ -3,9 +3,10 @@ import { throwDebugError } from "./errors";
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
 
+const MASK_ALL = 1;
+
 type GetterResult<T> = {
     var_arg?: T,
-    break_chain?: boolean,
     mask_id?: number[] | number
 };
 type GetterFunc<T, U>
@@ -20,7 +21,6 @@ type AfterEffectObj = { func: AfterEffectFunc, id: number } | AfterEffectFunc;
 type ActionResult = {
     intercept_effect?: boolean,
     after_effect?: AfterEffectFunc,
-    break_chain?: boolean,
     mask_id?: number[] | number
 };
 type ActionFunc<U>
@@ -33,6 +33,8 @@ type ActionHook<U> = {
 };
 function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: number[]) {
     if(typeof(h.id) != "undefined" && mask_id.indexOf(h.id) != -1) {
+        return false;
+    } else if(mask_id.indexOf(MASK_ALL) != -1) {
         return false;
     } else {
         return h.isActive();
@@ -50,7 +52,6 @@ class GetterChain<T, U> {
         this.list = [h, ...this.list];
     }
     public triggerFullResult(var_arg: T, const_arg: U, mask_id: number[] = []) {
-        let break_chain = false;
         for(let hook of this.list) {
             if(checkActive(hook, mask_id)) {
                 let result = hook.func(var_arg, const_arg);
@@ -65,14 +66,10 @@ class GetterChain<T, U> {
                             mask_id.concat(result.mask_id);
                         }
                     }
-                    if(result.break_chain) {
-                        break_chain = true;
-                        break;
-                    }
                 }
             }
         }
-        return { var_arg, break_chain, mask_id };
+        return { var_arg, mask_id };
     }
     public trigger(var_arg: T, const_arg: U, mask_id: number[] = []) {
         return this.triggerFullResult(var_arg, const_arg, mask_id).var_arg;
@@ -120,7 +117,7 @@ class ActionChain<U> {
             } else if(typeof var_arg == "string") {
                 this._err_msg = var_arg;
             }
-            return { break_chain: true };
+            return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
         }, isActive, id);
     }
     public dominantCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
@@ -130,7 +127,7 @@ class ActionChain<U> {
             } else if(typeof var_arg == "string") {
                 this._err_msg = var_arg;
             }
-            return { break_chain: true };
+            return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
         }, isActive, id);
     }
     public async triggerFullResult(const_arg: U, mask_id: number[] = []): Promise<{
@@ -139,11 +136,10 @@ class ActionChain<U> {
         after_effect: AfterEffectObj[]
     }> {
         let after_effect = new Array<AfterEffectObj>();
-        let break_chain = false;
         let intercept_effect = false;
         for(let hook of this.action_list) {
-            // 如果是默認的事件，不會被 break_chain 影響
-            if(checkActive(hook, mask_id) && (!break_chain || hook.is_default)) {
+            // 如果是默認的事件，不會被 mask 影響
+            if(checkActive(hook, mask_id) || hook.is_default) {
                 let _result = hook.func(const_arg);
                 if(_result) {
                     let result = await Promise.resolve(_result);
@@ -156,9 +152,7 @@ class ActionChain<U> {
                                 after_effect.push(effect);
                             }
                         }
-                        if(result.break_chain) {
-                            break_chain = true;
-                        } else if(result.intercept_effect) {
+                        if(result.intercept_effect) {
                             intercept_effect = true;
                             break;
                         }
@@ -252,4 +246,4 @@ class ActionChain<U> {
     }
 }
 
-export { ActionChain, GetterChain, GetterFunc, ActionFunc };
+export { ActionChain, GetterChain, GetterFunc, ActionFunc, MASK_ALL };

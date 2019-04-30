@@ -40,7 +40,7 @@ export default class U extends Upgrade {
                 return false;
             }
         },
-        can_play_phase: [GamePhase.InAction, GamePhase.Building, GamePhase.Exploit, GamePhase.InWar],
+        can_play_phase: [GamePhase.Any],
         instance: true
     }];
 

@@ -387,7 +387,7 @@ export class CharUI {
         this.view.filters = [this.filter];
         this.filter.enabled = false;
 
-        gm.getMyMaster(char).add_card_chain.appendDefault(c => {
+        gm.getMyMaster(char).set_to_board_chain.appendDefault(c => {
             if(TG.isUpgrade(c) && char.isEqual(c.data.character_equipped) && this.active) {
                 this.registerUpgrade(c);
             }

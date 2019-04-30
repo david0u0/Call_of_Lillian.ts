@@ -34,7 +34,7 @@ export class CharArea {
         this.view.addChild(dummy);
 
         // 向主持人註冊事件
-        this.gm.getMyMaster(player).add_card_chain.appendDefault(card => {
+        this.gm.getMyMaster(player).set_to_board_chain.appendDefault(card => {
             if(TypeGaurd.isCharacter(card)) {
                 return { after_effect: () => this.addChar(card) };
             }
