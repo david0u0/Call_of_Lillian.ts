@@ -327,10 +327,11 @@ abstract class Event extends KnownCard implements IEvent {
 
     public is_finished = false;
 
-    public readonly push_chain = (() => {
+    public readonly add_countdown_chain = new ActionChain<number>();
+    public readonly add_progress_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
-        let chain = new ActionChain<ICharacter | null>();
-        chain.appendCheck((t, char) => {
+        let chain = new ActionChain<{ char: ICharacter | null, n: number }>();
+        chain.appendCheck((t, { char }) => {
             if(!this.checkCanPush(char)) {
                 return { var_arg: "不符合推進條件" };
             }

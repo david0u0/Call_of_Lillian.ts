@@ -71,7 +71,7 @@ export class PlayerMaster {
         let soft_rules = new SR(() => t_master.cur_phase);
         soft_rules.checkPlay(this.card_play_chain, () => this.char_quota);
         soft_rules.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
-        soft_rules.checkPush(this.push_chain);
+        soft_rules.checkPush(this.add_progress_chain);
         soft_rules.onFinish(this.finish_chain, this.retireCard.bind(this));
         soft_rules.onGetManaCost(this.get_mana_cost_chain, () => this.arenas);
         soft_rules.onGetEnterCost(this.get_enter_cost_chain);
@@ -185,7 +185,7 @@ export class PlayerMaster {
 
     public fail_chain = this.acf.new<IEvent>();
     public get_push_cost_chain = new GetterChain<number, { char: ICharacter|null, event: IEvent }>();
-    public push_chain = this.acf.new<{ char: ICharacter|null, event: IEvent }>();
+    public add_progress_chain = this.acf.new<{ char: ICharacter|null, event: IEvent, n: number }>();
     public finish_chain = this.acf.new<{ char: ICharacter|null, event: IEvent }>();
 
     public get_strength_chain
@@ -429,12 +429,15 @@ export class PlayerMaster {
         await this._leaveCard(card);
     }
 
-    // 底下這些處理事件卡的函式先不考慮「推進別人的事件」這種狀況
-    async countdownEvent(event: IEvent) {
-        event.countDown();
-        if(event.cur_time_count == 0) {
-            this.failEvent(event);
-        }
+    readonly add_countdown_chain = this.acf.new<{ event: IEvent, n: number }>();
+    async countdownEvent(event: IEvent, n = -1) {
+        await this.add_countdown_chain.chain(event.add_countdown_chain, n)
+        .trigger({ event, n }, async () => {
+            event.countDown();
+            if(event.cur_time_count == 0) {
+                await this.failEvent(event);
+            }
+        });
     }
     async failEvent(event: IEvent) {
         await this.fail_chain.chain(event.fail_chain, null)
@@ -476,17 +479,17 @@ export class PlayerMaster {
         let cost = this.getPushCost(char, event);
 
         if(HR.checkPush(event, char, this.mana, cost)) {
-            let push_chain = this.push_chain.chain(event.push_chain, char);
+            let push_chain = this.add_progress_chain.chain(event.add_progress_chain, { char, n: 1 });
             if(TG.isCard(char)) {
                 push_chain = push_chain.chain(char.push_chain, event);
             }
-            if(push_chain.checkCanTrigger({ event, char })) {
+            if(push_chain.checkCanTrigger({ event, char, n: 1 })) {
                 await this.addMana(-cost);
                 if(char) {
                     await this.changeCharTired(char, true);
                 }
 
-                await push_chain.byKeeper(by_keeper).trigger({ event, char }, async () => {
+                await push_chain.byKeeper(by_keeper).trigger({ event, char, n: 1 }, async () => {
                     HR.onPushEvent(event);
                     await Promise.resolve(event.onPush(char));
                     if(event.cur_progress_count == event.goal_progress_count) {

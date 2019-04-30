@@ -97,8 +97,10 @@ export class SoftRule {
             }
         });
     }
-    public checkPush(push_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>) {
-        push_chain.appendCheck((t, { char, event }) => {
+    public checkPush(
+        add_progress_chain: ActionChain<{ char: ICharacter | null, event: IEvent, n: number }>
+    ) {
+        add_progress_chain.appendCheck((t, { char, event }) => {
             if(this.getPhase() != GamePhase.InAction) {
                 return { var_arg: "只能在主階段行動時推進事件"};
             } else if(event.cur_progress_count >= event.goal_progress_count) {

@@ -72,10 +72,10 @@ describe("測試事件卡功能", () => {
             assert.equal(pm.getScore(), 1, "完成後總分不對");
             assert.equal(event.is_finished, true, "完成後事件沒有標記為完成");
         });
-        it("事件如果失敗，魔力應該-4-2總共減6", async () => {
+        it("事件如果失敗，魔力應該-4", async () => {
             let mana = pm.mana;
             await pm.failEvent(event);
-            assert.equal(pm.mana, mana - 6, "事件失敗後魔力不對");
+            assert.equal(pm.mana, mana - 4, "事件失敗後魔力不對");
         });
     });
     describe("測試比較複雜的事件（會根據場地狀況來判斷可不可推進）", () => {

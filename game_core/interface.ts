@@ -146,9 +146,10 @@ interface IEvent extends IKnownCard {
     is_finished: boolean;
 
     readonly get_push_cost_chain:  GetterChain<number, ICharacter|null>
-    readonly push_chain: ActionChain<ICharacter|null>
+    readonly add_progress_chain: ActionChain<{ char: ICharacter | null, n: number }>
     readonly fail_chain: ActionChain<null>;
     readonly finish_chain: ActionChain<ICharacter|null>;
+    readonly add_countdown_chain: ActionChain<number>;
 
     // TODO: 應該要再一個函式 initBeforePush
     checkCanPush(char: ICharacter|null): boolean;
