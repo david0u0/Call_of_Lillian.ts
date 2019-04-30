@@ -8,11 +8,12 @@ export default class C extends Character implements ICharacter {
     name = name;
     description = description;
     basic_mana_cost = 0;
-    public readonly basic_battle_role = { can_attack: false, can_block: true };
+    public readonly basic_battle_role = { can_attack: true, can_block: true };
     public readonly basic_strength = 0;
 
     setupAliveEffect() {
         let master_role_chain = this.my_master.get_battle_role_chain;
+        // TODO: 這裡應該用 mask_id 的方法把0戰力角色的相關規則屏蔽掉
         this.addGetterWhileAlive(true, master_role_chain, (role, char) => {
             if(char.isEqual(this)) {
                 return { var_arg: { ...role, can_attack: true, can_block: true }};

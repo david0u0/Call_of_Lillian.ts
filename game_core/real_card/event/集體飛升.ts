@@ -3,7 +3,7 @@ import { IEvent, ICharacter, TypeGaurd } from "../../interface";
 import { CharStat, CardStat, Player } from "../../enums";
 
 let name = "集體飛升";
-let description = `（結局）當*集體飛升*存在場上中，每個基礎戰力為0的角色額外得到1點戰力。
+let description = `（結局）當*集體飛升*存在場上中，每個基礎戰力為0或以下的角色額外得到1點戰力。
 推進：你必需有5個或更多角色處於場所中。
 結算：雙方場上與歷史區每有一個角色，加2分。`;
 
@@ -22,7 +22,7 @@ export default class E extends Event implements IEvent {
         for(let p of [Player.Player1, Player.Player2]) {
             let pm = this.g_master.getMyMaster(p);
             this.addGetterWhileAlive(true, pm.get_strength_chain, (str, { card }) => {
-                if(TypeGaurd.isCharacter(card) && card.basic_strength == 0) {
+                if(TypeGaurd.isCharacter(card) && card.basic_strength <= 0) {
                     return { var_arg: str + 1 };
                 }
             });

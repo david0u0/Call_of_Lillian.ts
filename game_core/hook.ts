@@ -6,7 +6,7 @@ import { throwDebugError } from "./errors";
 type GetterResult<T> = {
     var_arg?: T,
     break_chain?: boolean,
-    mask_id?: { [id: number]: boolean } | number
+    mask_id?: number[] | number
 };
 type GetterFunc<T, U>
     = (var_arg: T, const_arg: U) => GetterResult<T> | void;
@@ -21,7 +21,7 @@ type ActionResult = {
     intercept_effect?: boolean,
     after_effect?: AfterEffectFunc,
     break_chain?: boolean,
-    mask_id?: number | { [id: number]: boolean }
+    mask_id?: number[] | number
 };
 type ActionFunc<U>
     = (const_arg: U) => void | ActionResult | Promise<ActionResult|void>
@@ -31,8 +31,8 @@ type ActionHook<U> = {
     is_default?: boolean,
     id?: number
 };
-function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: { [id: number]: boolean }) {
-    if(typeof(h.id) != "undefined" && mask_id[h.id]) {
+function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: number[]) {
+    if(typeof(h.id) != "undefined" && mask_id.indexOf(h.id) != -1) {
         return false;
     } else {
         return h.isActive();
@@ -49,9 +49,8 @@ class GetterChain<T, U> {
         let h = { isActive, func, id };
         this.list = [h, ...this.list];
     }
-    public triggerFullResult(var_arg: T, const_arg: U) {
+    public triggerFullResult(var_arg: T, const_arg: U, mask_id: number[] = []) {
         let break_chain = false;
-        let mask_id: { [id: number]: boolean } = {};
         for(let hook of this.list) {
             if(checkActive(hook, mask_id)) {
                 let result = hook.func(var_arg, const_arg);
@@ -59,13 +58,11 @@ class GetterChain<T, U> {
                     if(typeof result.var_arg != "undefined") {
                         var_arg = result.var_arg;
                     }
-                    if(typeof (result.mask_id) != "undefined") {
-                        if(typeof(result.mask_id) == "number") {
-                            mask_id[result.mask_id] = true;
+                    if(typeof result.mask_id != "undefined") {
+                        if(typeof result.mask_id == "number") {
+                            mask_id.push(result.mask_id);
                         } else {
-                            for(let id in result.mask_id) {
-                                mask_id[id] = true;
-                            }
+                            mask_id.concat(result.mask_id);
                         }
                     }
                     if(result.break_chain) {
@@ -77,8 +74,8 @@ class GetterChain<T, U> {
         }
         return { var_arg, break_chain, mask_id };
     }
-    public trigger(var_arg: T, const_arg: U) {
-        return this.triggerFullResult(var_arg, const_arg).var_arg;
+    public trigger(var_arg: T, const_arg: U, mask_id: number[] = []) {
+        return this.triggerFullResult(var_arg, const_arg, mask_id).var_arg;
     }
     public chain<V>(next_chain: GetterChain<T, V>, next_arg: V) {
         let new_chain = new GetterChain<T, U>();
@@ -100,7 +97,7 @@ type CallBack = (() => void)|(() => Promise<void>);
 
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
-    private check_chain = new GetterChain<boolean, U>();
+    private check_chain = new GetterChain<string | boolean, U>();
 
     public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
         let h = { func, isActive, id };
@@ -114,21 +111,36 @@ class ActionChain<U> {
         let h = { func, isActive, is_default: true };
         this.action_list.push(h);
     }
-    public appendCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
-        this.check_chain.append(func, isActive, id);
+
+    private _err_msg = "";
+    public appendCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
+        this.check_chain.append((var_arg, const_arg) => {
+            if(typeof var_arg == "boolean" && var_arg) {
+                return func(false, const_arg);
+            } else if(typeof var_arg == "string") {
+                this._err_msg = var_arg;
+            }
+            return { break_chain: true };
+        }, isActive, id);
     }
-    public dominantCheck(func: GetterFunc<boolean, U>, isActive=() => true, id?: number) {
-        this.check_chain.dominant(func, isActive, id);
+    public dominantCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
+        this.check_chain.dominant((var_arg, const_arg) => {
+            if(typeof var_arg == "boolean" && var_arg) {
+                return func(false, const_arg);
+            } else if(typeof var_arg == "string") {
+                this._err_msg = var_arg;
+            }
+            return { break_chain: true };
+        }, isActive, id);
     }
-    public async triggerFullResult(const_arg: U): Promise<{
+    public async triggerFullResult(const_arg: U, mask_id: number[] = []): Promise<{
         intercept_effect: boolean,
-        mask_id: { [id: number]: boolean },
+        mask_id: number[],
         after_effect: AfterEffectObj[]
     }> {
         let after_effect = new Array<AfterEffectObj>();
         let break_chain = false;
         let intercept_effect = false;
-        let mask_id: { [id: number]: boolean } = {};
         for(let hook of this.action_list) {
             // 如果是默認的事件，不會被 break_chain 影響
             if(checkActive(hook, mask_id) && (!break_chain || hook.is_default)) {
@@ -150,13 +162,11 @@ class ActionChain<U> {
                             intercept_effect = true;
                             break;
                         }
-                        if(typeof (result.mask_id) != "undefined") {
-                            if(typeof (result.mask_id) == "number") {
-                                mask_id[result.mask_id] = true;
+                        if(typeof result.mask_id != "undefined") {
+                            if(typeof result.mask_id == "number") {
+                                mask_id.push(result.mask_id);
                             } else {
-                                for(let id in result.mask_id) {
-                                    mask_id[id] = true;
-                                }
+                                mask_id.concat(result.mask_id);
                             }
                         }
                     }
@@ -165,8 +175,15 @@ class ActionChain<U> {
         }
         return { intercept_effect, after_effect, mask_id };
     }
+    public get err_msg() { return this._err_msg; }
     public checkCanTrigger(const_arg: U) {
-        return this.check_chain.trigger(true, const_arg);
+        let res = this.check_chain.trigger(true, const_arg);
+        if(typeof res == "string") {
+            this._err_msg = res;
+            return false;
+        } else {
+            return true;
+        }
     }
     /**
      * 注意！！
@@ -174,17 +191,14 @@ class ActionChain<U> {
      * 為什麼不打包在一起？例如：我推進事件時會檢查角色有沒有疲勞，但實際推進時角色已經疲勞了。
      * 為什麼不先推進完再使角色疲勞？因為我希望 after_effect 是整個事件中最後執行的東西。
      */
-    public async trigger(const_arg: U, callback?: CallBack, cleanup?: CallBack) {
+    public async trigger(const_arg: U, callback?: CallBack, mask_id=[]) {
         if(this.by_keeper) {
             this.keeperCallback(const_arg);
         }
         this.by_keeper = false;
 
-        let res = await (this.triggerFullResult(const_arg));
+        let res = await (this.triggerFullResult(const_arg, mask_id));
         if(res.intercept_effect) {
-            if(cleanup) {
-                await Promise.resolve(cleanup());
-            }
             return false;
         } else {
             if(callback) {
@@ -194,7 +208,7 @@ class ActionChain<U> {
                 for(let effect of res.after_effect) {
                     if(typeof effect == "function") {
                         await Promise.resolve(effect());
-                    } else if(!(effect.id in res.mask_id)) {
+                    } else if(res.mask_id.indexOf(effect.id) == -1) {
                         await Promise.resolve(effect.func());
                     }
                 }

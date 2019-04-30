@@ -2,9 +2,8 @@ import { Event } from "../../cards";
 import { IEvent, ICharacter } from "../../interface";
 
 let name = "違停派對";
-let description = `當你打出*違停派對*，得到7魔力。
-結算：你得到5魔力。
-失敗：你額外損失2魔力。`;
+let description = `當你打出*違停派對*，得到6魔力。
+結算：你得到5魔力。`;
 
 export default class E extends Event implements IEvent {
     name = name;
@@ -22,7 +21,7 @@ export default class E extends Event implements IEvent {
     }
 
     async onPlay() {
-        await this.my_master.addMana(7);
+        await this.my_master.addMana(6);
     }
 
     async onFinish() {
@@ -31,11 +30,5 @@ export default class E extends Event implements IEvent {
 
     onPush() { }
 
-    async onFail() {
-        let mana_cost = Math.min(2, this.my_master.mana);
-        let emo_cost = 2 - mana_cost;
-        await this.my_master.addMana(-mana_cost);
-        await this.my_master.addEmo(-emo_cost);
-    }
     setupFinishEffect() { }
 }
