@@ -14,4 +14,4 @@
 **/assets/
 
 *.swp
-*.nohup
+nohup.out
