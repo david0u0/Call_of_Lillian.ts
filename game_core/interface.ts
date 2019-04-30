@@ -204,6 +204,9 @@ const TypeGaurd = {
             }
         }
         return false;
+    },
+    isSameCard<T extends IKnownCard>(card: T, target: IKnownCard): target is T {
+        return card.name == target.name;
     }
 };
 

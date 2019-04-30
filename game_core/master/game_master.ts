@@ -77,7 +77,6 @@ export class GameMaster {
         } else {
             return this.genCard(CardStat.Deck, owner);
         }
-        
     }
 
     genCardToHand(owner: Player, name: string): Promise<IKnownCard>;
@@ -110,6 +109,16 @@ export class GameMaster {
         }
         return card;
     }
+
+    constructSameCard<T extends IKnownCard>(card: T): T {
+        let res = this.genFunc(card.name, card.owner, -1, this);
+        if(TG.isSameCard(card, res)) {
+            return res;
+        } else {
+            throw new BadOperationError("用同個名字創出的卡牌竟然不是同類？");
+        }
+    }
+
     getMyMaster(arg: Player | ICard): PlayerMaster {
         if(TG.isCard(arg)) {
             return this.getMyMaster(arg.owner);

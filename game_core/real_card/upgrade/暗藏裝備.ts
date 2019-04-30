@@ -50,8 +50,16 @@ export default class U extends Upgrade {
             instance: true,
             can_play_phase: [GamePhase.Any],
             canTrigger: () => true,
-            func: () => {
-                
+            func: async () => {
+                let _card = await this.g_master.exposeCard(this.getUpgrade());
+                if(TypeGaurd.isUpgrade(_card)) {
+                    let card = _card;
+                    this.g_master.genCardToBoard(this.owner, () => {
+                        let upgrade = this.g_master.constructSameCard(card);
+                        upgrade.data.character_equipped = this.data.character_equipped;
+                        return upgrade;
+                    });
+                }
             }
         }];
     }
