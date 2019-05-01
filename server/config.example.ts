@@ -12,6 +12,7 @@ const MODE = (() => {
 
 const normalOptions = {
     reconnectTries: Number.MAX_VALUE,
+    useNewUrlParser: true
 };
 
 const test_server = {

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 type State = {
     userid: string,
-    password: string
+    password: string,
 };
 
 export class LoginPage extends React.Component<PageProps, State> {
@@ -12,7 +12,7 @@ export class LoginPage extends React.Component<PageProps, State> {
         super(props);
         this.state = {
             userid: "",
-            password: ""
+            password: "",
         };
     }
     onIDChange(evt: React.FormEvent<HTMLInputElement>) {

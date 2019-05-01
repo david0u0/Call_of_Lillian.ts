@@ -33,10 +33,12 @@ function genCardFunc(name: string, owner: Player, seq: number, gm: GameMaster) {
 let app = express();
 app.use(bodyParser.json());
 app.use(session({
-    /*resave: false,
-    saveUninitialized: true,*/
+    name: "Lillian.sid",
+    resave: false,
+    saveUninitialized: true,
     secret: config.SESSION_SECRECT_KEY,
     cookie: { maxAge: config.COOKIE_MAX_AGE, secure: false },
+    store: new session.MemoryStore()
 }));
 
 app.use("/card_image", express.static("frontend/assets/card_image"));

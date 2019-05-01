@@ -11,27 +11,40 @@ import {
 import { RegisterPage } from "./register";
 import { HomePage } from "./home_page";
 
-class App extends React.Component<{}, { login: boolean, userid: string }> {
+type State = {
+    login: boolean,
+    userid: string,
+    loading: boolean
+}
+
+class App extends React.Component<{}, State> {
     constructor(props) {
         super(props);
         this.state = {
             login: false,
-            userid: ""
+            userid: "",
+            loading: true,
         }
     }
     changeLoginState(userid?: string) {
         if(userid) {
-            this.setState({ userid, login: true });
+            this.setState({ userid, login: true, loading: false });
         } else {
-            this.setState({ login: false });
+            this.setState({ login: false, loading: false });
         }
+    }
+    async logout() {
+        fetch("/api/user/logout").then(res => {
+            if(res.ok) {
+                this.changeLoginState();
+            }
+        })
     }
     componentDidMount() {
         fetch("/api/user/who")
         .then(res => {
             if(res.ok) {
                 return res.json().then(data => {
-                    console.log(data)
                     this.changeLoginState(data["userid"]);
                 });
             } else {
@@ -44,6 +57,7 @@ class App extends React.Component<{}, { login: boolean, userid: string }> {
             return (
                 <Router>
                     <div>
+                        <button onClick={this.logout.bind(this)}>登出</button>
                         <Switch>
                             <Route exact path="/app" render={props => (
                                 <HomePage route_props={props} {...this.state}
@@ -54,7 +68,7 @@ class App extends React.Component<{}, { login: boolean, userid: string }> {
                     </div>
                 </Router>
             );
-        } else {
+        } else if(!this.state.loading) {
             return (
                 <Router>
                     <div>
@@ -71,6 +85,8 @@ class App extends React.Component<{}, { login: boolean, userid: string }> {
                     </div>
                 </Router>
             );
+        } else {
+            return null;
         }
     }
 }

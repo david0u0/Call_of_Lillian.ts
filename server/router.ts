@@ -24,12 +24,21 @@ router.post("/user/login", async (req, res) => {
                 console.log(`${userid}已登入！`);
                 if(req.session) {
                     req.session.userid = userid;
+                    req.session.save(err => {});
                 }
                 return;
             }
         }
     }
     res.status(401).send("帳號或密碼錯誤");
+});
+router.get("/user/logout", async (req, res) => {
+    if(req.session) {
+        req.session.destroy(err => {});
+        res.json({ success: true });
+    } else {
+        res.status(500).send("");
+    }
 });
 
 router.post("/user/register", async (req, res) => {
