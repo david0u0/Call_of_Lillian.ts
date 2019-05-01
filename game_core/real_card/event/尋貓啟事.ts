@@ -22,7 +22,9 @@ export default class E extends Event implements IEvent {
     setupFinishEffect() { }
     prepare() {
         this.my_master.set_to_board_chain.append(() => {
-            this.my_master.finishEvent(null, this);
+            return {
+                after_effect: () => this.my_master.finishEvent(null, this)
+            };
         }, () => {
             return this.card_status == CardStat.Onboard
                 && !this.is_finished;

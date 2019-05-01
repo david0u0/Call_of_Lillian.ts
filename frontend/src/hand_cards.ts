@@ -200,11 +200,12 @@ class HandUI {
         filter.enabled = false;
         card_ui.filters = [filter];
         this.selecter.registerCardStartSelect(card, () => {
-            filter.enabled = true;
-            return {
-                view: card_ui,
-                cleanup: () => filter.enabled = false
-            };
+            let cleanup = () => {};
+            if(!filter.enabled) {
+                filter.enabled = true;
+                cleanup = () => filter.enabled = false
+            }
+            return { view: card_ui, cleanup };
         });
         return card_ui;
     }
