@@ -58,6 +58,7 @@ class App extends React.Component<{}, State> {
                 <Router>
                     <div>
                         <button onClick={this.logout.bind(this)}>登出</button>
+                        <br />
                         <Switch>
                             <Route exact path="/app" render={props => (
                                 <HomePage route_props={props} {...this.state}

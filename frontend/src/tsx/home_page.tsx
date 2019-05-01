@@ -10,7 +10,10 @@ export class HomePage extends React.Component<PageProps, State> {
     constructor(props: PageProps) {
         super(props);
     }
+    startGame() {
+        window.location.href = "/game";
+    }
     render() {
-        return <h1>趕工中...</h1>;
+        return <button onClick={this.startGame.bind(this)}>開戰啦！</button>;
     }
 }

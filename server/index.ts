@@ -41,22 +41,24 @@ app.use(session({
     store: new session.MemoryStore()
 }));
 
-app.use("/card_image", express.static("frontend/assets/card_image"));
-
-app.get(/(\/|\/index.html)$/, function (req, res) {
-    res.redirect("/app");
-});
-
+app.use("/card_image/", express.static("frontend/assets/card_image"));
 // NOTE: 首頁一樣會因爲 express.static 而回傳 index.html
 app.get(/\/(app\/.*|app)/, function (req, res) {
     res.sendFile(path.resolve("frontend/dist/index.html"));
 });
+app.get("/game/", function (req, res, next) {
+    if(req.session && req.session.userid) {
+        res.sendFile(path.resolve("frontend/dist/game.html"));
+    } else {
+        res.redirect("/app");
+    }
+});
 
-app.use(express.static("frontend/dist"));
-
-app.use("/api/", my_router);
-
-app.use(function(req, res) {
+app.get("/", function (req, res) {
     res.redirect("/app");
 });
+
+app.use(express.static("frontend/dist"));
+app.use("/api/", my_router);
+
 app.listen(config.PORT);
