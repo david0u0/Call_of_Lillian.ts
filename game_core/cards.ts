@@ -23,7 +23,7 @@ abstract class KnownCard extends Card implements IKnownCard {
     public readonly check_before_play_chain = new GetterChain<boolean, null>();
     public readonly get_mana_cost_chain = new GetterChain<number, null>();
     public readonly card_play_chain = new ActionChain<null>();
-    public readonly card_leave_chain = new ActionChain<null>();
+    public readonly card_leave_chain = new ActionChain<CardStat>();
     public readonly card_retire_chain = new ActionChain<null>();
 
     public readonly my_master: PlayerMaster;
@@ -40,13 +40,13 @@ abstract class KnownCard extends Card implements IKnownCard {
         return res.filter(a => a.canTrigger());
     }
 
-    public async initialize() { return true; }
+    public initialize(): Promise<boolean>|boolean { return true; }
     public onPlay() { }
     public setupAliveEffect() { }
     public onRetrieve() { }
 
     protected prepare() { }
-    constructor(public readonly seq: number, public readonly owner: Player,
+    constructor(seq: number, public readonly owner: Player,
         public readonly g_master: GameMaster
     ) {
         super(seq, owner);

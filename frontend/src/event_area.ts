@@ -26,7 +26,7 @@ export class EventArea {
         this.view.addChild(mask);
 
         let pm = gm.getMyMaster(player);
-        pm.add_card_chain.appendDefault(card => {
+        pm.set_to_board_chain.appendDefault(card => {
             if(TypeGaurd.isEvent(card)) {
                 return { after_effect: async () => await this.addEvent(card) };
             }

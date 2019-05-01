@@ -42,7 +42,7 @@ export class ArenaArea {
                 return { after_effect: async () => await this.enterChar(arena, char) };
             }
         });
-        gm.getMyMaster(player).add_card_chain.appendDefault(card => {
+        gm.getMyMaster(player).set_to_board_chain.appendDefault(card => {
             if(TG.isArena(card)) {
                 return { after_effect: () => this.addArena(card) };
             }

@@ -7,6 +7,16 @@ import { checkBadOperationError, checkBadOperationErrorAsync } from "./check_bad
 import { TestSelecter, genFunc } from "./mocking_tools";
 import { IArena, ICharacter } from "../interface";
 
+import H from "../real_card/arena/M市立綜合醫院";
+
+function genHospital(owner: Player, gm: GameMaster, pos: number) {
+    return () => {
+        let arena = new H(-1, owner, gm);
+        arena.data.position = pos;
+        return arena;
+    };
+}
+
 let p1 = Player.Player1;
 let p2 = Player.Player2;
 let selecter = new TestSelecter();
@@ -18,22 +28,14 @@ pm.addMana(1000);
 enemy_master.addMana(1000);
 
 describe("測試最基礎的場所卡", () => {
-    let my_h: IArena;
-    let enemy_h: IArena;
+    let my_h: H;
+    let enemy_h: H;
     let rainy: ICharacter;
     let rainy2: ICharacter;
     let e_rainy3: ICharacter;
     before(async () => {
-        gm.genArenaToBoard(p1, 0, "M市立綜合醫院");
-        gm.genArenaToBoard(p1, 1, "M市立綜合醫院");
-        my_h = await gm.genArenaToBoard(p1, 2, "M市立綜合醫院");
-        gm.genArenaToBoard(p1, 3, "M市立綜合醫院");
-        gm.genArenaToBoard(p1, 4, "M市立綜合醫院");
-        gm.genArenaToBoard(p2, 0, "M市立綜合醫院");
-        gm.genArenaToBoard(p2, 1, "M市立綜合醫院");
-        enemy_h = await gm.genArenaToBoard(p2, 2, "M市立綜合醫院");
-        gm.genArenaToBoard(p2, 3, "M市立綜合醫院");
-        gm.genArenaToBoard(p2, 4, "M市立綜合醫院");
+        my_h = await gm.genCardToBoard(p1, genHospital(p1, gm, 2));
+        enemy_h = await gm.genCardToBoard(p2, genHospital(p2, gm, 2));
         rainy = (await gm.genCardToHand(p1, "雨季的魔女．語霽")) as ICharacter;
         rainy2 = (await gm.genCardToHand(p1, "雨季的魔女．語霽")) as ICharacter;
         e_rainy3 = (await gm.genCardToHand(p2, "雨季的魔女．語霽")) as ICharacter;

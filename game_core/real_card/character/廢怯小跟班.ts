@@ -27,7 +27,7 @@ export default class C extends Character {
             }
             return true;
         },
-        can_play_phase: [GamePhase.InWar, GamePhase.InAction, GamePhase.Exploit, GamePhase.Building],
+        can_play_phase: [GamePhase.Any],
         instance: true
     }];
 

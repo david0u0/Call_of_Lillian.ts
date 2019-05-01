@@ -7,6 +7,7 @@ interface IKeeper { };
 interface ICard {
     readonly card_type: CardType;
     readonly seq: number;
+    dangerouslySetSeq(seq: number): void,
     readonly owner: Player;
     card_status: CardStat;
     isEqual(card: any): boolean;
@@ -35,7 +36,7 @@ interface IKnownCard extends ICard {
     readonly get_mana_cost_chain: GetterChain<number, null>;
     readonly card_play_chain: ActionChain<null>;
     /** 只要從場上離開，不論退場還是消滅都會觸發這條 */
-    readonly card_leave_chain: ActionChain<null>;
+    readonly card_leave_chain: ActionChain<CardStat>;
     /** 只有退場會觸發這條效果 */
     readonly card_retire_chain: ActionChain<null>;
 
@@ -203,19 +204,27 @@ const TypeGaurd = {
             }
         }
         return false;
+    },
+    isSameCard<T extends IKnownCard>(card: T, target: IKnownCard): target is T {
+        return card.name == target.name;
     }
 };
 
 abstract class Card implements ICard {
     public abstract card_type: CardType;
     public card_status = CardStat.Deck;
-    constructor(public readonly seq: number, public readonly owner: Player) { }
+    private _seq: number;
+    public get seq() { return this._seq; }
+    constructor(seq: number, public readonly owner: Player) { this._seq = seq; }
     isEqual(obj: any): boolean {
         if(TypeGaurd.isCard(obj)) {
             return this.seq == obj.seq;
         } else {
             return false;
         }
+    }
+    dangerouslySetSeq(seq: number) {
+        this._seq = seq;
     }
 }
 

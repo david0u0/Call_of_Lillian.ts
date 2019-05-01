@@ -30,7 +30,7 @@ export default class E extends Event implements IEvent {
     }
 
     async onPush() {
-        await this.g_master.genEventToBoard(this.owner, "尋貓啟事", true);
+        await this.g_master.genCardToBoard(this.owner, "尋貓啟事");
     }
 
     onFinish() { }
