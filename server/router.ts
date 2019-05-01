@@ -2,6 +2,7 @@ import express from "express";
 
 import * as db from "./database";
 import { genSaltAndPass, encryptBySalt, checkUser, getUserId, setUserId } from "./auth";
+import { card_list } from "./card_generator";
 
 let router = express.Router();
 
@@ -107,6 +108,9 @@ router.post("/deck/edit", async (req, res) => {
             res.status(404).send();
         }
     }
+});
+router.get("/card/list", async (req, res) => {
+    res.json(card_list);
 });
 
 export default router;

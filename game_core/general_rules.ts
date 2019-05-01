@@ -1,6 +1,6 @@
 import { IKnownCard, IUpgrade, TypeGaurd as TG, ICharacter, IArena, IEvent } from "./interface";
 import { ActionChain, GetterChain } from "./hook";
-import { CardStat, CharStat, BattleRole, Player, GamePhase } from "./enums";
+import { CardStat, CharStat, BattleRole, Player, GamePhase, RuleEnums } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
 export const Constant = {
@@ -29,7 +29,13 @@ export class SoftRule {
     public checkPlay(card_play_chain: ActionChain<IKnownCard>, getCharQuota: () => number) {
         card_play_chain.appendCheck((can_play, card) => {
             let phase = this.getPhase();
-            // 對各類卡牌的檢查
+            if(TG.isCharacter(card)) {
+                if(getCharQuota() == 0) {
+                    // 一回合打出的角色超過上限
+                    return { var_arg: "一回合打出的角色超過上限" };
+                }
+            }
+        }).appendCheck((t, card) => {
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的限制
                 if(card.data.character_equipped
@@ -38,13 +44,9 @@ export class SoftRule {
                     // 指定的角色不在待命區
                     return { var_arg: "指定的角色不在待命區" };
                 }
-            } else if(TG.isCharacter(card)) {
-                if(getCharQuota() == 0) {
-                    // 一回合打出的角色超過上限
-                    return { var_arg: "一回合打出的角色超過上限" };
-                }
             }
-        });
+
+        }, undefined, RuleEnums.CheckStandbyWhenPlay);
     }
     /** 計算戰鬥職位的通則 */
     public onGetBattleRole(get_battle_role_chain: GetterChain<BattleRole, ICharacter>,

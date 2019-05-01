@@ -42,7 +42,10 @@ export enum RuleEnums {
     PunishOnFail,
     EndGameAfterFinish,
 
+    CheckPhaseBeforePlay,
     CheckPriceBeforePlay,
+
+    CheckStandbyWhenPlay,
     
     Possessed,
     Beyond,

@@ -183,11 +183,6 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
             height = img.width;
             img.rotation = Math.PI / 2;
             img.x = width;
-            if(TG.isArena) {
-
-            } else {
-
-            }
         } else {
             img = drawCardFace(card, width, height);
             ({ width, height } = img);
@@ -199,7 +194,11 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
         title_rec.beginFill(0xffffff, 1);
         title_rec.drawRoundedRect(width / 15, width / 12, width * 13 / 15, width / 10, 5);
         title_rec.endFill();
-        let name_txt = new PIXI.Text(truncateName(card.name, title_rec.width), titleStyle(width));
+        let name = card.name;
+        if(TG.isEvent(card) && card.is_ending) {
+            name = `${name}（結局）`;
+        }
+        let name_txt = new PIXI.Text(truncateName(name, title_rec.width), titleStyle(width));
         name_txt.position.set(width / 15 * 1.5, width / 12);
         container.addChild(title_rec);
         container.addChild(name_txt);

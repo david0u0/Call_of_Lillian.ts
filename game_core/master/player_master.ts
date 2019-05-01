@@ -105,7 +105,7 @@ export class PlayerMaster {
                 // 如果現在不是能打該牌的階段，就不讓他打
                 return { var_arg: false };
             }
-        });
+        }, undefined, RuleEnums.CheckPhaseBeforePlay);
         this.check_before_play_chain.append((before, card) => {
             if(this.mana < this.getManaCost(card)) {
                 return { var_arg: false };

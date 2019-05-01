@@ -6,10 +6,10 @@ let path = require("path");
 let txt = 
 `import { BadOperationError } from "../../game_core/errors";
 import { GameMaster } from "../../game_core/master/game_master";
-import { KnownCard } from "../../game_core/cards";
+import { IKnownCard } from "../../game_core/interface";
 import { Player } from "../../game_core/enums";
 let card_class_table:
-    { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): KnownCard }} = {};
+    { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): IKnownCard }} = {};
 `;
 
 const PREFIX = "../game_core/real_card";
@@ -21,8 +21,7 @@ for(let type_name of card_type_dirs) {
             let card_path = `../${PREFIX}/${type_name}/${name}`;
             //path.resolve(`${PREFIX}/${type_name}`, name);
             // card_path = card_path.replace(/\\/g, "/");
-            let a = name.split(".");
-            name = a.slice(0, a.length-1).join("");
+            name = name.replace(/\.[^.]+$/, "");
             txt += `card_class_table["${name}"] = require("${card_path}").default;\n`;
         } catch(err) {
             console.log(err);

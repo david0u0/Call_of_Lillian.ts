@@ -3,7 +3,7 @@ import { IEvent, ICharacter, TypeGaurd } from "../../interface";
 import { Player, GamePhase, CardStat } from "../../enums";
 
 let name = "沒有魔法的世界";
-let description = `（結局）本事件只能在準備階段打出。
+let description = `本事件只能在準備階段打出。
 *沒有魔法的世界*不可推進。當世代結束時，若對手的魔力收入少於3，則本事件自動完成。
 結算：結算區沒有非結局事件的玩家，額外加2分。`;
 

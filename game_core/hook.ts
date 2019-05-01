@@ -46,10 +46,12 @@ class GetterChain<T, U> {
     public append(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
         let h = { isActive, func, id };
         this.list.push(h);
+        return this;
     }
     public dominant(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
         let h = { isActive, func, id };
         this.list = [h, ...this.list];
+        return this;
     }
     public triggerFullResult(var_arg: T, const_arg: U, mask_id: number[] = []) {
         for(let hook of this.list) {
@@ -99,14 +101,17 @@ class ActionChain<U> {
     public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
         let h = { func, isActive, id };
         this.action_list.push(h);
+        return this;
     }
     public dominant(func: ActionFunc<U>, isActive=() => true, id?: number) {
         let h = { func, isActive, id };
         this.action_list = [h, ...this.action_list];
+        return this;
     }
     public appendDefault(func: ActionFunc<U>, isActive=() => true) {
         let h = { func, isActive, is_default: true };
         this.action_list.push(h);
+        return this;
     }
 
     private _err_msg = "";
@@ -119,6 +124,7 @@ class ActionChain<U> {
             }
             return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
         }, isActive, id);
+        return this;
     }
     public dominantCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
         this.check_chain.dominant((var_arg, const_arg) => {
@@ -129,6 +135,7 @@ class ActionChain<U> {
             }
             return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
         }, isActive, id);
+        return this;
     }
     public async triggerFullResult(const_arg: U, mask_id: number[] = []): Promise<{
         intercept_effect: boolean,
