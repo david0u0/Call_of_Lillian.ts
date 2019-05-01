@@ -4,7 +4,7 @@ import { PageProps } from './props';
 type Deck = {
     name: string,
     description?: string,
-    id: string
+    _id: string
 };
 type State = {
     cur_selecting_deck: string,
@@ -33,20 +33,37 @@ export class HomePage extends React.Component<PageProps, State> {
     startGame() {
         window.location.href = "/game";
     }
-    editDeck(id: string) {
+    editDeck() {
         let url = `/deck_builder?id=${this.state.cur_selecting_deck}`;
         window.location.href = url;
     }
-    selectDeck(id: string) {
-        this.setState({ cur_selecting_deck: id });
+    selectDeck(_id: string) {
+        this.setState({ cur_selecting_deck: _id });
+    }
+    async changeName(_id: string, name: string) {
+        let res = await fetch("/api/deck/edit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ _id, name })
+        });
+        if(res.ok) {
+            let decks = [...this.state.decks];
+            for(let [i, deck] of decks.entries()) {
+                if(deck._id == _id) {
+                    let new_deck = { ...deck, name };
+                    decks = [...decks.slice(0, i), new_deck, ...decks.slice(i+1)];
+                    this.setState({ decks });
+                    break;
+                }
+            }
+        }
     }
     async newDeck() {
         let res = await fetch("/api/deck/new", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                name: "test",
-                list: []
+                name: "新牌組",
             }),
         });
         if(res.ok) {
@@ -65,9 +82,10 @@ export class HomePage extends React.Component<PageProps, State> {
                         {
                             this.state.decks.map(deck => {
                                 return (
-                                    <DeckBlock key={deck.id} {...deck}
+                                    <DeckBlock key={deck._id} {...deck}
+                                        onNameChange={name => this.changeName(deck._id, name)}
                                         highlight_id={this.state.cur_selecting_deck}
-                                        onClick={(id: string) => this.selectDeck(id)} />
+                                        onClick={() => this.selectDeck(deck._id)} />
                                 );
                             })
                         }
@@ -83,31 +101,75 @@ export class HomePage extends React.Component<PageProps, State> {
     }
 }
 
-type DeckBlockProps = ((Deck & { highlight_id: string | null}) | { is_new: true })
-    & { onClick: (id?: string) => void };
+type DeckBlockProps = (
+    (Deck & { highlight_id: string | null, onNameChange: (name: string) => void })
+    | { is_new: true }
+) & { onClick: () => void };
 
-class DeckBlock extends React.Component<DeckBlockProps> {
-    render() {
-        let onClick: () => void;
-        let opacity = 1;
-        let name: string;
-        if("is_new" in this.props) {
-            onClick = () => this.props.onClick();
-            name = "新增牌組";
+type DeckBlockState = {
+    changing_name: boolean,
+    tmp_name: string
+};
+
+class DeckBlock extends React.Component<DeckBlockProps, DeckBlockState> {
+    public static readonly WIDTH = 70;
+    constructor(props) {
+        super(props);
+        this.state = {
+            changing_name: false,
+            tmp_name: ("name" in this.props) ? this.props.name : ""
+        };
+    }
+    private tmp_input: HTMLInputElement;
+    doChangeName(start: boolean) {
+        this.setState({ changing_name: start });
+        setTimeout(() => {
+            if(!start && "name" in this.props) {
+                if(this.props.name != this.state.tmp_name) {
+                    this.props.onNameChange(this.state.tmp_name);
+                }
+            } else {
+                this.tmp_input.focus();
+            }
+        });
+    }
+    onTmpNameChange(evt: React.FormEvent<HTMLInputElement>) {
+        this.setState({ tmp_name: evt.currentTarget.value })
+    }
+    onTmpNameKeyDown(evt: React.KeyboardEvent) {
+        if(evt.key == "Enter") {
+            this.doChangeName(false);
+        }
+    }
+    renderLabel() {
+        let style = { margin: 0, display: "block", width: DeckBlock.WIDTH };
+        if(this.state.changing_name) {
+            return <input style={style}
+                value={this.state.tmp_name}
+                ref={input => this.tmp_input = input}
+                onChange={this.onTmpNameChange.bind(this)}
+                onBlur={() => this.doChangeName(false)}
+                onKeyDown={this.onTmpNameKeyDown.bind(this)} />
+        } if("name" in this.props) {
+            return <p onClick={() => this.doChangeName(true)}
+                style={style} >{this.props.name}</p>;
         } else {
-            let id = this.props.id;
-            onClick = () => this.props.onClick(id);
-            if(this.props.highlight_id != id) {
+            return <p style={style}>新增牌組</p>;
+        }
+    }
+    render() {
+        let opacity = 1;
+        if("_id" in this.props) {
+            if(this.props.highlight_id != this.props._id) {
                 opacity = 0.6;
             }
-            name = this.props.name;
         }
         return (
             <div style={{ float: "left", margin: 10, cursor: "pointer" }}>
-                <img src={require("../../assets/card_back.png")} onClick={onClick}
-                    style={{ opacity, height: 100, margin: 0 }}
+                <img src={require("../../assets/card_back.png")} onClick={this.props.onClick}
+                    style={{ opacity, width: DeckBlock.WIDTH, margin: 0 }}
                 />
-                <p style={{ marginTop: 0 }}>{name}</p>
+                {this.renderLabel()}
             </div>
         );
     }

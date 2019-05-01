@@ -11,7 +11,7 @@ router.get("/user/who", (req, res) => {
 });
 
 router.post("/user/login", async (req, res) => {
-    let { userid, password } = (req.body as { userid?: string, password?: string });
+    let { userid, password } = (req.body as db.Query<db.IUser>);
     if(userid && password) {
         let user_in_db = await db.User.findOne({ userid });
         if(user_in_db) {
@@ -35,7 +35,7 @@ router.get("/user/logout", async (req, res) => {
 });
 
 router.post("/user/register", async (req, res) => {
-    let { userid, password } = (req.body as { userid?: string, password?: string });
+    let { userid, password } = (req.body as db.Query<db.IUser>);
     if(userid && password && checkUser(userid, password)) {
         let user_in_db = await db.User.findOne({ userid });
         if(user_in_db) {
@@ -63,7 +63,7 @@ router.get("/deck/list", async (req, res) => {
                 name: ideck.name,
                 description: ideck.description,
                 list: ideck.list,
-                id: ideck.id
+                _id: ideck._id
             };
         });
         res.json(decks);
@@ -77,13 +77,35 @@ router.get("/deck/detail", async (req, res) => {
 router.post("/deck/new", async (req, res) => {
     let user = await getUserId(req, true);
     let { name } = (req.body as { name?: string });
-    if(user) {
-        let deck = await db.Deck.create({ name });
+    if(!name) {
+        res.status(400).send("沒有名字");
+    } else if(!user) {
+        res.status(403).send("尚未登入");
+    } else {
+        let deck = new db.Deck({ name });
         user.decks.push(deck);
         user.save();
-        res.json({ id: deck._id, name: deck.name });
-    } else {
+        res.json({ _id: deck._id, name: deck.name });
+    }
+});
+router.post("/deck/edit", async (req, res) => {
+    let user = await getUserId(req, true);
+    let { name, description, list, _id } = (req.body as db.Query<db.IDeck>);
+    if(!user) {
         res.status(403).send("尚未登入");
+    } else if(!_id) {
+        res.status(400).send("沒有id");
+    } else {
+        let deck = user.decks.find(d => d._id == _id);
+        if(deck) {
+            deck.name = name || deck.name;
+            deck.description = description || deck.description;
+            deck.list = list || deck.list;
+            user.save();
+            res.json({ _id: deck._id, name: deck.name, description: deck.description });
+        } else {
+            res.status(404).send();
+        }
     }
 });
 
