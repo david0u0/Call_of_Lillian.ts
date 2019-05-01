@@ -7,6 +7,7 @@ let description = "**輻射吐息**：即使*終末之民*的戰力為0仍可攻
 export default class C extends Character implements ICharacter {
     name = name;
     description = description;
+    deck_count = 0;
     basic_mana_cost = 0;
     public readonly basic_battle_role = { can_attack: true, can_block: true };
     public readonly basic_strength = 0;

@@ -39,16 +39,16 @@ PIXI.loader
 .load(setup);
 
 async function setup() {
+    let me = Player.Player1;
+    let { width, height } = getWinSize();
+    let selecter = new FrontendSelecter(me, app.ticker);
+    let gm = new GameMaster(selecter, generateCard);
+
     let show_big_card: ShowBigCard = (x: number, y: number, card: ICard,
         conf?: { width: number, height: number, alpha: number, description?: boolean }
     ) => {
         return showBigCard(gm, app.stage, x, y, card, app.ticker, conf);
     };
-
-    let me = Player.Player1;
-    let { width, height } = getWinSize();
-    let selecter = new FrontendSelecter(me, app.ticker);
-    let gm = new GameMaster(selecter, generateCard);
 
     let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);

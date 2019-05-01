@@ -25,6 +25,7 @@ type Ability = {
 interface IKnownCard extends ICard {
     readonly name: string;
     readonly description: string;
+    readonly deck_count: number;
     readonly basic_mana_cost: number;
     readonly series: CardSeries[];
     readonly can_play_phase: GamePhase[];

@@ -4,6 +4,7 @@ import { CardStat, CharStat, BattleRole, Player, GamePhase } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
 export const Constant = {
+    CARD_DECK_COUNT: 3,
     WAR_COST: 2,
     INCITE_EMO: 7,
     INCITE_COST: 2,

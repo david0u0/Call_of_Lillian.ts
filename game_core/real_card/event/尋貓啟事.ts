@@ -8,6 +8,7 @@ let description = "";
 export default class E extends Event implements IEvent {
     name = name;
     description = description;
+    deck_count = 0;
 
     readonly is_ending = false;
     readonly score = 1;

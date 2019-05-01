@@ -12,6 +12,7 @@ let description = `**系統最深處的少女**：*零卍佛滅卍實驗體少�
 export default class C_Test0 extends Character {
     name = name;
     description = description;
+    deck_count = 0;
     series = [ CardSeries.Testing ];
     basic_mana_cost = 0;
     basic_strength = 10;

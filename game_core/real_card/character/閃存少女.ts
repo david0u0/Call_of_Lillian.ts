@@ -7,6 +7,7 @@ let description = "**垃圾蒐集**：每個世代的收獲階段開始前，放
 export default class C extends Character {
     name = name;
     description = description;
+    deck_count = 0;
     basic_strength = 1;
     basic_mana_cost = 0;
 

@@ -1,16 +1,13 @@
 import express from "express";
 
 import * as db from "./database";
-import { genSaltAndPass, encryptBySalt, checkUser } from "./auth";
+import { genSaltAndPass, encryptBySalt, checkUser, getUserId, setUserId } from "./auth";
 
 let router = express.Router();
 
 router.get("/user/who", (req, res) => {
-    if(req.session && req.session["userid"]) {
-        res.json({ userid: req.session["userid"] });
-    } else {
-        res.json({ userid: null });
-    }
+    let userid = getUserId(req);
+    res.json({ userid });
 });
 
 router.post("/user/login", async (req, res) => {
@@ -21,11 +18,7 @@ router.post("/user/login", async (req, res) => {
             let encrypted_pass = await encryptBySalt(user_in_db.salt, password);
             if(encrypted_pass == user_in_db.password) {
                 res.json({ success: true });
-                console.log(`${userid}已登入！`);
-                if(req.session) {
-                    req.session.userid = userid;
-                    req.session.save(err => {});
-                }
+                await setUserId(req, userid);
                 return;
             }
         }
@@ -55,12 +48,42 @@ router.post("/user/register", async (req, res) => {
             await db.User.create(user);
             res.json({ success: true });
             console.log(`${userid}已註冊！`);
-            if(req.session) {
-                req.session["userid"] = userid;
-            }
+            await setUserId(req, userid);
         }
     } else {
         res.status(401).send("帳號或密碼不合法");
+    }
+});
+
+router.get("/deck/list", async (req, res) => {
+    let user = await getUserId(req, true);
+    if(user) {
+        let decks = user.decks.map(ideck => {
+            return {
+                name: ideck.name,
+                description: ideck.description,
+                list: ideck.list,
+                id: ideck.id
+            };
+        });
+        res.json(decks);
+    } else {
+        res.status(403).send("尚未登入");
+    }
+});
+router.get("/deck/detail", async (req, res) => {
+
+});
+router.post("/deck/new", async (req, res) => {
+    let user = await getUserId(req, true);
+    let { name } = (req.body as { name?: string });
+    if(user) {
+        let deck = await db.Deck.create({ name });
+        user.decks.push(deck);
+        user.save();
+        res.json({ id: deck._id, name: deck.name });
+    } else {
+        res.status(403).send("尚未登入");
     }
 });
 

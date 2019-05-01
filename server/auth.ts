@@ -1,7 +1,52 @@
+import { Request } from "express";
 import crypto from "crypto";
+import * as db from "./database";
+
+export function getUserId(req: Request): string | null;
+export function getUserId(req: Request, get_obj: true): Promise<db.IUser | null>;
+export function getUserId(req: Request, get_obj?: true) {
+    if(get_obj) {
+        let userid = getUserId(req);
+        return new Promise<db.IUser|null>((resolve, reject) => {
+            if(userid) {
+                db.User.findOne({ userid })
+                .then(user => resolve(user));
+            } else {
+                resolve(null);
+            }
+        });
+    } else {
+        if(req.session && typeof req.session.userid == "string") {
+            return req.session.userid;
+        }
+        return null;
+    }
+}
+
+export function setUserId(req: Request, userid?: string) {
+    new Promise<void>((resolve, reject) => {
+        if(req.session) {
+            if(userid) {
+                req.session.userid = userid;
+                req.session.save(err => {
+                    if(err) {
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                });
+            } else {
+                req.destroy();
+                resolve();
+            }
+        } else {
+            reject("session出問題");
+        }
+    });
+}
 
 export function encryptBySalt(salt: string, plain_pass: string) {
-    return new Promise<string>((resolve, reject)=> {
+    return new Promise<string>((resolve, reject) => {
         crypto.pbkdf2(plain_pass, salt, 4096, 256, "sha512", (err, buff_pass) => {
             if(err) {
                 reject(err);

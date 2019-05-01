@@ -10,6 +10,7 @@ import { GameMaster } from "../game_core/master/game_master";
 
 import * as config from "./config";
 import my_router from "./router";
+import { getUserId } from "./auth";
 
 const PREFIX = "./dist/game_core/real_card";
 let card_class_table: { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): KnownCard }} = {};
@@ -46,9 +47,16 @@ app.use("/card_image/", express.static("frontend/assets/card_image"));
 app.get(/\/(app\/.*|app)/, function (req, res) {
     res.sendFile(path.resolve("frontend/dist/index.html"));
 });
-app.get("/game/", function (req, res, next) {
-    if(req.session && req.session.userid) {
+app.get("/game/", function (req, res) {
+    if(getUserId(req)) {
         res.sendFile(path.resolve("frontend/dist/game.html"));
+    } else {
+        res.redirect("/app");
+    }
+});
+app.get("/deck_builder/", function (req, res) {
+    if(getUserId(req)) {
+        res.sendFile(path.resolve("frontend/dist/deck_builder.html"));
     } else {
         res.redirect("/app");
     }

@@ -7,6 +7,7 @@ let name = "暗藏裝備";
 
 export default class U extends Upgrade {
     name = name;
+    deck_count = 0;
     get description() {
         return `以一個瞬間行動裝備暗藏的升級卡（${this.getName()}）。`;
     };

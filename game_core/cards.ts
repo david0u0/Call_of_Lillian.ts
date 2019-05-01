@@ -10,6 +10,7 @@ abstract class KnownCard extends Card implements IKnownCard {
     public abstract readonly card_type: CardType;
     public abstract readonly name: string;
     public abstract readonly description: string;
+    public readonly deck_count = C.CARD_DECK_COUNT;
     public abstract readonly basic_mana_cost: number;
     public abstract can_play_phase: GamePhase[];
     public series: CardSeries[] = []
