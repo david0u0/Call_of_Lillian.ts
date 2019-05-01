@@ -8,6 +8,7 @@ import { KnownCard } from "../game_core/cards";
 import { Player } from "../game_core/enums";
 import { GameMaster } from "../game_core/master/game_master";
 
+import * as config from "./config";
 import my_router from "./router";
 
 const PREFIX = "./dist/game_core/real_card";
@@ -32,7 +33,10 @@ function genCardFunc(name: string, owner: Player, seq: number, gm: GameMaster) {
 let app = express();
 app.use(bodyParser.json());
 app.use(session({
-    secret: "Lilian's super secret ^Q^"
+    /*resave: false,
+    saveUninitialized: true,*/
+    secret: config.SESSION_SECRECT_KEY,
+    cookie: { maxAge: config.COOKIE_MAX_AGE, secure: false },
 }));
 
 app.use("/card_image", express.static("frontend/assets/card_image"));
@@ -53,4 +57,4 @@ app.use("/api/", my_router);
 app.use(function(req, res) {
     res.redirect("/app");
 });
-app.listen(8888);
+app.listen(config.PORT);

@@ -1,18 +1,21 @@
+const MODE = (() => {
+    let mode = process.env["mode"];
+    if(mode) {
+        if(mode == "release") {
+            return "RELEASE";
+        } else if(mode == "test") {
+            return "TEST";
+        }
+    }
+    return "DEV";
+})();
+
 const ENV = (() => {
     if(typeof window == "undefined") {
         return "backend";
     } else {
         return "frontend";
     }
-})();
-const OPTION = (() => {
-    let o = {
-        debug: false
-    };
-    if(process.env["DEBUG"]) {
-        o.debug = true;
-    }
-    return o;
 })();
 
 function formatErrMsg(msg: string, obj: any) {
@@ -45,7 +48,7 @@ export class BadOperationError {
 /** 這個錯誤不一定會影響遊戲進行，但可能代表了潛在的問題 */
 export function throwDebugError(msg: string, obj_with_name?: any) {
     console.log(formatErrMsg(msg, obj_with_name));
-    if(OPTION.debug) {
+    if(MODE == "TEST") {
         throw new BadOperationError(msg, obj_with_name);
     }
 }

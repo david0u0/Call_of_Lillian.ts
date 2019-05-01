@@ -1,15 +1,15 @@
-import * as React from 'react'
+import * as React from "react"
 import ReactDOM from "react-dom";
-import { LoginPage } from './login';
+import { LoginPage } from "./login";
 
 import {
 	BrowserRouter as Router,
 	Switch,
 	Route,
+    Redirect,
 } from "react-router-dom";
-import { RegisterPage } from './register';
-import { DeckBuilderPage } from './deck_builder';
-import { HomePage } from './home_page';
+import { RegisterPage } from "./register";
+import { HomePage } from "./home_page";
 
 class App extends React.Component<{}, { login: boolean, userid: string }> {
     constructor(props) {
@@ -31,6 +31,7 @@ class App extends React.Component<{}, { login: boolean, userid: string }> {
         .then(res => {
             if(res.ok) {
                 return res.json().then(data => {
+                    console.log(data)
                     this.changeLoginState(data["userid"]);
                 });
             } else {
@@ -48,10 +49,7 @@ class App extends React.Component<{}, { login: boolean, userid: string }> {
                                 <HomePage route_props={props} {...this.state}
                                     changeLoginState={this.changeLoginState.bind(this)} />
                             )} />
-                            <Route exact path="/app/deck_builder" render={props => (
-                                <DeckBuilderPage route_props={props} {...this.state}
-                                    changeLoginState={this.changeLoginState.bind(this)} />
-                            )} />
+                            <Redirect to="/app"/>
                         </Switch>
                     </div>
                 </Router>

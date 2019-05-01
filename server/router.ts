@@ -1,5 +1,8 @@
 import express from "express";
 
+import * as db from "./database";
+import { genSaltAndPass, encryptBySalt, checkUser } from "./auth";
+
 let router = express.Router();
 
 router.get("/user/who", (req, res) => {
@@ -10,21 +13,46 @@ router.get("/user/who", (req, res) => {
     }
 });
 
-router.post("/user/login", (req, res) => {
-    let { userid, password } = req.body;
-    if(userid == "test") {
-        if(req.session) {
-            req.session["userid"] = userid;
+router.post("/user/login", async (req, res) => {
+    let { userid, password } = (req.body as { userid?: string, password?: string });
+    if(userid && password) {
+        let user_in_db = await db.User.findOne({ userid });
+        if(user_in_db) {
+            let encrypted_pass = await encryptBySalt(user_in_db.salt, password);
+            if(encrypted_pass == user_in_db.password) {
+                res.json({ success: true });
+                console.log(`${userid}已登入！`);
+                if(req.session) {
+                    req.session.userid = userid;
+                }
+                return;
+            }
         }
-        res.json({ success: true });
-    } else {
-        res.status(401).send("帳號或密碼錯誤");
     }
+    res.status(401).send("帳號或密碼錯誤");
 });
 
-router.post("/user/register", (req, res) => {
-    let { userid, password } = req.body;
-    // TODO:
+router.post("/user/register", async (req, res) => {
+    let { userid, password } = (req.body as { userid?: string, password?: string });
+    if(userid && password && checkUser(userid, password)) {
+        let user_in_db = await db.User.findOne({ userid });
+        if(user_in_db) {
+            res.status(403).send("帳號已被使用");
+        } else {
+            let user = {
+                userid,
+                ...(await genSaltAndPass(password))
+            };
+            await db.User.create(user);
+            res.json({ success: true });
+            console.log(`${userid}已註冊！`);
+            if(req.session) {
+                req.session["userid"] = userid;
+            }
+        }
+    } else {
+        res.status(401).send("帳號或密碼不合法");
+    }
 });
 
 export default router;
