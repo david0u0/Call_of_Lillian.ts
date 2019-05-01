@@ -6,7 +6,7 @@
     },
     "rules": {
         "dot-location": ["error", "property"],
-        "indent": ["error", 4, { "MemberExpression": 0 }],
+        "indent": ["error", 4, { "MemberExpression": 0, "SwitchCase": 1 }],
         "no-var": "error",
         "quotes": ["error", "double"],
         "semi": "error",
@@ -15,7 +15,8 @@
                 "if": { "after": false },
                 "for": { "after": false },
                 "while": { "after": false },
-                "catch": {"after": false}
+                "catch": { "after": false },
+                "switch": { "after": false }
             }
         }]
     }

@@ -375,7 +375,7 @@ abstract class Spell extends KnownCard implements ISpell {
         casters: new Array<ICharacter>()
     };
 
-    constructor(public readonly seq: number, public readonly owner: Player,
+    constructor(seq: number, public readonly owner: Player,
         public readonly g_master: GameMaster
     ) {
         super(seq, owner, g_master);
