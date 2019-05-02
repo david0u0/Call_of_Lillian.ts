@@ -90,8 +90,12 @@ function drawPage(index: number, gm: GameMaster, card_list: IKnownCard[],
                     cleanup_funcs.push(null);
                     card_ui.on("mouseover", () => {
                         onHover(card, true);
-                        cleanup_funcs[n] = showBigCard(card_ui.x + card_ui.width / 2,
+                        let destroy_big = showBigCard(card_ui.x + card_ui.width / 2,
                             card_ui.y + card_ui.height / 2, card);
+                        cleanup_funcs[n] = () => {
+                            onHover(card, false);
+                            destroy_big();
+                        };
                     });
                     card_ui.on("mouseout", () => {
                         onHover(card, false);
@@ -138,7 +142,9 @@ class DeckUI {
         this.width = width;
         this.refreshUI();
     }
+    private cur_highlight = "";
     highlight(card: IKnownCard, high: boolean) {
+        this.cur_highlight = high ? card.name : "";
         for(let [i, pair] of this._deck.list.entries()) {
             if(pair.name == card.name) {
                 let rec = this.view.children[i];
@@ -179,7 +185,7 @@ class DeckUI {
         }
     }
     drawPair(index: number, pair: { name: string, count: number }) {
-        const rec_h = 30;
+        const rec_h = 35;
         let rec = new PIXI.Graphics();
         rec.lineStyle(1, 0);
         rec.beginFill(0xffffff, 1);
@@ -187,12 +193,12 @@ class DeckUI {
         rec.endFill();
         this.view.addChild(rec);
         let txt = new PIXI.Text(`${pair.name} x ${pair.count}`, new PIXI.TextStyle({
-            fill: 0, fontSize: rec_h*0.8
+            fill: 0, fontSize: rec_h*0.6
         }));
         txt.position.set(0, index * rec_h);
         rec.addChild(txt);
         rec.filters = [new Filters.GlowFilter(20, 1, 2, 0x48e0cf, 0.5)];
-        rec.filters[0].enabled = false;
+        rec.filters[0].enabled = (this.cur_highlight == pair.name);
 
         rec.interactive = true;
         rec.cursor = "pointer";
