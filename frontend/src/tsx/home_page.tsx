@@ -47,16 +47,17 @@ export class HomePage extends React.Component<PageProps, State> {
             body: JSON.stringify({ _id, name })
         });
         if(res.ok) {
+            let new_deck = await res.json();
             let decks = [...this.state.decks];
             for(let [i, deck] of decks.entries()) {
                 if(deck._id == _id) {
-                    let new_deck = { ...deck, name };
                     decks = [...decks.slice(0, i), new_deck, ...decks.slice(i+1)];
                     this.setState({ decks });
-                    break;
+                    return;
                 }
             }
         }
+        throw "找不到更新的牌組";
     }
     async newDeck() {
         let res = await fetch("/api/deck/new", {
@@ -102,7 +103,7 @@ export class HomePage extends React.Component<PageProps, State> {
 }
 
 type DeckBlockProps = (
-    (Deck & { highlight_id: string | null, onNameChange: (name: string) => void })
+    (Deck & { highlight_id: string | null, onNameChange: (name: string) => Promise<void> })
     | { is_new: true }
 ) & { onClick: () => void };
 
@@ -123,13 +124,16 @@ class DeckBlock extends React.Component<DeckBlockProps, DeckBlockState> {
     private tmp_input: HTMLInputElement;
     doChangeName(start: boolean) {
         this.setState({ changing_name: start });
-        setTimeout(() => {
-            if(!start && "name" in this.props) {
-                if(this.props.name != this.state.tmp_name) {
-                    this.props.onNameChange(this.state.tmp_name);
+        setTimeout(async () => {
+            if("name" in this.props) {
+                if(start) {
+                    this.setState({ tmp_name: this.props.name });
+                    this.tmp_input.focus();
+                } else {
+                    if(this.props.name != this.state.tmp_name) {
+                        this.props.onNameChange(this.state.tmp_name);
+                    }
                 }
-            } else {
-                this.tmp_input.focus();
             }
         });
     }

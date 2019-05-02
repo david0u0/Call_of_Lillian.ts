@@ -3,6 +3,7 @@ import express from "express";
 import * as db from "./database";
 import { genSaltAndPass, encryptBySalt, checkUser, getUserId, setUserId } from "./auth";
 import { card_list } from "./card_generator";
+import { parseName } from "./querry_check";
 
 let router = express.Router();
 
@@ -13,6 +14,7 @@ router.get("/user/who", (req, res) => {
 
 router.post("/user/login", async (req, res) => {
     let { userid, password } = (req.body as db.Query<db.IUser>);
+    userid = parseName(userid, true);
     if(userid && password) {
         let user_in_db = await db.User.findOne({ userid });
         if(user_in_db) {
@@ -37,6 +39,7 @@ router.get("/user/logout", async (req, res) => {
 
 router.post("/user/register", async (req, res) => {
     let { userid, password } = (req.body as db.Query<db.IUser>);
+    userid = parseName(userid, true);
     if(userid && password && checkUser(userid, password)) {
         let user_in_db = await db.User.findOne({ userid });
         if(user_in_db) {
@@ -78,6 +81,7 @@ router.get("/deck/detail", async (req, res) => {
 router.post("/deck/new", async (req, res) => {
     let user = await getUserId(req, true);
     let { name } = (req.body as { name?: string });
+    name = parseName(name);
     if(!name) {
         res.status(400).send("沒有名字");
     } else if(!user) {
@@ -92,6 +96,7 @@ router.post("/deck/new", async (req, res) => {
 router.post("/deck/edit", async (req, res) => {
     let user = await getUserId(req, true);
     let { name, description, list, _id } = (req.body as db.Query<db.IDeck>);
+    name = parseName(name);
     if(!user) {
         res.status(403).send("尚未登入");
     } else if(!_id) {
