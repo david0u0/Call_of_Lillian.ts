@@ -3,8 +3,7 @@ import { Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "甜點吃到飽";
-let description = `（休閒場所）
-使用：3魔力→恢復兩點情緒。`;
+let description = "使用：3魔力→恢復兩點情緒。";
 
 export default class A extends Arena implements IArena {
     name = name;

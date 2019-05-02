@@ -3,8 +3,7 @@ import { Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "意識遊樂場";
-let description = `（休閒場所）
-使用：3魔力→使你的情緒恢復至本次收獲階段開始時的狀態，並免疫所有情緒傷害，直到收獲階段結束。`;
+let description = "使用：3魔力→使你的情緒恢復至本次收獲階段開始時的狀態，並免疫所有情緒傷害，直到收獲階段結束。";
 
 export default class A extends Arena implements IArena {
     name = name;

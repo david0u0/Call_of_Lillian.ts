@@ -36,7 +36,7 @@ txt +=
     if(C) {
         return new C(seq, owner, gm);
     } else {
-        throw new BadOperationError(\`找不到卡片：\${name\}\`);
+        throw \`找不到卡片：\${name\}\`;
     }
 }`;
 
