@@ -2,8 +2,7 @@ import { Character, Upgrade } from "../../cards";
 import { CardType, CardStat, BattleRole } from "../../enums";
 
 let name = "雨季的魔女．語霽";
-let description = `瞬間
-**呼喚不幸的體質**：當其它角色進入同一個場所時，該角色承受一點情緒傷害。`;
+let description = "**呼喚不幸的體質**：當其它角色進入同一個場所時，該角色承受一點情緒傷害。";
 
 export default class C extends Character {
     name = name;

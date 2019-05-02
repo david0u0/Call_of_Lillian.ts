@@ -3,8 +3,7 @@ import { Character, Upgrade, Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "彩虹橋下的酒館";
-let description = `（休閒場所）
-使用：3魔力->恢復2情緒。
+let description = `使用：3魔力->恢復2情緒。
 或
 使用：3魔力->造成對手1情緒傷害。`;
 

@@ -4,7 +4,7 @@ import * as PIXI from "pixi.js";
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
 import { GameMaster } from "../../game_core/master/game_master";
-import { Player, CharStat } from "../../game_core/enums";
+import { Player, CharStat, CardType, SeriesTxt } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
 import { getPlayerColor } from "./get_constant";
@@ -37,6 +37,34 @@ function descrStyle(width: number) {
         breakWords: true,
         wordWrapWidth: width * 13 / 16
     });
+}
+
+function formatCardInfoStr(card: IKnownCard) {
+    let type = (() => {
+        switch(card.card_type) {
+            case CardType.Arena:
+                return "場所";
+            case CardType.Character:
+                return "角色";
+            case CardType.Upgrade:
+                return "升級";
+            case CardType.Spell:
+                return "咒語";
+            case CardType.Event:
+                if(TG.isEvent(card) && card.is_ending) {
+                    return "結局";
+                } else {
+                    return "事件";
+                }
+            default:
+                throw "未知的卡牌";
+        }
+    })();
+    let infos = card.series.map(n => SeriesTxt[n]);
+    if(card.instance && !TG.isUpgrade(card)) {
+        infos.push("瞬間");
+    }
+    return `${type}${infos.length > 0 ? "-" : ""}${infos.join("．")}`;
 }
 
 export function getCardSize(width: number, height: number, landscape = false) {
@@ -194,11 +222,7 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
         title_rec.beginFill(0xffffff, 1);
         title_rec.drawRoundedRect(width / 15, width / 12, width * 13 / 15, width / 10, 5);
         title_rec.endFill();
-        let name = card.name;
-        if(TG.isEvent(card) && card.is_ending) {
-            name = `${name}（結局）`;
-        }
-        let name_txt = new PIXI.Text(truncateName(name, title_rec.width), titleStyle(width));
+        let name_txt = new PIXI.Text(truncateName(card.name, title_rec.width), titleStyle(width));
         name_txt.position.set(width / 15 * 1.5, width / 12);
         container.addChild(title_rec);
         container.addChild(name_txt);
@@ -222,6 +246,17 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
             description_txt.position.set(width / 15 * 1.3, height * 3 / 5);
             container.addChild(description_rec);
             container.addChild(description_txt);
+
+            let info_rec = new PIXI.Graphics();
+            info_rec.lineStyle(1, 0);
+            info_rec.beginFill(0xffffff, 1);
+            info_rec.drawRoundedRect(width / 15, height / 2, width * 13 / 15, width / 10, 5);
+            info_rec.endFill();
+            let info_txt = new PIXI.Text(formatCardInfoStr(card), titleStyle(width));
+            info_txt.position.set(width / 15 * 1.3, height / 2);
+            container.addChild(info_rec);
+            container.addChild(info_txt);
+            
         }
 
         if(TG.isCharacter(card) || TG.isUpgrade(card)) {
