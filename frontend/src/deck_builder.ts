@@ -1,3 +1,4 @@
+import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
 
 import { GameMaster } from "../../game_core/master/game_master";
@@ -25,6 +26,22 @@ PIXI.loader
 .add("countdown_prompt", require("../assets/countdown_prompt.png"))
 .load(setup);
 
+type Deck = {
+    name: string,
+    description: string,
+    list: { name: string, count: number }[]
+};
+const DeckID = (() => {
+    let url_params = new URL(window.location.href).searchParams;
+    let _id = url_params.get("_id");
+    if(_id) {
+        return _id;
+    } else {
+        throw "無牌組id";
+    }
+})();
+const { ew, eh } = getEltSize();
+
 async function getAllCards(): Promise<string[]> {
     let res = await fetch("/api/card/list");
     if(res.ok) {
@@ -35,14 +52,22 @@ async function getAllCards(): Promise<string[]> {
     }
     throw "找不到卡表";
 }
+async function getDeck() {
+    let res = await fetch(`/api/deck/detail?_id=${DeckID}`);
+    if(res.ok) {
+        let data = (await res.json()) as Deck;
+        return data;
+    }
+    throw "找不到牌組";
+}
 
 const PAGE_LIMIT = 10;
-function drawPage(index: number, gm: GameMaster,
-    card_list: IKnownCard[], showBigCard: ShowBigCard
+function drawPage(index: number, gm: GameMaster, card_list: IKnownCard[],
+    showBigCard: ShowBigCard, onClick: (card: IKnownCard) => void,
+    onHover: (card: IKnownCard, inside: boolean) => void
 ) {
     let view = new PIXI.Container();
     let cards = card_list.slice(PAGE_LIMIT * index, PAGE_LIMIT * (index + 1));
-    let { ew, eh } = getEltSize();
     let { width, height } = getCardSize(ew * 6, eh * 18.5);
     for(let c of cards) {
         my_loader.add(c);
@@ -64,15 +89,17 @@ function drawPage(index: number, gm: GameMaster,
                     card_ui.cursor = "pointer";
                     cleanup_funcs.push(null);
                     card_ui.on("mouseover", () => {
+                        onHover(card, true);
                         cleanup_funcs[n] = showBigCard(card_ui.x + card_ui.width / 2,
                             card_ui.y + card_ui.height / 2, card);
                     });
                     card_ui.on("mouseout", () => {
+                        onHover(card, false);
                         if(cleanup_funcs[n]) {
                             cleanup_funcs[n]();
                         }
-                        cleanup_funcs[n] = null;
                     });
+                    card_ui.on("click", () => onClick(card));
                     view.addChild(card_ui);
                 }
             }
@@ -89,8 +116,100 @@ function drawPage(index: number, gm: GameMaster,
     });
 }
 
+class DeckUI {
+    public view = new PIXI.Container();
+    public get deck(): Deck {
+        return {
+            ...this._deck,
+            list: this._deck.list.map(pair => {
+                return { ...pair };
+            })
+        };
+    }
+    private card_table: { [name: string]: IKnownCard } = {};
+    constructor(private _deck: Deck, cards: IKnownCard[]) {
+        for(let c of cards) {
+            this.card_table[c.name] = c;
+        }
+        this.refreshUI();
+    }
+    private width: number = null;
+    setWidth(width: number) {
+        this.width = width;
+        this.refreshUI();
+    }
+    highlight(card: IKnownCard, high: boolean) {
+        for(let [i, pair] of this._deck.list.entries()) {
+            if(pair.name == card.name) {
+                let rec = this.view.children[i];
+                if(rec && rec.filters) {
+                    this.view.children[i].filters[0].enabled = high;
+                }
+                break;
+            }
+        }
+    }
+    addCard(card: IKnownCard) {
+        let found = false;
+        for(let pair of this._deck.list) {
+            if(pair.name == card.name) {
+                found = true;
+                if(card.deck_count >= pair.count + 1) {
+                    pair.count++;
+                    break;
+                }
+            }
+        }
+        if(!found) {
+            this._deck.list.push({ name: card.name, count: 1});
+        }
+        this._deck.list = this._deck.list.sort((a, b) => {
+            return this.card_table[a.name].basic_mana_cost - this.card_table[b.name].basic_mana_cost;
+        });
+        this.refreshUI();
+    }
+    refreshUI() {
+        if(this.width) {
+            for(let child of [...this.view.children]) {
+                child.destroy();
+            }
+            for(let [i, pair] of this._deck.list.entries()) {
+                this.drawPair(i, pair);
+            }
+        }
+    }
+    drawPair(index: number, pair: { name: string, count: number }) {
+        const rec_h = 30;
+        let rec = new PIXI.Graphics();
+        rec.lineStyle(1, 0);
+        rec.beginFill(0xffffff, 1);
+        rec.drawRoundedRect(0, index * rec_h, this.width, rec_h, 5);
+        rec.endFill();
+        this.view.addChild(rec);
+        let txt = new PIXI.Text(`${pair.name} x ${pair.count}`, new PIXI.TextStyle({
+            fill: 0, fontSize: rec_h*0.8
+        }));
+        txt.position.set(0, index * rec_h);
+        rec.addChild(txt);
+        rec.filters = [new Filters.GlowFilter(20, 1, 2, 0x48e0cf, 0.5)];
+        rec.filters[0].enabled = false;
+
+        rec.interactive = true;
+        rec.cursor = "pointer";
+        rec.on("click", () => {
+            if(pair.count > 0) {
+                pair.count--;
+            }
+            if(pair.count == 0) {
+                this._deck.list = [...this._deck.list.slice(0, index), ...this._deck.list.slice(index+1)];
+            }
+            this.refreshUI();
+        });
+    }
+}
+
 async function setup() {
-    let all_card_list = await getAllCards();
+    let [all_card_list, deck] = await Promise.all([getAllCards(), getDeck()]);
 
     let me = Player.Player1;
     let { width, height } = getWinSize();
@@ -110,17 +229,24 @@ async function setup() {
     ) => {
         return showBigCard(gm, app.stage, x, y, card, app.ticker, conf);
     };
-    let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
     let ratio = width / bg.width;
     bg.scale.set(ratio);
     app.stage.addChild(bg);
 
+    let deck_ui = new DeckUI(deck, cards);
+    app.stage.addChild(deck_ui.view);
+
     let index = 0;
-    let { view, destroy } = await drawPage(0, gm, cards, show_big_card);
+    let { view, destroy } = await drawPage(0, gm, cards, show_big_card,
+        c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside));
+    let loading = false;
     app.stage.addChild(view);
 
     document.addEventListener("wheel", async evt => {
+        if(loading) {
+            return;
+        }
         let sign = evt.wheelDelta > 0 ? -1 : 1;
         index += sign;
         if(index < 0) {
@@ -128,11 +254,18 @@ async function setup() {
         } else if(index > Math.floor(cards.length / PAGE_LIMIT)) {
             index = Math.floor(cards.length / PAGE_LIMIT);
         } else {
+            loading = true;
             destroy();
-            ({ view, destroy } = await drawPage(index, gm, cards, show_big_card));
+            ({ view, destroy } = await drawPage(index, gm, cards, show_big_card,
+                c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside)));
             app.stage.addChild(view);
+            loading = false;
         }
     });
+    let left_space = width - view.width;
+    deck_ui.setWidth(left_space * 0.8);
+    deck_ui.view.position.set(view.width + left_space * 0.1, 0);
+
 }
 
 document.body.appendChild(app.view);

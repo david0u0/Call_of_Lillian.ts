@@ -76,7 +76,18 @@ router.get("/deck/list", async (req, res) => {
     }
 });
 router.get("/deck/detail", async (req, res) => {
-
+    let user = await getUserId(req, true);
+    let { _id } = (req.query as { _id?: any });
+    if(_id && user) {
+        for(let deck of user.decks) {
+            if(deck._id == _id) {
+                res.json({ name: deck, list: deck.list, description: deck.description });
+                break;
+            }
+        }
+    } else {
+        res.status(404).send();
+    }
 });
 router.post("/deck/new", async (req, res) => {
     let user = await getUserId(req, true);

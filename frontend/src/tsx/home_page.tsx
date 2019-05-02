@@ -34,7 +34,7 @@ export class HomePage extends React.Component<PageProps, State> {
         window.location.href = "/game";
     }
     editDeck() {
-        let url = `/deck_builder?id=${this.state.cur_selecting_deck}`;
+        let url = `/deck_builder?_id=${this.state.cur_selecting_deck}`;
         window.location.href = url;
     }
     selectDeck(_id: string) {
