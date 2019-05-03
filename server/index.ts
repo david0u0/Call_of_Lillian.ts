@@ -5,6 +5,7 @@ import session from "express-session";
 
 import * as config from "./config";
 import my_router from "./router";
+import game_router from "./game/router";
 import { getUserId } from "./auth";
 
 let app = express();
@@ -43,6 +44,7 @@ app.get("/", function (req, res) {
 });
 
 app.use(express.static("frontend/dist"));
+app.use("/api/game/", game_router);
 app.use("/api/", my_router);
 
 app.listen(config.PORT);

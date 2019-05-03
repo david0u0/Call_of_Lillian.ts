@@ -10,7 +10,8 @@ type Deck = {
 type State = {
     cur_selecting_deck: string,
     loading: boolean
-    decks: Deck[]
+    decks: Deck[],
+    selecting_enemy: boolean,
 };
 
 export class HomePage extends React.Component<PageProps, State> {
@@ -19,7 +20,8 @@ export class HomePage extends React.Component<PageProps, State> {
         this.state = {
             cur_selecting_deck: null,
             loading: true,
-            decks: []
+            decks: [],
+            selecting_enemy: false
         };
     }
     async componentDidMount() {
@@ -31,8 +33,21 @@ export class HomePage extends React.Component<PageProps, State> {
             //
         }
     }
-    startGame() {
-        window.location.href = "/game";
+    async startGame(enemy_deck_id: string) {
+        let res = await fetch("/api/game/init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                my_deck_id: this.state.cur_selecting_deck,
+                enemy_deck_id
+            })
+        });
+        if(res) {
+            window.location.href = "/game";
+        }
+    }
+    startSelectEnemy() {
+        this.setState({ selecting_enemy: true });
     }
     editDeck() {
         let url = `/deck_builder?_id=${this.state.cur_selecting_deck}`;
@@ -110,7 +125,30 @@ export class HomePage extends React.Component<PageProps, State> {
                     </div>
                     <br/>
                     <button onClick={this.editDeck.bind(this)} disabled={disabled}>編輯牌組</button>
-                    <button onClick={this.startGame.bind(this)} disabled={disabled}>開戰啦！</button>
+                    <button onClick={this.startSelectEnemy.bind(this)} disabled={disabled}>開戰啦！</button>
+                    <div style={{ clear: "both" }} />
+                    {
+                        (() => {
+                            if(this.state.selecting_enemy) {
+                                return (
+                                    <div>
+                                        <h4>請選擇敵人的牌組（單機測試）</h4>
+                                        {
+                                            this.state.decks.map(deck => {
+                                                return (
+                                                    <DeckBlock key={deck._id} {...deck}
+                                                        highlight_id={""}
+                                                        onClick={() => this.startGame(deck._id)} />
+                                                );
+                                            })
+                                        }
+                                    </div>
+                                );
+                            } else {
+                                return null;
+                            }
+                        })()
+                    }
                 </div>
             );
         }
@@ -118,7 +156,7 @@ export class HomePage extends React.Component<PageProps, State> {
 }
 
 type DeckBlockProps = (
-    (Deck & { highlight_id: string | null, onNameChange: (name: string) => void, onDelete: () => void })
+    (Deck & { highlight_id: string | null, onNameChange?: (name: string) => void, onDelete?: () => void })
     | { is_new: true }
 ) & { onClick: () => void };
 
@@ -143,10 +181,12 @@ class DeckBlock extends React.Component<DeckBlockProps, DeckBlockState> {
         setTimeout(async () => {
             if("name" in this.props) {
                 if(start) {
-                    this.setState({ tmp_name: this.props.name });
-                    this.tmp_input.focus();
+                    if(this.props.onNameChange) {
+                        this.setState({ tmp_name: this.props.name });
+                        this.tmp_input.focus();
+                    }
                 } else {
-                    if(this.props.name != this.state.tmp_name) {
+                    if(this.props.name != this.state.tmp_name && this.props.onNameChange) {
                         this.props.onNameChange(this.state.tmp_name);
                     }
                 }
@@ -192,7 +232,7 @@ class DeckBlock extends React.Component<DeckBlockProps, DeckBlockState> {
             <div style={{ float: "left", margin: 10, cursor: "pointer", opacity, position: "relative" }}>
                 {
                     (() => {
-                        if("_id" in this.props) {
+                        if("_id" in this.props && this.props.onDelete) {
                             return <div style={{
                                 position: "absolute",
                                 right: -10,
