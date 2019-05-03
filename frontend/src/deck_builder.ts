@@ -142,6 +142,10 @@ class DeckUI {
         this.width = width;
         this.refreshUI();
     }
+    private onChangeFunc = () => {};
+    public setOnChange(func: () => void) {
+        this.onChangeFunc = func;
+    }
     private cur_highlight = "";
     highlight(card: IKnownCard, high: boolean) {
         this.cur_highlight = high ? card.name : "";
@@ -183,6 +187,7 @@ class DeckUI {
                 this.drawPair(i, pair);
             }
         }
+        this.onChangeFunc();
     }
     drawPair(index: number, pair: { name: string, count: number }) {
         const rec_h = 35;
@@ -214,6 +219,39 @@ class DeckUI {
     }
 }
 
+function drawBtn(msg: string, color: number, width: number, height: number, onClick: () => void) {
+    let btn = new PIXI.Graphics();
+    btn.lineStyle(1, 0);
+    btn.beginFill(color);
+    btn.drawRoundedRect(0, 0, width, eh * 2, 5);
+    btn.endFill();
+    let txt = new PIXI.Text(msg, new PIXI.TextStyle({
+        fontSize: height*0.8,
+    }));
+    txt.anchor.set(0.5, 0.5);
+    txt.position.set(btn.width/2, btn.height/2);
+    btn.addChild(txt);
+    btn.interactive = true;
+    btn.cursor = "pointer";
+    btn.on("click", onClick);
+    return btn;
+}
+
+function checkIfChanged(d1: Deck, d2: Deck) {
+    if(d1.name != d2.name || d1.description != d2.description) {
+        return true;
+    } else if(d1.list.length != d2.list.length) {
+        return true;
+    } else {
+        for(let [i, p] of d1.list.entries()) {
+            if(p.name != d2.list[i].name || p.count != d2.list[i].count) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 async function setup() {
     let [all_card_list, deck] = await Promise.all([getAllCards(), getDeck()]);
 
@@ -241,6 +279,7 @@ async function setup() {
     app.stage.addChild(bg);
 
     let deck_ui = new DeckUI(deck, cards);
+    let deck_backup = deck_ui.deck;
     app.stage.addChild(deck_ui.view);
 
     let index = 0;
@@ -253,7 +292,8 @@ async function setup() {
         if(loading) {
             return;
         }
-        let sign = evt.wheelDelta > 0 ? -1 : 1;
+        let delta = evt.wheelDelta? evt.wheelDelta : -evt.deltaY;
+        let sign = delta > 0 ? -1 : 1;
         index += sign;
         if(index < 0) {
             index = 0;
@@ -272,6 +312,38 @@ async function setup() {
     deck_ui.setWidth(left_space * 0.8);
     deck_ui.view.position.set(view.width + left_space * 0.1, 0);
 
+    let save_btn = drawBtn("儲存", 0x15b1f4, left_space*0.8, eh*2, async () => {
+        if(checkIfChanged(deck_backup, deck_ui.deck)) {
+            let res = await fetch("/api/deck/edit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ...deck_ui.deck, _id: DeckID }),
+            });
+            if(res.ok) {
+                deck_backup = deck_ui.deck;
+                save_btn.visible = false;
+            }
+        }
+    });
+    save_btn.visible = false;
+    save_btn.position.set(view.width + left_space * 0.1, eh * 36);
+    deck_ui.setOnChange(() => {
+        save_btn.visible = (checkIfChanged(deck_ui.deck, deck_backup));
+    });
+
+    let back_btn = drawBtn("返回", 0x15b1f4, left_space * 0.8, eh * 2, () => {
+        let res = true;
+        if(checkIfChanged(deck_backup, deck_ui.deck)) {
+            res = confirm("是否要捨棄變更？");
+        }
+        if(res) {
+            window.location.href = "/app";
+        }
+    });
+    back_btn.position.set(view.width + left_space * 0.1, eh * 39);
+
+    app.stage.addChild(save_btn);
+    app.stage.addChild(back_btn);
 }
 
 document.body.appendChild(app.view);

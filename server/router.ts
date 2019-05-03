@@ -66,7 +66,6 @@ router.get("/deck/list", async (req, res) => {
             return {
                 name: ideck.name,
                 description: ideck.description,
-                list: ideck.list,
                 _id: ideck._id
             };
         });
@@ -81,7 +80,7 @@ router.get("/deck/detail", async (req, res) => {
     if(_id && user) {
         for(let deck of user.decks) {
             if(deck._id == _id) {
-                res.json({ name: deck, list: deck.list, description: deck.description });
+                res.json({ name: deck.name, list: deck.list, description: deck.description });
                 break;
             }
         }
