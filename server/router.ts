@@ -63,10 +63,12 @@ router.get("/deck/list", async (req, res) => {
     let user = await getUserId(req, true);
     if(user) {
         let decks = user.decks.map(ideck => {
+            let first_card = ideck.list.length > 0 ? ideck.list[0].name : null;
             return {
                 name: ideck.name,
                 description: ideck.description,
-                _id: ideck._id
+                _id: ideck._id,
+                first_card
             };
         });
         res.json(decks);
@@ -101,6 +103,19 @@ router.post("/deck/new", async (req, res) => {
         user.decks.push(deck);
         user.save();
         res.json({ _id: deck._id, name: deck.name });
+    }
+});
+router.post("/deck/delete", async (req, res) => {
+    let user = await getUserId(req, true);
+    let { _id } = (req.body as { _id?: string });
+    if(!_id) {
+        res.status(400).send("沒有牌組id");
+    } else if(!user) {
+        res.status(403).send("尚未登入");
+    } else {
+        user.decks = user.decks.filter(d => d._id != _id);
+        user.save();
+        res.json({ success: true });
     }
 });
 router.post("/deck/edit", async (req, res) => {

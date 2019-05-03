@@ -44,7 +44,7 @@ interface IUser extends mongoose.Document {
     userid: string,
     password: string,
     salt: string,
-    decks: [IDeck]
+    decks: IDeck[]
 }
 const User = mongoose.model<IUser>("User", new Schema({
     userid: { type: Types.String, required: true },
