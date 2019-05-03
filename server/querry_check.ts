@@ -1,5 +1,5 @@
-export function parseName(name: string | undefined, strict = false): string | undefined {
-    if(name) {
+export function parseName(name: any, strict = false): string | undefined {
+    if(typeof name == "string") {
         if(strict && name.match(/[ |\n]/)) {
             return undefined;
         } else {

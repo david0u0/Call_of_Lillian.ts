@@ -317,7 +317,7 @@ export class PlayerMaster {
         card.rememberDatas();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
             card.recoverDatas();
-            // throwIfIsBackend("出牌過程取消");
+            throwIfIsBackend("出牌過程取消");
             return false;
         }
         // 支付代價

@@ -48,7 +48,7 @@ abstract class KnownCard extends Card implements IKnownCard {
 
     protected prepare() { }
     constructor(seq: number, public readonly owner: Player,
-        public readonly g_master: GameMaster
+        public readonly g_master: GameMaster, public readonly abs_name: string
     ) {
         super(seq, owner);
         this.my_master = g_master.getMyMaster(owner);
@@ -376,10 +376,8 @@ abstract class Spell extends KnownCard implements ISpell {
         casters: new Array<ICharacter>()
     };
 
-    constructor(seq: number, public readonly owner: Player,
-        public readonly g_master: GameMaster
-    ) {
-        super(seq, owner, g_master);
+    constructor(seq: number,  owner: Player, g_master: GameMaster, abs_name: string) {
+        super(seq, owner, g_master, abs_name);
         this.check_before_play_chain.append(() => {
             let casters_may_be = this.getMaybeCasters();
             if(casters_may_be.length < this.min_caster) {

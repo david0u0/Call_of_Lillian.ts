@@ -23,7 +23,8 @@ type Ability = {
 };
 
 interface IKnownCard extends ICard {
-    readonly name: string;
+    readonly abs_name: string; // 用來唯一辨別一張卡牌的名字
+    readonly name: string; // 顯示用的名字，可能是不同語言
     readonly description: string;
     readonly deck_count: number;
     readonly basic_mana_cost: number;
@@ -207,7 +208,7 @@ const TypeGaurd = {
         return false;
     },
     isSameCard<T extends IKnownCard>(card: T, target: IKnownCard): target is T {
-        return card.name == target.name;
+        return card.abs_name == target.abs_name;
     }
 };
 

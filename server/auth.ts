@@ -3,11 +3,11 @@ import crypto from "crypto";
 import * as db from "./database";
 
 export function getUserId(req: Request): string | null;
-export function getUserId(req: Request, get_obj: true): Promise<db.IUser | null>;
+export function getUserId(req: Request, get_obj: true): Promise<db.DBObj<db.IUser> | null>;
 export function getUserId(req: Request, get_obj?: true) {
     if(get_obj) {
         let userid = getUserId(req);
-        return new Promise<db.IUser|null>((resolve, reject) => {
+        return new Promise<db.DBObj<db.IUser>|null>((resolve, reject) => {
             if(userid) {
                 db.User.findOne({ userid })
                 .then(user => resolve(user));

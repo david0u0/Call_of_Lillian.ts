@@ -4,6 +4,7 @@ import * as db from "./database";
 import { genSaltAndPass, encryptBySalt, checkUser, getUserId, setUserId } from "./auth";
 import { card_list } from "./card_generator";
 import { parseName } from "./querry_check";
+import { default_user_decks, default_deck_list } from "./default_decks";
 
 let router = express.Router();
 
@@ -13,7 +14,7 @@ router.get("/user/who", (req, res) => {
 });
 
 router.post("/user/login", async (req, res) => {
-    let { userid, password } = (req.body as db.Query<db.IUser>);
+    let { userid, password } = req.body;
     userid = parseName(userid, true);
     if(userid && password) {
         let user_in_db = await db.User.findOne({ userid });
@@ -38,7 +39,7 @@ router.get("/user/logout", async (req, res) => {
 });
 
 router.post("/user/register", async (req, res) => {
-    let { userid, password } = (req.body as db.Query<db.IUser>);
+    let { userid, password } = req.body;
     userid = parseName(userid, true);
     if(userid && password && checkUser(userid, password)) {
         let user_in_db = await db.User.findOne({ userid });
@@ -47,7 +48,8 @@ router.post("/user/register", async (req, res) => {
         } else {
             let user = {
                 userid,
-                ...(await genSaltAndPass(password))
+                ...(await genSaltAndPass(password)),
+                decks: default_user_decks
             };
             await db.User.create(user);
             res.json({ success: true });
@@ -63,7 +65,7 @@ router.get("/deck/list", async (req, res) => {
     let user = await getUserId(req, true);
     if(user) {
         let decks = user.decks.map(ideck => {
-            let first_card = ideck.list.length > 0 ? ideck.list[0].name : null;
+            let first_card = ideck.list.length > 0 ? ideck.list[0].abs_name : null;
             return {
                 name: ideck.name,
                 description: ideck.description,
@@ -78,7 +80,7 @@ router.get("/deck/list", async (req, res) => {
 });
 router.get("/deck/detail", async (req, res) => {
     let user = await getUserId(req, true);
-    let { _id } = (req.query as { _id?: any });
+    let { _id } = req.query;
     if(_id && user) {
         for(let deck of user.decks) {
             if(deck._id == _id) {
@@ -92,22 +94,22 @@ router.get("/deck/detail", async (req, res) => {
 });
 router.post("/deck/new", async (req, res) => {
     let user = await getUserId(req, true);
-    let { name } = (req.body as { name?: string });
+    let { name } = req.body;
     name = parseName(name);
     if(!name) {
         res.status(400).send("沒有名字");
     } else if(!user) {
         res.status(403).send("尚未登入");
     } else {
-        let deck = new db.Deck({ name });
+        let deck = new db.Deck({ name, list: default_deck_list });
         user.decks.push(deck);
         user.save();
-        res.json({ _id: deck._id, name: deck.name });
+        res.json({ _id: deck._id, name: deck.name, first_card: default_deck_list[0].abs_name });
     }
 });
 router.post("/deck/delete", async (req, res) => {
     let user = await getUserId(req, true);
-    let { _id } = (req.body as { _id?: string });
+    let { _id } = req.body;
     if(!_id) {
         res.status(400).send("沒有牌組id");
     } else if(!user) {
@@ -120,7 +122,7 @@ router.post("/deck/delete", async (req, res) => {
 });
 router.post("/deck/edit", async (req, res) => {
     let user = await getUserId(req, true);
-    let { name, description, list, _id } = (req.body as db.Query<db.IDeck>);
+    let { name, description, list, _id } = req.body;
     name = parseName(name);
     if(!user) {
         res.status(403).send("尚未登入");

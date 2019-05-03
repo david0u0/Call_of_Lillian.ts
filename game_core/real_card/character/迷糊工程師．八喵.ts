@@ -14,7 +14,7 @@ export default class C extends Character {
 
     async onPlay() {
         let ch = await this.g_master.genCardToBoard(this.owner, () => {
-            return new Flash(-1, this.owner, this.g_master);
+            return new Flash(-1, this.owner, this.g_master, "閃存少女");
         });
         await this.my_master.changeCharTired(ch, false);
     }
@@ -22,7 +22,7 @@ export default class C extends Character {
     setupAliveEffect() {
         this.addActionWhileAlive(true, this.g_master.t_master.start_building_chain, async () => {
             let ch = await this.g_master.genCardToBoard(this.owner, () => {
-                return new Flash(-1, this.owner, this.g_master);
+                return new Flash(-1, this.owner, this.g_master, "閃存少女");
             });
             await this.my_master.changeCharTired(ch, false);
         });

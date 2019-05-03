@@ -8,8 +8,9 @@ let txt =
 import { GameMaster } from "../../game_core/master/game_master";
 import { IKnownCard } from "../../game_core/interface";
 import { Player } from "../../game_core/enums";
-let card_class_table:
-    { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): IKnownCard }} = {};
+let card_class_table: {
+    [abs_name: string]: { new(seq: number, owner: Player, gm: GameMaster, abs_name: string): IKnownCard }
+} = {};
 `;
 
 const PREFIX = "../game_core/real_card";
@@ -30,12 +31,12 @@ for(let type_name of card_type_dirs) {
 }
 
 txt +=
-`export default function generateCard(name: string, owner: Player, seq: number, gm: GameMaster) {
-    let C = card_class_table[name];
+`export default function generateCard(abs_name: string, owner: Player, seq: number, gm: GameMaster) {
+    let C = card_class_table[abs_name];
     if(C) {
-        return new C(seq, owner, gm);
+        return new C(seq, owner, gm, abs_name);
     } else {
-        throw \`找不到卡片：\${name\}\`;
+        throw \`找不到卡片：\${abs_name\}\`;
     }
 }`;
 

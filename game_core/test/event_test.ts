@@ -12,7 +12,7 @@ import H from "../real_card/arena/M市立綜合醫院";
 
 function genHospital(owner: Player, gm: GameMaster, pos: number) {
     return () => {
-        let arena = new H(-1, owner, gm);
+        let arena = new H(-1, owner, gm, "");
         arena.data.position = pos;
         return arena;
     };

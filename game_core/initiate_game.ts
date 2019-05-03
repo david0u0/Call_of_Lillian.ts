@@ -4,49 +4,18 @@ import { GameMaster } from "./master/game_master";
 import Dummy from "./real_card/arena/dummy_arena";
 import BasicHospital from "./real_card/arena/M市立綜合醫院";
 
-const basic_deck = [
-    "姆咪姆咪學園", "姆咪姆咪學園", "姆咪姆咪學園",
-    "工作狂小紅", "工作狂小紅", "工作狂小紅",
-    "廢怯小跟班", "廢怯小跟班", "廢怯小跟班",
-    "u_test0", "u_test0",
-    "雨季的魔女．語霽", "雨季的魔女．語霽", "雨季的魔女．語霽",
-    "迷糊工程師．八喵", "迷糊工程師．八喵", "迷糊工程師．八喵",
-    "殲滅戰", "殲滅戰", "殲滅戰",
-    "市立圖書館", "市立圖書館", "市立圖書館",
-    "質因數分解魔法", "質因數分解魔法", "質因數分解魔法",
-    "快樂魔藥", "快樂魔藥", "快樂魔藥",
-    "九世軍魂", "九世軍魂", "九世軍魂",
-    "傭兵學校", "傭兵學校", "傭兵學校",
-    "義體維護廠", "義體維護廠", "戰地醫院", "戰地醫院",
-    /*"緊急醫療", "緊急醫療", "緊急醫療",
-    "代理戰爭", "代理戰爭", "代理戰爭",
-    "大衛化", "大衛化", "大衛化",
-    "彩虹橋下的酒館", "彩虹橋下的酒館",
-    "勇氣之歌", "勇氣之歌", "勇氣之歌",
-    "沒有魔法的世界", "沒有魔法的世界",
-    "游擊隊長小芳", "游擊隊長小芳",*/
-    "事件仲介所", "事件仲介所", "事件仲介所",
-    "修羅事變", "修羅事變", "修羅事變",
-    "掠奪者B型", "掠奪者B型", "掠奪者B型",
-    "甜點吃到飽", "甜點吃到飽", "甜點吃到飽",
-    "意識遊樂場", "意識遊樂場",
-    "真正的魔法", "真正的魔法", "真正的魔法",
-    "集體飛升", "集體飛升", "集體飛升",
-    "違停派對", "違停派對", "違停派對",
-];
-
 // TODO: 應該要把 Keeper 傳進來?
 
 function genDummy(gm: GameMaster, owner: Player, pos: number) {
     return () => {
-        let arena = new Dummy(-1, owner, gm);
+        let arena = new Dummy(-1, owner, gm, "M市立綜合醫院");
         arena.data.position = pos;
         return arena;
     };
 }
 function genHospital(gm: GameMaster, owner: Player, pos: number) {
     return () => {
-        let arena = new BasicHospital(-1, owner, gm);
+        let arena = new BasicHospital(-1, owner, gm, Constant.DUMMY_NAME);
         arena.data.position = pos;
         return arena;
     };
@@ -61,7 +30,6 @@ export default async function initiateGame(gm: GameMaster, deck1: string[]|null,
         if(deck) {
             if(deck.length != Constant.DECK_COUNT) {
                 // throw new BadOperationError("牌庫張數有誤！");
-                deck = basic_deck;
             }
             for(let c_name of deck) {
                 gm.genCardToDeck(p, c_name);

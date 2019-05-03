@@ -29,7 +29,7 @@ PIXI.loader
 type Deck = {
     name: string,
     description: string,
-    list: { name: string, count: number }[]
+    list: { abs_name: string, count: number }[]
 };
 const DeckID = (() => {
     let url_params = new URL(window.location.href).searchParams;
@@ -122,6 +122,7 @@ function drawPage(index: number, gm: GameMaster, card_list: IKnownCard[],
 
 class DeckUI {
     public view = new PIXI.Container();
+    public list_view = new PIXI.Container();
     public get deck(): Deck {
         return {
             ...this._deck,
@@ -130,16 +131,37 @@ class DeckUI {
             })
         };
     }
-    private card_table: { [name: string]: IKnownCard } = {};
+    private card_table: { [abs_name: string]: IKnownCard } = {};
+    private _hovering = false;
+    public get hovering() { return this._hovering; };
+
     constructor(private _deck: Deck, cards: IKnownCard[]) {
         for(let c of cards) {
-            this.card_table[c.name] = c;
+            this.card_table[c.abs_name] = c;
         }
+        this.view.interactive = true;
+        this.view.on("mouseover", () => this._hovering = true);
+        this.view.on("mouseout", () => this._hovering = false);
+        this.view.addChild(this.list_view);
+
         this.refreshUI();
     }
+    scroll(sign: -1 | 1) {
+        let new_y = this.list_view.y - sign * 30;
+        if(new_y <= 0 && new_y > this.mask.height * 0.9 - this.list_view.height) {
+            this.list_view.y = new_y;
+        }
+    }
     private width: number = null;
+    private mask: PIXI.Graphics;
     setWidth(width: number) {
         this.width = width;
+        this.mask = new PIXI.Graphics();
+        this.mask.beginFill(0);
+        this.mask.drawRect(0, 0, width * 1.1, eh * 34);
+        this.mask.endFill();
+        this.list_view.mask = this.mask;
+        this.view.addChild(this.mask);
         this.refreshUI();
     }
     private onChangeFunc = () => {};
@@ -148,12 +170,12 @@ class DeckUI {
     }
     private cur_highlight = "";
     highlight(card: IKnownCard, high: boolean) {
-        this.cur_highlight = high ? card.name : "";
+        this.cur_highlight = high ? card.abs_name : "";
         for(let [i, pair] of this._deck.list.entries()) {
-            if(pair.name == card.name) {
-                let rec = this.view.children[i];
+            if(pair.abs_name == card.abs_name) {
+                let rec = this.list_view.children[i];
                 if(rec && rec.filters) {
-                    this.view.children[i].filters[0].enabled = high;
+                    this.list_view.children[i].filters[0].enabled = high;
                 }
                 break;
             }
@@ -162,7 +184,7 @@ class DeckUI {
     addCard(card: IKnownCard) {
         let found = false;
         for(let pair of this._deck.list) {
-            if(pair.name == card.name) {
+            if(pair.abs_name == card.abs_name) {
                 found = true;
                 if(card.deck_count >= pair.count + 1) {
                     pair.count++;
@@ -171,16 +193,17 @@ class DeckUI {
             }
         }
         if(!found) {
-            this._deck.list.push({ name: card.name, count: 1});
+            this._deck.list.push({ abs_name: card.abs_name, count: 1});
         }
-        this._deck.list = this._deck.list.sort((a, b) => {
-            return this.card_table[a.name].basic_mana_cost - this.card_table[b.name].basic_mana_cost;
-        });
         this.refreshUI();
     }
     refreshUI() {
         if(this.width) {
-            for(let child of [...this.view.children]) {
+            this._deck.list = this._deck.list.sort((a, b) => {
+                return this.card_table[a.abs_name].basic_mana_cost
+                    - this.card_table[b.abs_name].basic_mana_cost;
+            });
+            for(let child of [...this.list_view.children]) {
                 child.destroy();
             }
             for(let [i, pair] of this._deck.list.entries()) {
@@ -189,21 +212,22 @@ class DeckUI {
         }
         this.onChangeFunc();
     }
-    drawPair(index: number, pair: { name: string, count: number }) {
+    drawPair(index: number, pair: { abs_name: string, count: number }) {
         const rec_h = 35;
         let rec = new PIXI.Graphics();
         rec.lineStyle(1, 0);
         rec.beginFill(0xffffff, 1);
         rec.drawRoundedRect(0, index * rec_h, this.width, rec_h, 5);
         rec.endFill();
-        this.view.addChild(rec);
-        let txt = new PIXI.Text(`${pair.name} x ${pair.count}`, new PIXI.TextStyle({
+        this.list_view.addChild(rec);
+        let name = this.card_table[pair.abs_name].name;
+        let txt = new PIXI.Text(`${name} x ${pair.count}`, new PIXI.TextStyle({
             fill: 0, fontSize: rec_h*0.6
         }));
         txt.position.set(0, index * rec_h);
         rec.addChild(txt);
         rec.filters = [new Filters.GlowFilter(20, 1, 2, 0x48e0cf, 0.5)];
-        rec.filters[0].enabled = (this.cur_highlight == pair.name);
+        rec.filters[0].enabled = (this.cur_highlight == pair.abs_name);
 
         rec.interactive = true;
         rec.cursor = "pointer";
@@ -244,7 +268,7 @@ function checkIfChanged(d1: Deck, d2: Deck) {
         return true;
     } else {
         for(let [i, p] of d1.list.entries()) {
-            if(p.name != d2.list[i].name || p.count != d2.list[i].count) {
+            if(p.abs_name != d2.list[i].abs_name || p.count != d2.list[i].count) {
                 return true;
             }
         }
@@ -293,9 +317,11 @@ async function setup() {
             return;
         }
         let delta = evt.wheelDelta? evt.wheelDelta : -evt.deltaY;
-        let sign = delta > 0 ? -1 : 1;
+        let sign: 1 | -1 = delta > 0 ? -1 : 1;
         index += sign;
-        if(index < 0) {
+        if(deck_ui.hovering) {
+            deck_ui.scroll(sign);
+        } else if(index < 0) {
             index = 0;
         } else if(index > Math.floor(cards.length / PAGE_LIMIT)) {
             index = Math.floor(cards.length / PAGE_LIMIT);

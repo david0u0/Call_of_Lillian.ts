@@ -45,7 +45,6 @@ export class SoftRule {
                     return { var_arg: "指定的角色不在待命區" };
                 }
             }
-
         }, undefined, RuleEnums.CheckStandbyWhenPlay);
     }
     /** 計算戰鬥職位的通則 */
