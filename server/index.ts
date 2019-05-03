@@ -15,7 +15,7 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     secret: config.SESSION_SECRECT_KEY,
-    cookie: { maxAge: config.COOKIE_MAX_AGE, secure: false },
+    cookie: { maxAge: config.COOKIE_MAX_AGE, secure: false, httpOnly: false },
     store: new session.MemoryStore()
 }));
 

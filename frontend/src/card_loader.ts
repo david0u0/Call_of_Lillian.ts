@@ -29,7 +29,7 @@ class CardLoader {
             }
             return this;
         } else {
-            return this.add(arg.name);
+            return this.add(arg.abs_name);
         }
     }
     load(func: () => void) {

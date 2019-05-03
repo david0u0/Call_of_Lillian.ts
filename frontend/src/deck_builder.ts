@@ -2,7 +2,6 @@ import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
 
 import { GameMaster } from "../../game_core/master/game_master";
-import { Character, KnownCard } from "../../game_core/cards";
 import { Player } from "../../game_core/enums";
 
 import { getWinSize, getEltSize } from "./get_constant";
@@ -135,13 +134,18 @@ class DeckUI {
     private _hovering = false;
     public get hovering() { return this._hovering; };
 
-    constructor(private _deck: Deck, cards: IKnownCard[]) {
+    constructor(private _deck: Deck, cards: IKnownCard[],
+        private onHover: (c: IKnownCard | null) => void
+    ) {
         for(let c of cards) {
             this.card_table[c.abs_name] = c;
         }
-        this.view.interactive = true;
-        this.view.on("mouseover", () => this._hovering = true);
-        this.view.on("mouseout", () => this._hovering = false);
+        this.list_view.interactive = true;
+        this.list_view.on("mouseover", () => this._hovering = true);
+        this.list_view.on("mouseout", () => {
+            this._hovering = false;
+            this.onHover(null);
+        });
         this.view.addChild(this.list_view);
 
         this.refreshUI();
@@ -240,6 +244,9 @@ class DeckUI {
             }
             this.refreshUI();
         });
+        rec.on("mouseover", () => {
+            this.onHover(this.card_table[pair.abs_name]);
+        });
     }
 }
 
@@ -302,11 +309,30 @@ async function setup() {
     bg.scale.set(ratio);
     app.stage.addChild(bg);
 
-    let deck_ui = new DeckUI(deck, cards);
+    let destroy_big = () => { };
+    let deck_ui = new DeckUI(deck, cards, card => {
+        if(card) {
+            if(my_loader.resources[card.abs_name]) {
+                destroy_big();
+                destroy_big = show_big_card(deck_ui.view.x, 0, card);
+            } else {
+                my_loader.add(card).load(() => null);
+            }
+        } else {
+            destroy_big();
+        }
+    });
     let deck_backup = deck_ui.deck;
     app.stage.addChild(deck_ui.view);
 
     let index = 0;
+    let max_page = Math.floor(cards.length / PAGE_LIMIT) + (cards.length % PAGE_LIMIT == 0 ? 1 : 0);
+    let page_txt = new PIXI.Text(`${index+1}/${max_page+1}`, new PIXI.TextStyle({
+        fontSize: 30, fill: 0
+    }));
+    page_txt.position.set(0, height-page_txt.height);
+    app.stage.addChild(page_txt);
+
     let { view, destroy } = await drawPage(0, gm, cards, show_big_card,
         c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside));
     let loading = false;
@@ -323,9 +349,10 @@ async function setup() {
             deck_ui.scroll(sign);
         } else if(index < 0) {
             index = 0;
-        } else if(index > Math.floor(cards.length / PAGE_LIMIT)) {
-            index = Math.floor(cards.length / PAGE_LIMIT);
+        } else if(index > max_page) {
+            index = max_page;
         } else {
+            page_txt.text = `${index + 1}/${max_page + 1}`;
             loading = true;
             destroy();
             ({ view, destroy } = await drawPage(index, gm, cards, show_big_card,

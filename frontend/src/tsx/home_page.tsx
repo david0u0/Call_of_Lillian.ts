@@ -26,11 +26,13 @@ export class HomePage extends React.Component<PageProps, State> {
     }
     async componentDidMount() {
         let res = await fetch("/api/deck/list");
-        let list = await res.json();
-        if(list instanceof Array) {
-            this.setState({ decks: list, loading: false });
-        } else {
-            //
+        if(res.ok) {
+            let list = await res.json();
+            if(list instanceof Array) {
+                this.setState({ decks: list, loading: false });
+            } else {
+                //
+            }
         }
     }
     async startGame(enemy_deck_id: string) {
@@ -80,7 +82,7 @@ export class HomePage extends React.Component<PageProps, State> {
             let decks = [...this.state.decks];
             for(let [i, deck] of decks.entries()) {
                 if(deck._id == _id) {
-                    decks = [...decks.slice(0, i), new_deck, ...decks.slice(i+1)];
+                    decks = [...decks.slice(0, i), new_deck, ...decks.slice(i + 1)];
                     this.setState({ decks });
                     return;
                 }
@@ -123,7 +125,7 @@ export class HomePage extends React.Component<PageProps, State> {
                         <DeckBlock is_new={true} onClick={() => this.newDeck()} />
                         <div style={{ clear: "both" }} />
                     </div>
-                    <br/>
+                    <br />
                     <button onClick={this.editDeck.bind(this)} disabled={disabled}>編輯牌組</button>
                     <button onClick={this.startSelectEnemy.bind(this)} disabled={disabled}>開戰啦！</button>
                     <div style={{ clear: "both" }} />

@@ -77,12 +77,12 @@ export function getCardSize(width: number, height: number, landscape = false) {
     }
 }
 
-export function drawCardFace(card: ICard|string, width: number, height: number, landscape = false) {
+export function drawCardFace(card: ICard, width: number, height: number, landscape = false) {
     let img: PIXI.Sprite;
     if(typeof(card) == "string") {
         img = new PIXI.Sprite(my_loader.resources[card].texture);
     } else if(TG.isKnown(card)) {
-        img = new PIXI.Sprite(my_loader.resources[card.name].texture);
+        img = new PIXI.Sprite(my_loader.resources[card.abs_name].texture);
     } else {
         img = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
     }
@@ -331,7 +331,7 @@ export class CharUI {
         private gm: GameMaster, private selecter: FrontendSelecter,
         private ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
     ) {
-        let img = this.img = new PIXI.Sprite(my_loader.resources[char.name].texture);
+        let img = this.img = new PIXI.Sprite(my_loader.resources[char.abs_name].texture);
         let og_w = img.width;
         let og_h = img.height;
         img.scale.set(width / og_w, height / og_h);
