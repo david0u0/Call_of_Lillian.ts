@@ -3,8 +3,8 @@ import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
 import { CardSeries, Player } from "../../enums";
 
 let name = "代理戰爭";
-let description = `推進：角色戰力需大於0。
-結算：你在每個世代第一次開戰時，得4魔力。`;
+let description = `推進：推進者的戰力需大於0。
+結算：你在每個世代第一次開戰時，得到4魔力。`;
 
 export default class E extends Event implements IEvent {
     name = name;
@@ -29,7 +29,7 @@ export default class E extends Event implements IEvent {
     has_declared = false;
 
     setupFinishEffect() {
-        this.addActionWhileAlive(true, this.g_master.w_master.declare_war_chain, 
+        this.addActionWhileAlive(this.g_master.w_master.declare_war_chain, 
             async ({ declarer }) => {
                 if(declarer == this.owner) {
                     if(this.has_declared) {

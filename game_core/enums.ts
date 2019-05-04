@@ -1,7 +1,7 @@
 export enum Player { Player1, Player2 };
 export enum CardStat { Retired, Hand, Deck, Onboard, Exile };
 export enum CardType { Character, Arena, Upgrade, Spell, Event, Unknown };
-export enum CardSeries { Testing, Cyber, Arms, Cosmic, Wasteland, Time, Hospital, Entertainment };
+export enum CardSeries { Testing, Cyber, Arms, Cosmic, Wasteland, Time, Hospital, Entertainment, Any };
 export enum CharStat { StandBy, InArena, InWar };
 
 const SeriesTxt = {
@@ -44,7 +44,7 @@ export enum GamePhase {
 };
 
 export enum RuleEnums {
-    All,
+    Any,
     
     ExitAfterExploit,
     RecoverEmoAfterRelease,

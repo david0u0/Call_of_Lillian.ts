@@ -47,12 +47,11 @@ export class GameMaster {
         }
     }
 
-    private genCard<T extends IKnownCard>(stat: CardStat, owner: Player,
-        card_init: () => T): Promise<T>;
-    private genCard(stat: CardStat, owner: Player, abs_name: string): Promise<IKnownCard>;
+    private genCard(stat: CardStat, owner: Player,
+        arg: string | (() => IKnownCard)): Promise<IKnownCard>;
     private genCard(stat: CardStat, owner: Player): Promise<UnknownCard>;
-    private async genCard<T extends IKnownCard>(stat: CardStat, owner: Player,
-        arg?: string | (() => T)
+    private async genCard(stat: CardStat, owner: Player,
+        arg?: string | (() => IKnownCard)
     ) {
         let c: IKnownCard | UnknownCard;
         if(typeof arg == "undefined") {
@@ -98,11 +97,7 @@ export class GameMaster {
         owner: Player, arg: string | (() => T)
     ): Promise<IKnownCard> {
         let card: IKnownCard;
-        if(typeof arg == "string") {
-            card = await this.genCard(CardStat.Onboard, owner, arg);
-        } else {
-            card = await this.genCard(CardStat.Onboard, owner, arg);
-        }
+        card = await this.genCard(CardStat.Onboard, owner, arg);
         await this.getMyMaster(owner).dangerouslySetToBoard(card);
         if(TG.isCharacter(card)) {
             await this.getMyMaster(owner).changeCharTired(card, true);

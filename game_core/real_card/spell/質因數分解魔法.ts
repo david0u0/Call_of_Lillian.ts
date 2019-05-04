@@ -1,10 +1,9 @@
 import { GamePhase, CardStat, RuleEnums } from "../../enums";
 import { Spell } from "../../cards";
-import { ICharacter, TypeGaurd } from "../../interface";
 import { GetterChain } from "../../hook";
 
 let name = "質因數分解魔法";
-let description = "獲得6魔力。你可以指定一至四個角色做為施術者，每個角色降低本咒語2點魔力成本";
+let description = "獲得7魔力。你可以指定一至四個角色做為施術者，每個角色降低本咒語2點魔力成本";
 
 export default class S extends Spell {
     name = name;
@@ -36,6 +35,6 @@ export default class S extends Spell {
 
     async onPlay() {
         await super.onPlay();
-        this.my_master.addMana(6);
+        this.my_master.addMana(7);
     }
 }

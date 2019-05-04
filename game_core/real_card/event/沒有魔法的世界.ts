@@ -22,12 +22,12 @@ export default class E extends Event implements IEvent {
     readonly data = { e_income: 0 };
 
     setupAliveEffect() {
-        // 插入一條沒有id的規則，使它無法被屏蔽。
-        this.add_progress_chain.appendCheck(() => {
+        // 插入一條不會被屏蔽的規則，使本事件不可推進
+        this.add_progress_chain.appendCheckDefaul(() => {
             return { var_arg: false };
         });
 
-        this.addActionWhileAlive(true, this.g_master.t_master.start_exploit_chain, () => {
+        this.addActionWhileAlive(this.g_master.t_master.start_exploit_chain, () => {
             this.data.e_income = 0;
         });
 
@@ -44,7 +44,7 @@ export default class E extends Event implements IEvent {
             };
         });
 
-        this.addActionWhileAlive(true, this.g_master.t_master.start_building_chain, () => {
+        this.addActionWhileAlive(this.g_master.t_master.start_building_chain, () => {
             if(this.data.e_income < 3) {
                 this.my_master.finishEvent(null, this);
             }

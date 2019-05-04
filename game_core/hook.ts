@@ -1,9 +1,10 @@
 import { throwDebugError } from "./errors";
+import { RuleEnums } from "./enums";
+
+const MASK_ALL = RuleEnums.Any;
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
 // 例如：「所有戰鬥職位為戰士者戰力+2」，會導致戰力鏈呼叫戰鬥職位鏈，而戰鬥職位鏈本來就會呼叫戰力鏈！
-
-const MASK_ALL = 1;
 
 type GetterResult<T> = {
     var_arg?: T,
@@ -12,12 +13,13 @@ type GetterResult<T> = {
 type GetterFunc<T, U>
     = (var_arg: T, const_arg: U) => GetterResult<T> | void;
 type GetterHook<T, U> = {
-    isActive: () => boolean;
-    func: GetterFunc<T, U>;
-    id?: number;
+    isActive: () => boolean,
+    func: GetterFunc<T, U>,
+    is_default?: boolean,
+    id?: number,
 };
 type AfterEffectFunc = () => void | Promise<void>
-type AfterEffectObj = { func: AfterEffectFunc, id: number } | AfterEffectFunc;
+type AfterEffectObj = { func: AfterEffectFunc, id?: number, is_default?: boolean };
 type ActionResult = {
     intercept_effect?: boolean,
     after_effect?: AfterEffectFunc,
@@ -43,15 +45,28 @@ function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: number[
 
 class GetterChain<T, U> {
     private list = new Array<GetterHook<T, U>>();
-    public append(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
-        let h = { isActive, func, id };
-        this.list.push(h);
+    private add(append: boolean, is_default: boolean,
+        func: GetterFunc<T, U>, isActive = () => true, id?: number
+    ) {
+        let h = { isActive, func, id, is_default };
+        if(append) {
+            this.list.push(h);
+        } else {
+            this.list = [h, ...this.list];
+        }
         return this;
     }
+    public append(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
+        return this.add(true, false, func, isActive);
+    }
     public dominant(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
-        let h = { isActive, func, id };
-        this.list = [h, ...this.list];
-        return this;
+        return this.add(false, false, func, isActive);
+    }
+    public appendDefault(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
+        return this.add(true, true, func, isActive);
+    }
+    public dominantDefault(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
+        return this.add(false, true, func, isActive);
     }
     public triggerFullResult(var_arg: T, const_arg: U, mask_id: number[] = []) {
         for(let hook of this.list) {
@@ -93,50 +108,75 @@ class GetterChain<T, U> {
 }
 
 type CallBack = (() => void)|(() => Promise<void>);
-
+type CheckFunc<U> = (const_arg: U) => GetterResult<string | false>|void;
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
     private check_chain = new GetterChain<string | boolean, U>();
 
-    public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
-        let h = { func, isActive, id };
-        this.action_list.push(h);
+    private add(append: boolean, is_default: boolean,
+        func: ActionFunc<U>, isActive=() => true, id?: number
+    ) {
+        let h = { func, isActive, id, is_default };
+        if(append) {
+            this.action_list.push(h);
+        } else {
+            this.action_list = [h, ...this.action_list];
+        }
         return this;
+    }
+    private _err_msg = "";
+    private addCheck(append: boolean, is_default: boolean,
+        check_func: CheckFunc<U>,
+        isActive = () => true, id?: number
+    ) {
+        let func: GetterFunc<string | boolean, U> = (var_arg, const_arg) => {
+            if(typeof var_arg == "boolean" && var_arg) {
+                return check_func(const_arg);
+            } else if(typeof var_arg == "string") {
+                this._err_msg = var_arg;
+            }
+            return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
+        };
+        if(append) {
+            if(is_default) {
+                this.check_chain.appendDefault(func, isActive, id);
+            } else {
+                this.check_chain.append(func, isActive, id);
+            }
+        } else {
+            if(is_default) {
+                this.check_chain.dominantDefault(func, isActive, id);
+            } else {
+                this.check_chain.dominant(func, isActive, id);
+            }
+        }
+        return this;
+    }
+    public append(func: ActionFunc<U>, isActive=() => true, id?: number) {
+        return this.add(true, false, func, isActive, id);
     }
     public dominant(func: ActionFunc<U>, isActive=() => true, id?: number) {
-        let h = { func, isActive, id };
-        this.action_list = [h, ...this.action_list];
-        return this;
+        return this.add(false, false, func, isActive, id);
     }
     public appendDefault(func: ActionFunc<U>, isActive=() => true) {
-        let h = { func, isActive, is_default: true };
-        this.action_list.push(h);
-        return this;
+        return this.add(true, true, func, isActive);
+    }
+    public dominantDefault(func: ActionFunc<U>, isActive=() => true) {
+        return this.add(true, true, func, isActive);
+    }
+    public appendCheck(func: CheckFunc<U>, isActive = () => true, id?: number) {
+        return this.addCheck(true, false, func, isActive, id);
+    }
+    public dominantCheck(func: CheckFunc<U>, isActive = () => true, id?: number) {
+        return this.addCheck(false, false, func, isActive, id);
+    }
+    public appendCheckDefaul(func: CheckFunc<U>, isActive = () => true, id?: number) {
+        return this.addCheck(true, true, func, isActive, id);
+    }
+    public dominantCheckDefault(func: CheckFunc<U>, isActive = () => true, id?: number) {
+        return this.addCheck(false, true, func, isActive, id);
     }
 
-    private _err_msg = "";
-    public appendCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
-        this.check_chain.append((var_arg, const_arg) => {
-            if(typeof var_arg == "boolean" && var_arg) {
-                return func(false, const_arg);
-            } else if(typeof var_arg == "string") {
-                this._err_msg = var_arg;
-            }
-            return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
-        }, isActive, id);
-        return this;
-    }
-    public dominantCheck(func: GetterFunc<string | false, U>, isActive = () => true, id?: number) {
-        this.check_chain.dominant((var_arg, const_arg) => {
-            if(typeof var_arg == "boolean" && var_arg) {
-                return func(false, const_arg);
-            } else if(typeof var_arg == "string") {
-                this._err_msg = var_arg;
-            }
-            return { mask_id: MASK_ALL }; // 一有地方出錯就整條斷掉
-        }, isActive, id);
-        return this;
-    }
     public async triggerFullResult(const_arg: U, mask_id: number[] = []): Promise<{
         intercept_effect: boolean,
         mask_id: number[],
@@ -153,11 +193,11 @@ class ActionChain<U> {
                     if(result) {
                         if(result.after_effect) {
                             let effect = result.after_effect;
-                            if(typeof hook.id != "undefined") {
-                                after_effect.push({ func: effect, id: hook.id });
-                            } else {
-                                after_effect.push(effect);
-                            }
+                            after_effect.push({
+                                func: effect,
+                                id: hook.id,
+                                is_default: hook.is_default
+                            });
                         }
                         if(result.intercept_effect) {
                             intercept_effect = true;
@@ -178,6 +218,7 @@ class ActionChain<U> {
     }
     public get err_msg() { return this._err_msg; }
     public checkCanTrigger(const_arg: U) {
+        this._err_msg = "";
         let res = this.check_chain.trigger(true, const_arg);
         if(typeof res == "string") {
             this._err_msg = res;
@@ -207,9 +248,9 @@ class ActionChain<U> {
             }
             if(res.after_effect instanceof Array) {
                 for(let effect of res.after_effect) {
-                    if(typeof effect == "function") {
-                        await Promise.resolve(effect());
-                    } else if(res.mask_id.indexOf(effect.id) == -1) {
+                    if(res.mask_id.indexOf(MASK_ALL) != -1 && !effect.is_default) {
+                        // do nothing
+                    } else if(typeof effect.id == "number" && res.mask_id.indexOf(effect.id) == -1) {
                         await Promise.resolve(effect.func());
                     }
                 }
@@ -253,4 +294,4 @@ class ActionChain<U> {
     }
 }
 
-export { ActionChain, GetterChain, GetterFunc, ActionFunc, MASK_ALL };
+export { ActionChain, GetterChain, GetterFunc, ActionFunc, CheckFunc };

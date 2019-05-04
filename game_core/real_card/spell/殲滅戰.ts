@@ -1,7 +1,6 @@
 import { GamePhase, CardStat } from "../../enums";
 import { Spell } from "../../cards";
 import { ICharacter, TypeGaurd, IArena } from "../../interface";
-import { GetterChain } from "../../hook";
 import { BadOperationError } from "../../errors";
 
 let name = "殲滅戰";
@@ -45,10 +44,10 @@ export default class S extends Spell {
         }
     }
     setupAliveEffect() {
-        this.addGetterWhileAlive(true, this.g_master.w_master.get_declare_cost_chain, () => {
+        this.addGetterWhileAlive(this.g_master.w_master.get_declare_cost_chain, () => {
             return { var_arg: 0, break_chain: true };
         });
-        this.addActionWhileAlive(true, this.g_master.w_master.end_war_chain, () => {
+        this.addActionWhileAlive(this.g_master.w_master.end_war_chain, () => {
             if(this.g_master.w_master.isWinner(this.owner)) {
                 this.enemy_master.addMana(-this.enemy_master.mana);
             }

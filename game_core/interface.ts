@@ -1,7 +1,8 @@
 import { ActionChain, GetterChain, GetterFunc, ActionFunc } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 
-export type DataField = number | IKnownCard | IKnownCard[] | boolean | null
+export type DataField = number | IKnownCard | IKnownCard[]
+    | boolean | null | { [name: string]: DataField };
 
 interface IKeeper { };
 interface ICard {
@@ -149,10 +150,10 @@ interface IEvent extends IKnownCard {
     is_finished: boolean;
 
     readonly get_push_cost_chain:  GetterChain<number, ICharacter|null>
-    readonly add_progress_chain: ActionChain<{ char: ICharacter | null, n: number }>
+    readonly add_progress_chain: ActionChain<{ char: ICharacter | null, n: number, is_push: boolean }>
     readonly fail_chain: ActionChain<null>;
     readonly finish_chain: ActionChain<ICharacter|null>;
-    readonly add_countdown_chain: ActionChain<number>;
+    readonly add_countdown_chain: ActionChain<{ n: number, is_natural: boolean }>;
 
     // TODO: 應該要再一個函式 initBeforePush
     checkCanPush(char: ICharacter|null): boolean;
@@ -161,10 +162,6 @@ interface IEvent extends IKnownCard {
     onFail(): Promise<void>|void;
     setupFinishEffect(char: ICharacter|null): Promise<void>|void;
 
-    /** 不可覆寫！ */
-    push(): void;
-    /** 不可覆寫！ */
-    countDown(): void;
     /** 不可覆寫！ */
     setProgrss(progress: number): void;
     /** 不可覆寫！ */
@@ -207,8 +204,12 @@ const TypeGaurd = {
         }
         return false;
     },
-    isSameCard<T extends IKnownCard>(card: T, target: IKnownCard): target is T {
-        return card.abs_name == target.abs_name;
+    isSameCard<T extends IKnownCard>(card: T, target: any): target is T {
+        if(TypeGaurd.isCard(target) && TypeGaurd.isKnown(target)) {
+            return card.abs_name == target.abs_name;
+        } else {
+            return false;
+        }
     }
 };
 

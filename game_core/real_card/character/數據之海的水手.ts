@@ -19,7 +19,7 @@ export default class C4 extends Character {
                 return { mask_id: RuleEnums.CheckPhaseBeforePlay };
             }
         });
-        this.my_master.card_play_chain.dominantCheck((t, card) => {
+        this.my_master.card_play_chain.dominantCheck(card => {
             if(TypeGaurd.isUpgrade(card)) {
                 let u = card;
                 if(this.isEqual(u.data.character_equipped)) {
