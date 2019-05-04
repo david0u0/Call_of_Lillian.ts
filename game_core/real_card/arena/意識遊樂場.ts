@@ -29,7 +29,7 @@ export default class A extends Arena implements IArena {
         });
         for(let p of [Player.Player1, Player.Player2]) {
             let pm = this.g_master.getMyMaster(p);
-            this.addActionWhileAlive(true, pm.set_emo_chain, ({ emo }) => {
+            this.addActionWhileAlive(pm.set_emo_chain, ({ emo }) => {
                 let mem_emo = p == Player.Player1 ? this.data.mem_emo1 : this.data.mem_emo2;
                 if(this.g_master.t_master.cur_phase == GamePhase.Exploit && emo > mem_emo) {
                     // 確實是情緒傷害，而且確實在收獲階段

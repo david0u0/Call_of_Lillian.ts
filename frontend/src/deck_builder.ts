@@ -6,7 +6,7 @@ import { Player } from "../../game_core/enums";
 
 import { getWinSize, getEltSize } from "./get_constant";
 import { ShowBigCard, showBigCard } from "./show_big_card";
-import { ICard, IKnownCard } from "../../game_core/interface";
+import { ICard, IKnownCard, TypeGaurd } from "../../game_core/interface";
 import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { drawCard, getCardSize } from "./draw_card";
@@ -310,13 +310,20 @@ async function setup() {
     app.stage.addChild(bg);
 
     let destroy_big = () => { };
+    let cur_card: IKnownCard = null;
     let deck_ui = new DeckUI(deck, cards, card => {
+        cur_card = card;
         if(card) {
             if(my_loader.resources[card.abs_name]) {
                 destroy_big();
                 destroy_big = show_big_card(deck_ui.view.x, 0, card);
             } else {
-                my_loader.add(card).load(() => null);
+                my_loader.add(card).load(() => {
+                    if(TypeGaurd.isSameCard(card, cur_card)) {
+                        destroy_big();
+                        destroy_big = show_big_card(deck_ui.view.x, 0, card);
+                    }
+                });
             }
         } else {
             destroy_big();

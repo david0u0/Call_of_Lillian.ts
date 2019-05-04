@@ -1,7 +1,6 @@
 import { GamePhase, CardStat } from "../../enums";
 import { Spell } from "../../cards";
 import { ICharacter, TypeGaurd } from "../../interface";
-import { GetterChain } from "../../hook";
 
 let name = "修羅事變";
 let description = "對手必須犧牲一個戰力大於或等於施術者的角色。若無法這麼做，則由你指定退場的角色。隨後，施放者必須退場。";

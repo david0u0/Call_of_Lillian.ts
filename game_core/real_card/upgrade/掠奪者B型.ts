@@ -15,7 +15,7 @@ export default class U extends Upgrade {
     setupAliveEffect() {
         let chain = this.g_master.w_master.before_conflict_chain;
         // 接在鏈的開頭，以免被其它效果拆掉
-        this.addActionWhileAlive(false, chain, async ({ atk }) => {
+        this.addActionWhileAlive(chain, async ({ atk }) => {
             for(let ch of atk) {
                 if(ch.isEqual(this.data.character_equipped)) {
                     // 確實是由裝備者發動攻擊
@@ -31,6 +31,6 @@ export default class U extends Upgrade {
                     await this.my_master.exileCard(known);
                 }
             }
-        });
+        }, false);
     }
 }

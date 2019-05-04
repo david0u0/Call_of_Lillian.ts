@@ -13,7 +13,7 @@ export default class U extends Upgrade {
     basic_strength = 0;
 
     setupAliveEffect() {
-        this.addActionWhileAlive(true, this.g_master.w_master.before_conflict_chain, (arg) => {
+        this.addActionWhileAlive(this.g_master.w_master.before_conflict_chain, (arg) => {
             if(arg.def.isEqual(this) && arg.is_target) {
                 this.g_master.getAll(TypeGaurd.isCharacter, c => {
                     return c.char_status == CharStat.InWar;

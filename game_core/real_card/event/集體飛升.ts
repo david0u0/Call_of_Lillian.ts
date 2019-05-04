@@ -21,7 +21,7 @@ export default class E extends Event implements IEvent {
     setupAliveEffect() {
         for(let p of [Player.Player1, Player.Player2]) {
             let pm = this.g_master.getMyMaster(p);
-            this.addGetterWhileAlive(true, pm.get_strength_chain, (str, { card }) => {
+            this.addGetterWhileAlive(pm.get_strength_chain, (str, { card }) => {
                 if(TypeGaurd.isCharacter(card) && card.basic_strength <= 0) {
                     return { var_arg: str + 1 };
                 }

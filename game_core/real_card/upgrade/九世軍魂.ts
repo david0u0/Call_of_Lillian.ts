@@ -48,7 +48,7 @@ export default class U extends Upgrade {
         this.get_strength_chain.append(str => {
             return { var_arg: str + this.data.modifier };
         });
-        this.addActionWhileAlive(true, this.g_master.t_master.start_building_chain, () => {
+        this.addActionWhileAlive(this.g_master.t_master.start_building_chain, () => {
             this.data.modifier += 1;
         });
         this.card_retire_chain.append(async () => {

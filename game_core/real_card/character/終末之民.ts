@@ -15,7 +15,7 @@ export default class C extends Character implements ICharacter {
     setupAliveEffect() {
         let master_role_chain = this.my_master.get_battle_role_chain;
         // TODO: 這裡應該用 mask_id 的方法把0戰力角色的相關規則屏蔽掉
-        this.addGetterWhileAlive(true, master_role_chain, (role, char) => {
+        this.addGetterWhileAlive(master_role_chain, (role, char) => {
             if(char.isEqual(this)) {
                 return { var_arg: { ...role, can_attack: true, can_block: true }};
             }

@@ -154,7 +154,7 @@ export class WarMaster {
             for(let a of this.getAllWarFields(arena)) {
                 for(let ch of a.char_list) {
                     if(ch && this.checkCanAttack(ch)) {
-                        return true;
+                        return this.declare_war_chain.checkCanTrigger({ declarer, arena });
                     }
                 }
             }

@@ -1,6 +1,6 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase, RuleEnums } from "./enums";
 import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, Ability, DataField, Card } from "./interface";
-import { ActionChain, GetterChain, ActionFunc, GetterFunc  } from "./hook";
+import { ActionChain, GetterChain, ActionFunc, GetterFunc, CheckFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
 import { PlayerMaster } from "./master/player_master";
@@ -78,12 +78,12 @@ abstract class KnownCard extends Card implements IKnownCard {
         }
     }
 
-    addGetterWhileAlive<T, U>(append: boolean,
-        chain: GetterChain<T, U>[]|GetterChain<T, U>, func: GetterFunc<T, U>
+    addGetterWhileAlive<T, U>(chain: GetterChain<T, U>[]|GetterChain<T, U>,
+        func: GetterFunc<T, U>, append = true
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.addGetterWhileAlive(append, c, func);
+                this.addGetterWhileAlive(c, func, append);
             }
         } else {
             if(append) {
@@ -93,12 +93,12 @@ abstract class KnownCard extends Card implements IKnownCard {
             }
         }
     }
-    addCheckWhileAlive<U>(append: boolean,
-        chain: ActionChain<U>[] | ActionChain<U>, func: GetterFunc<string | false, U>
+    addCheckWhileAlive<U>(chain: ActionChain<U>[] | ActionChain<U>,
+        func: CheckFunc<U>, append=true
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.addCheckWhileAlive(append, c, func);
+                this.addCheckWhileAlive(c, func, append);
             }
         } else {
             if(append) {
@@ -108,12 +108,12 @@ abstract class KnownCard extends Card implements IKnownCard {
             }
         }
     }
-    addActionWhileAlive<U>(append: boolean,
-        chain: ActionChain<U>[]|ActionChain<U>, func: ActionFunc<U>
+    addActionWhileAlive<U>(chain: ActionChain<U>[]|ActionChain<U>,
+        func: ActionFunc<U>, append = true
     ) {
         if(chain instanceof Array) {
             for(let c of chain) {
-                this.addActionWhileAlive(append, c, func);
+                this.addActionWhileAlive(c, func, append);
             }
         } else {
             if(append) {
@@ -319,7 +319,7 @@ abstract class Event extends KnownCard implements IEvent {
     public abstract readonly is_ending: boolean;
     public abstract readonly score: number;
     public abstract readonly goal_progress_count: number;
-    public abstract readonly init_time_count: number;
+    public abstract init_time_count: number;
     private _cur_progress_count = 0;
     public get cur_progress_count() { return this._cur_progress_count; };
     private _time_count_upward = 0;
@@ -328,12 +328,12 @@ abstract class Event extends KnownCard implements IEvent {
 
     public is_finished = false;
 
-    public readonly add_countdown_chain = new ActionChain<number>();
+    public readonly add_countdown_chain = new ActionChain<{ n: number, is_natural: boolean }>();
     public readonly add_progress_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
-        let chain = new ActionChain<{ char: ICharacter | null, n: number }>();
-        chain.appendCheck((t, { char }) => {
-            if(!this.checkCanPush(char)) {
+        let chain = new ActionChain<{ char: ICharacter | null, n: number, is_push: boolean }>();
+        chain.appendCheck(({ char, is_push }) => {
+            if(is_push && !this.checkCanPush(char)) {
                 return { var_arg: "不符合推進條件" };
             }
         }, undefined, RuleEnums.CustomPushCheck);
@@ -350,15 +350,6 @@ abstract class Event extends KnownCard implements IEvent {
     public onFail() { }
     public abstract setupFinishEffect(char: ICharacter | null): void;
 
-
-    public push() {
-        this._cur_progress_count++;
-    }
-    public countDown() {
-        if(this.cur_time_count > 0) {
-            this._time_count_upward++;
-        }
-    }
     public setProgrss(progress: number) {
         this._cur_progress_count = progress;
     }

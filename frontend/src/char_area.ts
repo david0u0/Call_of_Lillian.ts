@@ -118,7 +118,7 @@ export class CharArea {
                                 char_ui.hide();
                             }
                         } else if(TypeGaurd.isEvent(c_selected) && !c_selected.is_finished) {
-                            await this.gm.getMyMaster(this.player).pushEvent(c_selected, char, true);
+                            await this.gm.getMyMaster(this.player).addEvenProgress(c_selected, char, true);
                         }
                     }
                 })();
