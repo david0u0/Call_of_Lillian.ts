@@ -36,6 +36,7 @@ export default class E extends Event implements IEvent {
         return chars_in_arena.length >= 5;
     }
     onPush() { }
+
     onFinish() { }
     setupFinishEffect() {
         for(let p of [Player.Player1, Player.Player2]) {
