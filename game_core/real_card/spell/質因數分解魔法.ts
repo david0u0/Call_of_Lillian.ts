@@ -35,6 +35,7 @@ export default class S extends Spell {
 
     async onPlay() {
         await super.onPlay();
-        this.my_master.addMana(7);
+        await this.my_master.addMana(7);
+        await this.my_master.retireCard(this);
     }
 }

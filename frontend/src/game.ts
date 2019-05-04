@@ -106,7 +106,6 @@ async function setup() {
     app.stage.addChild(p_area1.container);
     app.stage.addChild(p_area2.container);
 
-
     let hands_ui1_obj = await constructHandUI(selecter, 1-me, gm, gm.getEnemyMaster(me).hand, app.ticker,
         show_big_card, c => {
             return { x: (width - c.width) / 2, y: -c.height + 5.5 * eh };

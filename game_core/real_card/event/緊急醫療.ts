@@ -1,6 +1,6 @@
 import { Event, Arena } from "../../cards";
 import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
-import { CardSeries, Player } from "../../enums";
+import { CardSeries, Player, checkBelongToSeries } from "../../enums";
 
 let name = "緊急醫療";
 let description = `推進：你有一個以上的角色處於醫院->得到1魔力。
@@ -18,13 +18,11 @@ export default class E extends Event implements IEvent {
     basic_mana_cost = 3;
 
     checkCanPush(_char: ICharacter|null) {
-        let list = this.g_master.getAll(TG.isCharacter, char => {
-            if(char.owner == this.owner) {
-                if(char.data.arena_entered) {
-                    let arena = char.data.arena_entered;
-                    if(arena.series.indexOf(CardSeries.Hospital) != -1) {
-                        return true;
-                    }
+        let list = this.my_master.getAll(TG.isCharacter, char => {
+            if(char.data.arena_entered) {
+                let arena = char.data.arena_entered;
+                if(checkBelongToSeries(CardSeries.Hospital, arena.series)) {
+                    return true;
                 }
             }
             return false;

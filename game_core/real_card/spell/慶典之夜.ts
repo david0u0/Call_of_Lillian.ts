@@ -3,9 +3,9 @@ import { Spell } from "../../cards";
 import { ICharacter, TypeGaurd, IArena } from "../../interface";
 import { BadOperationError } from "../../errors";
 
-let name = "殲滅戰";
+let name = "慶典之夜";
 let description = `本咒語不需要施術者。
-選擇一個場所並宣戰。若你贏得戰鬥（擊退較多角色），則對手的魔力歸零。`;
+選擇一個場所並宣戰，期間你每擊退一個角色，恢復一點情緒，並造成對手一點情緒傷害。`;
 
 export default class S extends Spell {
     name = name;
@@ -28,7 +28,6 @@ export default class S extends Spell {
                 return this.g_master.w_master.checkCanDeclare(this.owner, arena);
             }
         });
-
         if(this.data.war_field) {
             return true;
         } else {
@@ -48,10 +47,13 @@ export default class S extends Spell {
             return { var_arg: 0, break_chain: true };
         });
         this.addActionWhileAlive(this.g_master.w_master.end_war_chain, async () => {
-            if(this.g_master.w_master.isWinner(this.owner)) {
-                await this.enemy_master.addMana(-this.enemy_master.mana);
-            }
             await this.my_master.retireCard(this);
+        });
+        this.addActionWhileAlive(this.g_master.w_master.repulse_chain, async ({ loser, winner }) => {
+            if(loser.owner != this.owner && winner.length > 0) {
+                await this.my_master.addEmo(-1);
+                await this.enemy_master.addEmo(1);
+            }
         });
     }
 }

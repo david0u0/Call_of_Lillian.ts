@@ -1,16 +1,35 @@
 export enum Player { Player1, Player2 };
 export enum CardStat { Retired, Hand, Deck, Onboard, Exile };
 export enum CardType { Character, Arena, Upgrade, Spell, Event, Unknown };
-export enum CardSeries { Testing, Cyber, Arms, Cosmic, Wasteland, Time, Hospital, Entertainment, Any };
 export enum CharStat { StandBy, InArena, InWar };
 
+/** NOTE: 千萬不要直接拿兩個事件做比較！！請使用 checkBelongToSeries 方法（否則會忘記 Any）。 */
+export enum CardSeries {
+    Any,
+    Testing, Cyber, Arms, Cosmic, Wasteland, Time,
+    Hospital, Entertainment, School,
+};
 const SeriesTxt = {
     [CardSeries.Cosmic]: "宇宙",
     [CardSeries.Arms]: "軍火",
     [CardSeries.Cyber]: "賽博",
     [CardSeries.Hospital]: "醫院",
     [CardSeries.Entertainment]: "娛樂",
+    [CardSeries.School]: "學校",
 };
+
+/**
+ * 例如：要確認一張牌是不是醫院：checkBelongToSeries(Hospital, card.series)
+ * @param 
+ * @param target 
+ */
+export function checkBelongToSeries(goal: CardSeries, target: CardSeries[]) {
+    if(target.indexOf(CardSeries.Any) != -1) {
+        return true;
+    } else {
+        return (target.indexOf(goal) != -1);
+    }
+}
 
 export { SeriesTxt };
 
@@ -53,6 +72,7 @@ export enum RuleEnums {
     EndGameAfterFinish,
 
     CheckPhaseBeforePlay,
+    CheckQuotaBeforePlayChar,
     CheckPriceBeforePlay,
 
     CheckStandbyWhenPlay,

@@ -29,6 +29,7 @@ let default_deck_list: { abs_name: string, count: number }[] = [
     { abs_name: "真正的魔法", count: 3 },
     { abs_name: "集體飛升", count: 3 },
     { abs_name: "違停派對", count: 3 },
+    { abs_name: "永遠是朋友", count: 3 },
 ];
 
 let default_user_decks: IDeck[] = [

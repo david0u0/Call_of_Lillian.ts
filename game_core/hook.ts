@@ -124,7 +124,8 @@ class ActionChain<U> {
         }
         return this;
     }
-    private _err_msg = "";
+    private _err_msg: string | null = "";
+    public get err_msg() { return this._err_msg; }
     private addCheck(append: boolean, is_default: boolean,
         check_func: CheckFunc<U>,
         isActive = () => true, id?: number
@@ -216,9 +217,8 @@ class ActionChain<U> {
         }
         return { intercept_effect, after_effect, mask_id };
     }
-    public get err_msg() { return this._err_msg; }
     public checkCanTrigger(const_arg: U) {
-        this._err_msg = "";
+        this._err_msg = null;
         let res = this.check_chain.trigger(true, const_arg);
         if(typeof res == "string") {
             this._err_msg = res;
@@ -250,7 +250,7 @@ class ActionChain<U> {
             for(let effect of res.after_effect) {
                 if(res.mask_id.indexOf(MASK_ALL) != -1 && !effect.is_default) {
                     // do nothing
-                } else if(typeof effect.id == "number" && res.mask_id.indexOf(effect.id) == -1) {
+                } else if(typeof effect.id == "undefined" || res.mask_id.indexOf(effect.id) == -1) {
                     await Promise.resolve(effect.func());
                 }
             }

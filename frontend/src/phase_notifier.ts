@@ -65,8 +65,8 @@ export class PhaseNotifier {
         };
 
         gm.t_master.start_building_chain.appendDefault(() => {
-            phase_txt.text = "建築階段";
-            anime(`第${++this.cur_era}世代 - 建築階段`);
+            phase_txt.text = "準備階段";
+            anime(`第${++this.cur_era}世代 - 準備階段`);
             anime("本階段只能打出場所卡");
         });
         gm.t_master.start_main_chain.appendDefault(() => {

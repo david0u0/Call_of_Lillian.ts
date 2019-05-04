@@ -1,6 +1,6 @@
 import { Event } from "../../cards";
 import { IEvent, ICharacter, TypeGaurd } from "../../interface";
-import { CardSeries, Player, CardStat } from "../../enums";
+import { CardSeries, Player, CardStat, checkBelongToSeries } from "../../enums";
 
 let name = "真正的魔法";
 let description = `推進：你必須有兩個或更多角色處於休閒場所→將一張*尋貓啟事*加入結算區。
@@ -18,15 +18,16 @@ export default class E extends Event implements IEvent {
     basic_mana_cost = 3;
 
     checkCanPush() {
-        let chars = this.my_master.getAll(TypeGaurd.isCharacter, ch => {
-            if(ch.data.arena_entered) {
-                if(ch.data.arena_entered.series.indexOf(CardSeries.Entertainment) != -1) {
+        let list = this.my_master.getAll(TypeGaurd.isCharacter, char => {
+            if(char.data.arena_entered) {
+                let arena = char.data.arena_entered;
+                if(checkBelongToSeries(CardSeries.Hospital, arena.series)) {
                     return true;
                 }
             }
             return false;
         });
-        return (chars.length >= 2);
+        return (list.length > 0);
     }
 
     async onPush() {

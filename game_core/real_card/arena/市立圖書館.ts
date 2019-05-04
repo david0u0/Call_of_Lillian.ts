@@ -26,12 +26,14 @@ export default class A extends Arena implements IArena {
 
         let card = await this.g_master.selecter
         .selectCardInteractive(player, caller, {
-            guard: TG.isCard,
+            guard: TG.isKnown,
             stat: CardStat.Hand,
             owner: player,
-            must_have_value: true
+            must_have_value: true,
         });
-        let _card = await this.g_master.exposeCard(card);
-        await this.g_master.getMyMaster(char).exileCard(_card);
+        if(card) {
+            let _card = await this.g_master.exposeCard(card);
+            await this.g_master.getMyMaster(char).exileCard(_card);
+        }
     }
 }

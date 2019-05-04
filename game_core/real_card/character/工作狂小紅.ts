@@ -20,12 +20,12 @@ export default class C extends Character {
         this.g_master.t_master.start_exploit_chain.append(() => {
             this.data.has_exploited = false;
         });
-        this.exploit_chain.append(() => {
+        this.exploit_chain.append(async () => {
             if(!this.data.has_exploited) {
                 this.data.has_exploited = true;
                 return { mask_id: RuleEnums.ExitAfterExploit };
             } else {
-                this.my_master.addEmo(1);
+                await this.my_master.addEmo(1);
             }
         });
     }

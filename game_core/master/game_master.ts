@@ -97,7 +97,7 @@ export class GameMaster {
         owner: Player, arg: string | (() => T)
     ): Promise<IKnownCard> {
         let card: IKnownCard;
-        card = await this.genCard(CardStat.Onboard, owner, arg);
+        card = await this.genCard(CardStat.Exile, owner, arg);
         await this.getMyMaster(owner).dangerouslySetToBoard(card);
         if(TG.isCharacter(card)) {
             await this.getMyMaster(owner).changeCharTired(card, true);

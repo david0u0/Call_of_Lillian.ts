@@ -28,14 +28,6 @@ export class SoftRule {
 
     public checkPlay(card_play_chain: ActionChain<IKnownCard>, getCharQuota: () => number) {
         card_play_chain.appendCheck(card => {
-            let phase = this.getPhase();
-            if(TG.isCharacter(card)) {
-                if(getCharQuota() == 0) {
-                    // 一回合打出的角色超過上限
-                    return { var_arg: "一回合打出的角色超過上限" };
-                }
-            }
-        }).appendCheck(card => {
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的限制
                 if(card.data.character_equipped

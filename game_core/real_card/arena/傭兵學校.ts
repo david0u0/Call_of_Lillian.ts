@@ -11,6 +11,8 @@ export default class A extends Arena implements IArena {
     basic_mana_cost = 3;
     basic_exploit_cost = 3;
 
+    series = [CardSeries.School];
+
     async onExploit(char: ICharacter|Player) {
         let caller = new Array<IKnownCard>();
         if(TypeGaurd.isCard(char)) {

@@ -299,7 +299,7 @@ abstract class Arena extends KnownCard implements IArena {
         .selectCard(this.owner, this, {
             guard: TG.isArena,
             owner: this.owner,
-            check: arena => {
+            check: (arena) => {
                 this.data.position = arena.data.position;
                 return this.my_master.checkCanPlay(this);
             }
@@ -438,6 +438,7 @@ abstract class Spell extends KnownCard implements ISpell {
             .selectCard(this.owner, caller, {
                 guard: TG.isCharacter,
                 owner: this.owner,
+                char_stat: CharStat.StandBy,
                 is_tired: false,
             });
             if(c) {

@@ -1,6 +1,6 @@
 import * as Filters from "pixi-filters";
 import * as PIXI from "pixi.js";
-import { IKnownCard, ISelecter, ICard, SelectConfig, TypeGaurd } from "../../game_core/interface";
+import { IKnownCard, ISelecter, ICard, SelectConfig, TypeGaurd, UnknownCard } from "../../game_core/interface";
 import { getWinSize, getEltSize, getPlayerColor } from "./get_constant";
 import { BadOperationError } from "../../game_core/errors";
 import { Player, CharStat, CardStat } from "../../game_core/enums";
@@ -24,13 +24,13 @@ export default class FrontendSelecter implements ISelecter {
     
     private resolve_card: (arg: CardLike|PromiseLike<CardLike>) => void = null;
     private card_table: { [index: number]: ICard } = {};
-    private filter_func: (c: ICard) => boolean;
+    private filter_func: (c: IKnownCard) => boolean;
     private lines: PIXI.Graphics[] = [];
     private cancel_btn = new StackableBtn();
 
     private _selecting = SelectState.None;
     public get selecting() { return this._selecting; };
-    private _select_conf: SelectConfig<ICard> = null;
+    private _select_conf: SelectConfig<IKnownCard> = null;
     public get select_conf() { return this._select_conf; }
 
     constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
@@ -157,9 +157,9 @@ export default class FrontendSelecter implements ISelecter {
             }
         });
     }
-    selectCard<T extends ICard>(player: Player, caller: IKnownCard|IKnownCard[]|null,
+    selectCard<T extends IKnownCard>(player: Player, caller: IKnownCard|IKnownCard[]|null,
         conf: SelectConfig<T>
-    ): Promise<T | null> {
+    ): Promise<T | UnknownCard | null> {
         if(this.selecting == SelectState.Btn) {
             this.cancel_btn.stackBtn();
         } else if(this.selecting != SelectState.None) {
@@ -230,9 +230,9 @@ export default class FrontendSelecter implements ISelecter {
         }
     }
 
-    selectCardInteractive<T extends ICard>(player: Player,
+    selectCardInteractive<T extends IKnownCard>(player: Player,
         caller: IKnownCard | IKnownCard[], conf: SelectConfig<T>,
-    ): Promise<T | null> {
+    ) {
         // FIXME: 
         return this.selectCard(player, caller, conf);
     }

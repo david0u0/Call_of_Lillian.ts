@@ -1,15 +1,15 @@
 import { CardType, CardSeries, BattleRole, Player } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
-import { IArena, ICharacter, TypeGaurd } from "../../interface";
+import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "彩虹橋下的酒館";
-let description = "使用：4魔力→本次收獲中你每使用一次場所，均造成對手一點情緒傷害。";
+let description = "使用：5魔力→恢復1情緒。本次收獲中你每使用一次場所，均造成對手一點情緒傷害。";
 
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
     basic_mana_cost = 3;
-    basic_exploit_cost = 4;
+    basic_exploit_cost = 5;
     series = [ CardSeries.Entertainment ];
     data = {
         position: -1,
@@ -22,8 +22,13 @@ export default class A extends Arena implements IArena {
     // TODO: 功能的選擇應該放在 before exploit chain
 
     async onExploit(char: ICharacter | Player) {
+        let caller: IKnownCard[] = [this];
+        if(TypeGaurd.isCard(char)) {
+            caller.push(char);
+        }
         let player = TypeGaurd.isCard(char) ? char.owner : char;
         this.data.triggered[player]++;
+        await this.g_master.getMyMaster(player).addEmo(-1, caller);
     }
     async setupAliveEffect() {
         this.g_master.t_master.start_exploit_chain.append(() => {

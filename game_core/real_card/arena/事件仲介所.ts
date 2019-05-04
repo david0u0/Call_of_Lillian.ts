@@ -1,4 +1,4 @@
-import { CardType, CardSeries, BattleRole, Player } from "../../enums";
+import { CardType, BattleRole, Player } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 

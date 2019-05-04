@@ -3,7 +3,7 @@ import { getEltSize } from "./get_constant";
 import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";
-import { TypeGaurd, ICharacter, IEvent, IArena, ICard } from "../../game_core/interface";
+import { TypeGaurd, ICharacter, IEvent, IArena, ICard, ISelecter } from "../../game_core/interface";
 import { Player, CardStat } from "../../game_core/enums";
 import { CharUI } from "./draw_card";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";

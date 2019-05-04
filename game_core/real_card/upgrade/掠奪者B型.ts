@@ -22,13 +22,15 @@ export default class U extends Upgrade {
                     await this.my_master.draw();
                     let to_discard = await this.g_master.selecter.promptUI("請選擇捨棄的卡牌")
                     .selectCardInteractive(this.owner, [this], {
-                        guard: TypeGaurd.isCard,
+                        guard: TypeGaurd.isKnown,
                         stat: CardStat.Hand,
                         owner: this.owner,
-                        must_have_value: true
+                        must_have_value: true,
                     });
-                    let known = await this.g_master.exposeCard(to_discard);
-                    await this.my_master.exileCard(known);
+                    if(to_discard) {
+                        let known = await this.g_master.exposeCard(to_discard);
+                        await this.my_master.exileCard(known);
+                    }
                 }
             }
         }, false);
