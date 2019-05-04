@@ -16,7 +16,7 @@ router.post("/init", async (req, res) => {
     if(user) {
         let { my_deck_id, enemy_deck_id } = req.body;
         let my_deck = user.decks.find(deck => deck._id == my_deck_id);
-        let enemy_deck = user.decks.find(deck => deck._id == my_deck_id);
+        let enemy_deck = user.decks.find(deck => deck._id == enemy_deck_id);
         if(my_deck && enemy_deck) {
             player_stat_table[user.userid] = { my_deck, enemy_deck };
             res.send({ success: true });

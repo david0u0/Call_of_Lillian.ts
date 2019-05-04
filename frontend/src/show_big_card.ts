@@ -8,7 +8,6 @@ export type ShowBigCard = (x: number, y: number, card: ICard,
     conf?: { width: number, height: number, alpha: number, description?: boolean }
 ) => () => void;
 
-// TODO: 這裡洩漏了一堆記憶體= =
 export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number, y: number,
     card: ICard, ticker: PIXI.ticker.Ticker,
     conf?: { width: number, height: number, alpha: number, description?: boolean }
