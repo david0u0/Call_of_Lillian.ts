@@ -45,6 +45,16 @@ export type BattleRole = {
     is_melee?: boolean
 };
 
+export enum ActionEnums {
+    PlayCard,
+    Enter,
+    Push,
+    Exploit,
+    Ability,
+    Incite,
+    Declare,
+}
+
 export enum GamePhase {
     Setup,
     Building,
@@ -76,6 +86,8 @@ export enum RuleEnums {
     CheckPriceBeforePlay,
 
     CheckStandbyWhenPlay,
+
+    CheckPhaseBeforeExploit,
     
     Possessed,
     Beyond,

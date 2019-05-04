@@ -49,10 +49,10 @@ describe("測試最基礎的場所卡", () => {
         await gm.t_master.addActionPoint(100);
     });
     it("進入自己場所應該不用花費", () => {
-        assert.equal(pm.getEnterCost(rainy, my_h), 0);
+        assert.equal(pm.getEnterCost(rainy, my_h, gm.t_master.nonce), 0);
     });
     it("進入敵人的場所要多花1魔力", () => {
-        assert.equal(pm.getEnterCost(rainy, enemy_h), 1);
+        assert.equal(pm.getEnterCost(rainy, enemy_h, gm.t_master.nonce), 1);
     });
     describe("測試進入場所的功能", () => {
         describe("讓角色實際進入場所", () => {

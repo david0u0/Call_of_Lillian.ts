@@ -2,7 +2,7 @@ import { GamePhase, CardStat } from "../../enums";
 import { Spell } from "../../cards";
 import { TypeGaurd } from "../../interface";
 
-let name = "超空間探測";
+let name = "亞空間探測";
 let description = "從牌庫中檢索一張場所卡。";
 
 export default class S extends Spell {

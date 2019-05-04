@@ -45,7 +45,7 @@ export default class A extends Arena implements IArena {
     }
 
     async onExploit(char: ICharacter|Player) {
-        let p = TypeGaurd.isCard(char) ? char.owner : char;
+        let [p, caller] = this.getPlayerAndCaller(char);
         let pm = this.g_master.getMyMaster(char);
         let mem_emo = p == Player.Player1 ? this.data.mem_emo1 : this.data.mem_emo2;
         await pm.addEmo(-pm.emo + mem_emo);

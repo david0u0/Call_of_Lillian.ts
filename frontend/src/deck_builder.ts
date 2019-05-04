@@ -336,8 +336,8 @@ async function setup() {
     app.stage.addChild(deck_ui.view);
 
     let index = 0;
-    let max_page = Math.floor(cards.length / PAGE_LIMIT) + (cards.length % PAGE_LIMIT == 0 ? 1 : 0);
-    let page_txt = new PIXI.Text(`${index+1}/${max_page+1}`, new PIXI.TextStyle({
+    let max_page = Math.floor(cards.length / PAGE_LIMIT) + (cards.length % PAGE_LIMIT == 0 ? 0 : 1);
+    let page_txt = new PIXI.Text(`${index+1}/${max_page}`, new PIXI.TextStyle({
         fontSize: 30, fill: 0
     }));
     page_txt.position.set(0, height-page_txt.height);
@@ -359,10 +359,10 @@ async function setup() {
             deck_ui.scroll(sign);
         } else if(index < 0) {
             index = 0;
-        } else if(index > max_page) {
-            index = max_page;
+        } else if(index >= max_page) {
+            index = max_page - 1;
         } else {
-            page_txt.text = `${index + 1}/${max_page + 1}`;
+            page_txt.text = `${index + 1}/${max_page}`;
             loading = true;
             destroy();
             ({ view, destroy } = await drawPage(index, gm, cards, show_big_card,

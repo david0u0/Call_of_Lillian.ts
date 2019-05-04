@@ -84,12 +84,8 @@ export class SoftRule {
         exploit_chain.appendCheck(({ arena, char }) => {
             if(this.getPhase() != GamePhase.Exploit) {
                 return { var_arg: "只能在收獲階段使用場所" };
-            } else if(TG.isCard(char)) {
-                if(!arena.isEqual(char.data.arena_entered)) {
-                    return { var_arg: "只能開發自身所在的場所"};
-                }
             }
-        });
+        }, undefined, RuleEnums.CheckPhaseBeforeExploit);
     }
     public checkPush(
         add_progress_chain: ActionChain<{ char: ICharacter | null, event: IEvent, n: number, is_push: boolean }>

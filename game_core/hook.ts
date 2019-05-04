@@ -11,7 +11,7 @@ type GetterResult<T> = {
     mask_id?: number[] | number
 };
 type GetterFunc<T, U>
-    = (var_arg: T, const_arg: U) => GetterResult<T> | void;
+    = (var_arg: T, const_arg: U, nonce: number) => GetterResult<T> | void;
 type GetterHook<T, U> = {
     isActive: () => boolean,
     func: GetterFunc<T, U>,
@@ -26,7 +26,7 @@ type ActionResult = {
     mask_id?: number[] | number
 };
 type ActionFunc<U>
-    = (const_arg: U, nonce?: number) => void | ActionResult | Promise<ActionResult|void>
+    = (const_arg: U, nonce: number) => void | ActionResult | Promise<ActionResult|void>
 type ActionHook<U> = {
     isActive: () => boolean;
     func: ActionFunc<U>;
@@ -68,10 +68,10 @@ class GetterChain<T, U> {
     public dominantDefault(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
         return this.add(false, true, func, isActive);
     }
-    public triggerFullResult(var_arg: T, const_arg: U, mask_id: number[] = []) {
+    public triggerFullResult(var_arg: T, const_arg: U, nonce: number, mask_id: number[] = []) {
         for(let hook of this.list) {
             if(checkActive(hook, mask_id)) {
-                let result = hook.func(var_arg, const_arg);
+                let result = hook.func(var_arg, const_arg, nonce);
                 if(result) {
                     if(typeof result.var_arg != "undefined") {
                         var_arg = result.var_arg;
@@ -88,8 +88,8 @@ class GetterChain<T, U> {
         }
         return { var_arg, mask_id };
     }
-    public trigger(var_arg: T, const_arg: U, mask_id: number[] = []) {
-        return this.triggerFullResult(var_arg, const_arg, mask_id).var_arg;
+    public trigger(var_arg: T, const_arg: U, nonce: number, mask_id: number[] = []) {
+        return this.triggerFullResult(var_arg, const_arg, nonce, mask_id).var_arg;
     }
     public chain<V>(next_chain: GetterChain<T, V>, next_arg: V) {
         let new_chain = new GetterChain<T, U>();
@@ -98,8 +98,8 @@ class GetterChain<T, U> {
             new_chain.list.push({
                 isActive: h.isActive,
                 id: h.id,
-                func: (var_arg: T) => {
-                    return h.func(var_arg, next_arg);
+                func: (var_arg, const_arg, nonce) => {
+                    return h.func(var_arg, next_arg, nonce);
                 }
             });
         }
@@ -107,8 +107,8 @@ class GetterChain<T, U> {
     }
 }
 
-type CallBack = ((nonce?: number) => void)|(() => Promise<void>);
-type CheckFunc<U> = (const_arg: U, nonce?: number) => GetterResult<string | false>|void;
+type CallBack = () => void|Promise<void>;
+type CheckFunc<U> = (const_arg: U, nonce: number) => GetterResult<string | false>|void;
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
     private check_chain = new GetterChain<string | boolean, U>();
@@ -130,9 +130,9 @@ class ActionChain<U> {
         check_func: CheckFunc<U>,
         isActive = () => true, id?: number
     ) {
-        let func: GetterFunc<string | boolean, U> = (var_arg, const_arg) => {
+        let func: GetterFunc<string | boolean, U> = (var_arg, const_arg, nonce) => {
             if(typeof var_arg == "boolean" && var_arg) {
-                return check_func(const_arg);
+                return check_func(const_arg, nonce);
             } else if(typeof var_arg == "string") {
                 this._err_msg = var_arg;
             }
@@ -217,14 +217,14 @@ class ActionChain<U> {
         }
         return { intercept_effect, after_effect, mask_id };
     }
-    public checkCanTrigger(const_arg: U) {
+    public checkCanTrigger(const_arg: U, nonce: number) {
         this._err_msg = null;
-        let res = this.check_chain.trigger(true, const_arg);
+        let res = this.check_chain.trigger(true, const_arg, nonce);
         if(typeof res == "string") {
             this._err_msg = res;
             return false;
         } else {
-            return true;
+            return res;
         }
     }
     /**
@@ -267,8 +267,8 @@ class ActionChain<U> {
             new_chain.action_list.push({
                 isActive: h.isActive,
                 id: h.id,
-                func: () => {
-                    return h.func(next_arg);
+                func: (arg, nonce) => {
+                    return h.func(next_arg, nonce);
                 }
             });
         }

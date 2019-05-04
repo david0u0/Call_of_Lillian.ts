@@ -1,6 +1,6 @@
 // 因此，如果有什麼東西需要把後面的規則覆蓋掉，應該要寫在特例中。
 
-import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums } from "../enums";
+import { Player, CardStat, BattleRole, CharStat, GamePhase, RuleEnums, ActionEnums } from "../enums";
 import { ICard, IKnownCard, ICharacter, IArena, IEvent, TypeGaurd as TG, Ability, IUpgrade } from "../interface";
 import { GetterChain } from "../hook";
 import { throwIfIsBackend, BadOperationError, throwDebugError } from "../errors";
@@ -63,7 +63,6 @@ export class PlayerMaster {
         return this.getAll(TG.isEvent, c => c.card_status == CardStat.Onboard && c.is_finished);
     }
 
-    // TODO: 應該要有一個參數 getCurPhase，用來得知現在是哪個遊戲階段
     constructor(private acf: ActionChainFactory, public readonly player: Player,
         private t_master: TimeMaster,
         private getMaster: (card: ICard | Player) => PlayerMaster,
@@ -106,8 +105,8 @@ export class PlayerMaster {
                 return { var_arg: false };
             }
         }, undefined, RuleEnums.CheckPhaseBeforePlay)
-        .append((b, card) => {
-            if(this.mana < this.getManaCost(card)) {
+        .append((b, card, nonce) => {
+            if(this.mana < this.getManaCost(card, nonce)) {
                 return { var_arg: false };
             }
         }, undefined, RuleEnums.CheckPriceBeforePlay)
@@ -180,6 +179,14 @@ export class PlayerMaster {
      * （然而如果最終不是由該角色施放，還是會被 card_play_chain 擋下來）
      */
     public check_before_play_chain = new GetterChain<boolean, IKnownCard>();
+    /**
+     * 雖然是一條行動鏈，但它的目地是用來設置等會行動要用到的參數（如價錢）
+     * 千萬！千萬！不要在裡面引發會影響遊戲的副作用！！
+     */
+    public setup_before_action_chain = this.acf.new<{
+        args: (IKnownCard | Player | null)[],
+        action: ActionEnums
+    }>();
 
     public change_char_tired_chain = this.acf.new<{ is_tired: boolean, char: ICharacter }>();
 
@@ -212,7 +219,6 @@ export class PlayerMaster {
     public draw_card_chain = this.acf.new<ICard>();
 
     async addCard(card: ICard) {
-        // TODO: 加上事件鏈?
         if(card.seq in this.card_table) {
             throw new BadOperationError("嘗試將已經有的卡牌塞給使用者");
         } else {
@@ -255,9 +261,9 @@ export class PlayerMaster {
         }
     }
 
-    getManaCost(card: IKnownCard) {
+    getManaCost(card: IKnownCard, nonce=this.t_master.nonce) {
         return this.get_mana_cost_chain.chain(card.get_mana_cost_chain, null)
-        .trigger(card.basic_mana_cost, card);
+        .trigger(card.basic_mana_cost, card, nonce);
     }
 
     async addMana(n: number, caller: IKnownCard[] = []) {
@@ -283,7 +289,7 @@ export class PlayerMaster {
     public get_score_chain = new GetterChain<number, null>();
     getScore() {
         let score = this.events_finished.reduce((sum, e) => sum + e.score, 0);
-        return this.get_score_chain.trigger(score, null);
+        return this.get_score_chain.trigger(score, null, this.t_master.nonce);
     }
 
     getStrength(card: ICharacter|IUpgrade, enemy?: ICharacter) {
@@ -294,7 +300,7 @@ export class PlayerMaster {
             }
         }
         strength = this.get_strength_chain.chain(card.get_strength_chain, enemy)
-        .trigger(strength, { enemy, card });
+        .trigger(strength, { enemy, card }, this.t_master.nonce);
         if(TG.isCharacter(card) && card.char_status == CharStat.InWar && card.is_tired) {
             return Math.min(0, strength);
         } else {
@@ -304,44 +310,45 @@ export class PlayerMaster {
 
     getBattleRole(char: ICharacter) {
         return this.get_battle_role_chain.chain(char.get_battle_role_chain, null)
-        .trigger(char.basic_battle_role, char);
+        .trigger(char.basic_battle_role, char, this.t_master.nonce);
     }
     /** 主要用於UI上的檢查 */
-    checkBeforePlay(card: IKnownCard) {
+    checkBeforePlay(card: IKnownCard, nonce=this.t_master.nonce) {
         if(this.t_master.cur_player != this.player) {
             return false;
         }
         return this.check_before_play_chain.chain(card.check_before_play_chain, null)
-        .trigger(true, card);
+        .trigger(true, card, nonce);
     }
-    checkCanPlay(card: IKnownCard) {
-        if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card))) {
-            if(this.checkBeforePlay(card)) {
+    checkCanPlay(card: IKnownCard, nonce=this.t_master.nonce) {
+        if(HR.checkPlay(this.player, card, this.mana, this.getManaCost(card, nonce))) {
+            if(this.checkBeforePlay(card, nonce)) {
                 return this.card_play_chain.chain(card.card_play_chain, null)
-                .checkCanTrigger(card);
+                .checkCanTrigger(card, nonce);
             }
         }
         return false;
     }
     async playCard(card: IKnownCard, by_keeper=false) {
         // 檢查
-        let nonce = this.t_master.nonce;
-        // TODO: before_action_chain
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
         } else if(!checkCardStat(card, CardStat.Hand)) {
             throw new BadOperationError("想打出手上沒有的牌？", card);
         }
         card.rememberDatas();
-        if(!(await card.initialize()) || !this.checkCanPlay(card)) {
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain
+        if(!(await card.initialize()) || !this.checkCanPlay(card, nonce)) {
             card.recoverDatas();
             throwIfIsBackend("出牌過程取消");
             return false;
         }
         // 支付代價
-        await this.addMana(-this.getManaCost(card));
+        await this.addMana(-this.getManaCost(card, nonce));
         // 實際行動
-        let res = await this.card_play_chain.chain(card.card_play_chain, null).byKeeper(by_keeper)
+        let res = await this.card_play_chain.chain(card.card_play_chain, null)
+        .byKeeper(by_keeper)
         .trigger(card, nonce, async () => {
             await this.dangerouslySetToBoard(card);
             await Promise.resolve(card.onPlay());
@@ -354,6 +361,7 @@ export class PlayerMaster {
         if(!card.instance) {
             await this.t_master.spendAction();
         }
+        return true;
     }
     /** 會跳過大多數的檢查、設置、代價與行動鏈 */
     public readonly set_to_board_chain = this.acf.new<IKnownCard>();
@@ -379,7 +387,7 @@ export class PlayerMaster {
         });
     }
 
-    async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false) {
+    async triggerAbility(card: IKnownCard, a_index: number, by_keeper=false): Promise<boolean> {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合使用能力？");
         } else if(!checkCardStat(card)) {
@@ -387,9 +395,13 @@ export class PlayerMaster {
             // TODO: 也許有些牌可以在歷史區施放能力？
         }
         let nonce = this.t_master.nonce;
+        await this.setup_before_action_chain
+        .trigger({args: [card], action: ActionEnums.Ability }, nonce);
         // TODO: before_action_chain
         let ability = card.abilities[a_index];
-        if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, ability })) {
+        if(ability && ability.canTrigger()
+            && this.ability_chain.checkCanTrigger({ card, ability }, nonce)
+        ) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain.byKeeper(by_keeper)
@@ -400,10 +412,9 @@ export class PlayerMaster {
                     this.t_master.spendAction();
                 }
                 return true;
-            } else {
-                return false;
             }
         }
+        return false;
     }
 
     async changeCharTired(char: ICharacter, is_tired: boolean) {
@@ -435,10 +446,11 @@ export class PlayerMaster {
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
+            let nonce = this.t_master.nonce;
             let chain = this.card_retire_chain.chain(card.card_retire_chain, null);
-            let can_die = chain.checkCanTrigger(card);
+            let can_die = chain.checkCanTrigger(card, nonce);
             if(can_die) {
-                await chain.trigger(card, this.t_master.nonce, async () => {
+                await chain.trigger(card, nonce, async () => {
                     card.card_status = CardStat.Retired;
                     await this._leaveCard(card, CardStat.Retired);
                 });
@@ -488,12 +500,12 @@ export class PlayerMaster {
             await Promise.resolve(event.setupFinishEffect(char));
         });
     }
-    getPushCost(char: ICharacter | null, event: IEvent) {
+    getPushCost(char: ICharacter | null, event: IEvent, nonce: number) {
         let get_push_cost_chain = this.get_push_cost_chain.chain(event.get_push_cost_chain, char);
         if(char) {
             get_push_cost_chain = get_push_cost_chain.chain(char.get_push_cost_chain, event);
         }
-        return get_push_cost_chain.trigger(event.push_cost, { char, event });
+        return get_push_cost_chain.trigger(event.push_cost, { char, event }, nonce);
     }
     async addEvenProgress(event: IEvent, char: ICharacter | null, _n: number): Promise<boolean>;
     async addEvenProgress(event: IEvent, char: ICharacter | null, by_keeper?: boolean): Promise<boolean>;
@@ -518,14 +530,14 @@ export class PlayerMaster {
             by_keeper = arg;
         }
 
-        let cost = this.getPushCost(char, event);
+        let cost = this.getPushCost(char, event, nonce);
 
         if(HR.checkPush(event, char, this.mana, cost)) {
             let push_chain = this.add_progress_chain.chain(event.add_progress_chain, { char, n, is_push });
             if(TG.isCard(char)) {
                 push_chain = push_chain.chain(char.push_chain, event);
             }
-            if(push_chain.checkCanTrigger({ event, char, n, is_push})) {
+            if(push_chain.checkCanTrigger({ event, char, n, is_push }, nonce)) {
                 await this.addMana(-cost);
                 if(char) {
                     await this.changeCharTired(char, true);
@@ -533,8 +545,8 @@ export class PlayerMaster {
 
                 await push_chain.byKeeper(by_keeper)
                 .trigger({ event, char, n, is_push }, nonce, async () => {
-                    event.setProgrss(event.cur_progress_count + n);
                     await Promise.resolve(event.onPush(char, nonce));
+                    event.setProgrss(event.cur_progress_count + n);
                     if(event.cur_progress_count == event.goal_progress_count) {
                         // 事件已完成
                         await this.finishEvent(char, event);
@@ -552,15 +564,13 @@ export class PlayerMaster {
     }
 
     // 底下所有函式都是「我的角色」與「任何人的場所」
-    getEnterCost(char: ICharacter, arena: IArena): number {
+    getEnterCost(char: ICharacter, arena: IArena, nonce: number): number {
         // NOTE: 觸發順序：場所 -> 角色 -> 世界
         return this.get_enter_cost_chain.chain(arena.get_enter_cost_chain, char)
         .chain(char.get_enter_cost_chain, arena)
-        .trigger(0, { char, arena });
+        .trigger(0, { char, arena }, nonce);
     }
     async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
-        let nonce = this.t_master.nonce;
-        // TODO: before_action_chain
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合進入場所？");
         } else if(this.player != char.owner) {
@@ -568,12 +578,14 @@ export class PlayerMaster {
         } else if(!checkCardStat([arena, char])) {
             throw new BadOperationError("角色或場所不在場上");
         }
+        let nonce = this.t_master.nonce;
+        // NOTE: before_action_chain
 
-        let cost = this.getEnterCost(char, arena);
+        let cost = this.getEnterCost(char, arena, nonce);
         if(HR.checkEnter(char, arena, this.mana, cost)) {
             let enter_chain = this.enter_chain.chain(arena.enter_chain, char)
             .chain(char.enter_chain, arena);
-            if(enter_chain.checkCanTrigger({ arena, char })) {
+            if(enter_chain.checkCanTrigger({ arena, char }, nonce)) {
                 await this.addMana(-cost);
                 if(!char.assault) {
                     await this.changeCharTired(char, true);
@@ -590,13 +602,13 @@ export class PlayerMaster {
         throwIfIsBackend("進入程序取消");
         return false;
     }
-    getExploitCost(arena: IArena, char: ICharacter | Player) {
+    getExploitCost(arena: IArena, char: ICharacter | Player, nonce: number) {
         let get_cost_chain = this.get_exploit_cost_chain
         .chain(arena.get_exploit_cost_chain, char);
         if(TG.isCard(char)) {
             get_cost_chain.chain(char.get_exploit_cost_chain, arena);
         }
-        return get_cost_chain.trigger(arena.basic_exploit_cost, { char, arena });
+        return get_cost_chain.trigger(arena.basic_exploit_cost, { char, arena }, nonce);
     }
     async exploit(arena: IArena, char: ICharacter | Player, by_keeper=false) {
         let p = (() => {
@@ -614,14 +626,16 @@ export class PlayerMaster {
             throw new BadOperationError("場所或角色不在場上");
         }
         let nonce = this.t_master.nonce;
-        // TODO: before_action_chain
-        let cost = this.getExploitCost(arena, char);
-        if(HR.checkExploit(arena, char, this.mana, cost)) {
+        let setup_res = await this.setup_before_action_chain
+        .trigger({ args: [arena, char], action: ActionEnums.Exploit }, nonce);
+
+        let cost = this.getExploitCost(arena, char, nonce);
+        if(setup_res && HR.checkExploit(arena, char, this.mana, cost)) {
             let exploit_chain = this.exploit_chain.chain(arena.exploit_chain, char);
             if(TG.isCard(char)) {
                 exploit_chain = exploit_chain.chain(char.exploit_chain, arena);
             }
-            if(exploit_chain.checkCanTrigger({ char, arena })) {
+            if(exploit_chain.checkCanTrigger({ char, arena }, nonce)) {
                 await this.addMana(-cost);
                 await exploit_chain.byKeeper(by_keeper)
                 .trigger({ char, arena }, nonce, async () => {
@@ -634,8 +648,10 @@ export class PlayerMaster {
                         await this.addMana(income, caller);
                     }
                 });
+                return true;
             }
         }
+        return false;
     }
 
     async exitArena(char: ICharacter) {
@@ -675,7 +691,7 @@ export class PlayerMaster {
         let incited_chain = this.incited_chain.chain(char.incited_chain, null);
         let enemy_master = this.getMaster(player);
         if(enemy_master.mana > C.INCITE_COST
-            && incited_chain.checkCanTrigger(char)
+            && incited_chain.checkCanTrigger(char, nonce)
         ) {
             enemy_master.addMana(-C.INCITE_COST);
             incited_chain.byKeeper(by_keeper).trigger(char, nonce, () => {
@@ -695,7 +711,7 @@ export class PlayerMaster {
         let nonce = this.t_master.nonce;
         // TODO: before_action_chain ?
         let release_chain = this.release_chain.chain(char.release_chain, null);
-        if(release_chain.checkCanTrigger(char)) {
+        if(release_chain.checkCanTrigger(char, nonce)) {
             await this.retireCard(char);
             await release_chain.byKeeper(by_keeper).trigger(char, nonce);
             await this.t_master.spendAction();

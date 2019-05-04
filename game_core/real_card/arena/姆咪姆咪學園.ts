@@ -14,11 +14,7 @@ export default class A extends Arena implements IArena {
     series = [CardSeries.School];
 
     async onExploit(char: ICharacter | Player) {
-        let caller = new Array<IKnownCard>();
-        if(TypeGaurd.isCard(char)) {
-            caller.push(char);
-        }
-        let p = TypeGaurd.isCard(char) ? char.owner : char;
+        let [p, caller] = this.getPlayerAndCaller(char);
         await this.g_master.genCardToBoard(p, "見習魔女");
     }
 }

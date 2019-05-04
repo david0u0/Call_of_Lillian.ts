@@ -311,6 +311,14 @@ abstract class Arena extends KnownCard implements IArena {
             return false;
         }
     }
+    protected getPlayerAndCaller(char: ICharacter | Player): [Player, IKnownCard[]] {
+        let p = TG.isCard(char) ? char.owner : char;
+        let caller: IKnownCard[] = [this];
+        if(TG.isCard(char)) {
+            caller.push(char);
+        }
+        return [ p, caller ];
+    }
 }
 
 abstract class Event extends KnownCard implements IEvent {
@@ -332,8 +340,8 @@ abstract class Event extends KnownCard implements IEvent {
     public readonly add_progress_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
         let chain = new ActionChain<{ char: ICharacter | null, n: number, is_push: boolean }>();
-        chain.appendCheck(({ char, is_push }, nonce) => {
-            if(is_push && !this.checkCanPush(char, nonce)) {
+        chain.appendCheck(({ char, is_push }) => {
+            if(is_push && !this.checkCanPush(char, -1)) { // FIXME: 這裡的-1應該是傳進來的nonce
                 return { var_arg: "不符合推進條件" };
             }
         }, undefined, RuleEnums.CustomPushCheck);

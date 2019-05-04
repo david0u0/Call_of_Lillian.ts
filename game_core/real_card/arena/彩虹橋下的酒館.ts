@@ -22,13 +22,9 @@ export default class A extends Arena implements IArena {
     // TODO: 功能的選擇應該放在 before exploit chain
 
     async onExploit(char: ICharacter | Player) {
-        let caller: IKnownCard[] = [this];
-        if(TypeGaurd.isCard(char)) {
-            caller.push(char);
-        }
-        let player = TypeGaurd.isCard(char) ? char.owner : char;
-        this.data.triggered[player]++;
-        await this.g_master.getMyMaster(player).addEmo(-1, caller);
+        let [p, caller] = this.getPlayerAndCaller(char);
+        this.data.triggered[p]++;
+        await this.g_master.getMyMaster(p).addEmo(-1, caller);
     }
     async setupAliveEffect() {
         this.g_master.t_master.start_exploit_chain.append(() => {

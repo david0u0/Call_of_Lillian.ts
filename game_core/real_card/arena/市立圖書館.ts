@@ -13,8 +13,7 @@ export default class A extends Arena implements IArena {
     basic_exploit_cost = 1;
 
     async onExploit(char: ICharacter|Player) {
-        let caller: Array<IKnownCard> = [this];
-        let player: Player;
+        let [player, caller] = this.getPlayerAndCaller(char);
         if(TG.isCard(char)) {
             caller.push(char);
             player = char.owner;

@@ -15,10 +15,7 @@ export default class A extends Arena implements IArena {
     series = [ CardSeries.Hospital ];
 
     async onExploit(char: ICharacter|Player) {
-        let caller = new Array<IKnownCard>();
-        if(TypeGaurd.isCard(char)) {
-            caller.push(char);
-        }
+        let [p, caller] = this.getPlayerAndCaller(char);
         await this.g_master.getMyMaster(char).addEmo(1, caller);
         return 3;
     }

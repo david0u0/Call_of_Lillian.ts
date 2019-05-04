@@ -132,12 +132,13 @@ export class WarMaster {
         }
         return arenas;
     }
-    public checkCanDeclare(declarer: Player, arena: IArena) {
+    public checkCanDeclare(declarer: Player, arena: IArena, _nonce?: number) {
         if(this.t_master.cur_player != declarer) {
             throw new BadOperationError("想在別人的回合宣戰？");
         } else if(this.t_master.cur_phase != GamePhase.InAction) {
             throw new BadOperationError("只能在主階段的行動中宣戰");
         } else {
+            let nonce = typeof _nonce == "undefined" ? this.t_master.nonce : _nonce;
             this._atk_player = declarer;
             this._war_field = arena;
             let has_target = false;
@@ -154,7 +155,7 @@ export class WarMaster {
             for(let a of this.getAllWarFields(arena)) {
                 for(let ch of a.char_list) {
                     if(ch && this.checkCanAttack(ch)) {
-                        return this.declare_war_chain.checkCanTrigger({ declarer, arena });
+                        return this.declare_war_chain.checkCanTrigger({ declarer, arena }, nonce);
                     }
                 }
             }
@@ -163,15 +164,17 @@ export class WarMaster {
         }
     }
     public async declareWar(declarer: Player, arena: IArena, by_keeper: boolean) {
-        if(!this.checkCanDeclare(declarer, arena)) {
+        let nonce = this.t_master.nonce;
+        if(!this.checkCanDeclare(declarer, arena, nonce)) {
             return;
         }
         let pm = this.getMyMaster(declarer);
-        let cost = this.get_declare_cost_chain.trigger(Constant.WAR_COST, { declarer, arena });
-        if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ declarer, arena })) {
+        let cost = this.get_declare_cost_chain
+        .trigger(Constant.WAR_COST, { declarer, arena }, nonce);
+        if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ declarer, arena }, nonce)) {
             pm.addMana(-cost);
             let res = await this.declare_war_chain.byKeeper(by_keeper)
-            .trigger({ declarer, arena }, this.t_master.nonce, () => {
+            .trigger({ declarer, arena }, nonce, () => {
                 this.t_master.setWarPhase(GamePhase.InWar);
                 this._atk_player = declarer;
                 this._def_player = 1 - declarer;
