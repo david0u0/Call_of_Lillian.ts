@@ -79,10 +79,12 @@ export function getCardSize(width: number, height: number, landscape = false) {
 
 export function drawCardFace(card: ICard, width: number, height: number, landscape = false) {
     let img: PIXI.Sprite;
-    if(typeof(card) == "string") {
-        img = new PIXI.Sprite(my_loader.resources[card].texture);
-    } else if(TG.isKnown(card)) {
-        img = new PIXI.Sprite(my_loader.resources[card.abs_name].texture);
+    if(TG.isKnown(card)) {
+        if(card.abs_name in my_loader.resources) {
+            img = new PIXI.Sprite(my_loader.resources[card.abs_name].texture);
+        } else {
+            throw `${card.abs_name}：沒有載入就想畫卡面`;
+        }
     } else {
         img = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
     }

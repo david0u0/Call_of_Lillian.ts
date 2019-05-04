@@ -14,23 +14,20 @@ class CardLoader {
     private loading = false;
 
     constructor() {
-        this.add("img_not_found").load(() => {});
+        this.add({ abs_name: "img_not_found" }).load(() => { });
         this.loader.onComplete.add(() => this.onComplete());
     }
 
-    add(arg: string | IKnownCard): CardLoader {
-        if(typeof (arg) == "string") {
-            if(!this.resources[arg] && !this.added_table[arg] && !this.added_table[arg]) {
-                if(this.loading) {
-                    this.added_table_backup[arg] = true;
-                } else {
-                    this.added_table[arg] = true;
-                }
+    add(card: { abs_name: string }): CardLoader {
+        let { abs_name } = card;
+        if(!this.resources[abs_name] && !this.added_table[abs_name] && !this.added_table[abs_name]) {
+            if(this.loading) {
+                this.added_table_backup[abs_name] = true;
+            } else {
+                this.added_table[abs_name] = true;
             }
-            return this;
-        } else {
-            return this.add(arg.abs_name);
         }
+        return this;
     }
     load(func: () => void) {
         if(this.loading) {

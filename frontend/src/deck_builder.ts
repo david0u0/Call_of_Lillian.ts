@@ -147,7 +147,7 @@ class DeckUI {
             this.onHover(null);
         });
         this.view.addChild(this.list_view);
-
+        this.sortList();
         this.refreshUI();
     }
     scroll(sign: -1 | 1) {
@@ -201,12 +201,15 @@ class DeckUI {
         }
         this.refreshUI();
     }
+    sortList() {
+        this._deck.list = this._deck.list.sort((a, b) => {
+            return this.card_table[a.abs_name].basic_mana_cost
+                - this.card_table[b.abs_name].basic_mana_cost;
+        });
+    }
     refreshUI() {
         if(this.width) {
-            this._deck.list = this._deck.list.sort((a, b) => {
-                return this.card_table[a.abs_name].basic_mana_cost
-                    - this.card_table[b.abs_name].basic_mana_cost;
-            });
+            this.sortList();
             for(let child of [...this.list_view.children]) {
                 child.destroy();
             }
@@ -378,7 +381,7 @@ async function setup() {
             }
         }
     });
-    save_btn.visible = false;
+    save_btn.visible = checkIfChanged(deck_ui.deck, deck_backup);
     save_btn.position.set(view.width + left_space * 0.1, eh * 36);
     deck_ui.setOnChange(() => {
         save_btn.visible = (checkIfChanged(deck_ui.deck, deck_backup));

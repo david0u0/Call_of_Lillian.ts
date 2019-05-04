@@ -39,7 +39,7 @@ export class EventArea {
     }
     addEvent(card: IEvent): Promise<void> {
         return new Promise<void>(resolve => {
-            my_loader.add(card.name).load(() => {
+            my_loader.add(card).load(() => {
                 this.addEventLoaded(card);
                 resolve();
             });

@@ -20,6 +20,16 @@ import { PhaseNotifier } from "./phase_notifier";
 import { FrontendWarMaster } from "./frontend_war_master";
 
 let app = new PIXI.Application(getWinSize());
+async function initGameWithServer(gm: GameMaster) {
+    let res = await fetch("/api/game/decks");
+    if(res.ok) {
+        let data = await res.json();
+        let { my_deck, enemy_deck } = data;
+        await initiateGame(gm, my_deck, enemy_deck);
+    } else {
+        throw "找不到牌組";
+    }
+}
 
 PIXI.loader
 .add("background", require("../assets/background.png"))
@@ -79,7 +89,7 @@ async function setup() {
     let arena_area1 = new ArenaArea(1-me, gm, selecter, app.ticker, show_big_card, f_w_master);
     let arena_area2 = new ArenaArea(me, gm, selecter, app.ticker, show_big_card, f_w_master);
 
-    await initiateGame(gm, [], []);
+    await initGameWithServer(gm);
 
     arena_area1.view.position.set(0, 20.25*eh - arena_area1.view.height);
     arena_area2.view.position.set(0, 21.75*eh);
