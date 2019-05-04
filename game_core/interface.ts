@@ -133,7 +133,7 @@ interface IArena extends IKnownCard {
      * @param char 如果是玩家，代表是利用某些效果不靠角色就使用場所
      * @returns 回傳值如果是數字，代表的是魔力收入 
      */
-    onExploit(char: ICharacter|Player): Promise<void|number>|void|number;
+    onExploit(char: ICharacter|Player, nonce: number): Promise<void|number>|void|number;
     /** 不可覆寫！ */
     enter(char: ICharacter): void;
     exit(char: ICharacter): void;
@@ -156,8 +156,8 @@ interface IEvent extends IKnownCard {
     readonly add_countdown_chain: ActionChain<{ n: number, is_natural: boolean }>;
 
     // TODO: 應該要再一個函式 initBeforePush
-    checkCanPush(char: ICharacter|null): boolean;
-    onPush(char: ICharacter|null): Promise<void>|void;
+    checkCanPush(char: ICharacter|null, nonce: number): boolean;
+    onPush(char: ICharacter|null, nonce: number): Promise<void>|void;
     onFinish(char: ICharacter|null): Promise<void>|void;
     onFail(): Promise<void>|void;
     setupFinishEffect(char: ICharacter|null): Promise<void>|void;

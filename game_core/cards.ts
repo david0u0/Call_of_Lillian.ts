@@ -78,7 +78,7 @@ abstract class KnownCard extends Card implements IKnownCard {
         }
     }
 
-    addGetterWhileAlive<T, U>(chain: GetterChain<T, U>[]|GetterChain<T, U>,
+    protected addGetterWhileAlive<T, U>(chain: GetterChain<T, U>[]|GetterChain<T, U>,
         func: GetterFunc<T, U>, append = true
     ) {
         if(chain instanceof Array) {
@@ -93,7 +93,7 @@ abstract class KnownCard extends Card implements IKnownCard {
             }
         }
     }
-    addCheckWhileAlive<U>(chain: ActionChain<U>[] | ActionChain<U>,
+    protected addCheckWhileAlive<U>(chain: ActionChain<U>[] | ActionChain<U>,
         func: CheckFunc<U>, append=true
     ) {
         if(chain instanceof Array) {
@@ -108,7 +108,7 @@ abstract class KnownCard extends Card implements IKnownCard {
             }
         }
     }
-    addActionWhileAlive<U>(chain: ActionChain<U>[]|ActionChain<U>,
+    protected addActionWhileAlive<U>(chain: ActionChain<U>[]|ActionChain<U>,
         func: ActionFunc<U>, append = true
     ) {
         if(chain instanceof Array) {
@@ -292,7 +292,7 @@ abstract class Arena extends KnownCard implements IArena {
         }
         return -1;
     }
-    abstract onExploit(char: ICharacter|Player): void|number|Promise<void|number>;
+    abstract onExploit(char: ICharacter|Player, nonce?: number): void|number|Promise<void|number>;
 
     public async initialize() {
         let old_arena = await this.g_master.selecter.promptUI("指定建築場所")
@@ -332,8 +332,8 @@ abstract class Event extends KnownCard implements IEvent {
     public readonly add_progress_chain = (() => {
         // NOTE: 因為幾乎每個事件都需要檢查推進條件，這裡就統一把它放進鏈裡當軟性規則
         let chain = new ActionChain<{ char: ICharacter | null, n: number, is_push: boolean }>();
-        chain.appendCheck(({ char, is_push }) => {
-            if(is_push && !this.checkCanPush(char)) {
+        chain.appendCheck(({ char, is_push }, nonce) => {
+            if(is_push && !this.checkCanPush(char, nonce)) {
                 return { var_arg: "不符合推進條件" };
             }
         }, undefined, RuleEnums.CustomPushCheck);
@@ -344,8 +344,8 @@ abstract class Event extends KnownCard implements IEvent {
     public readonly fail_chain = new ActionChain<null>();
     public readonly finish_chain = new ActionChain<ICharacter | null>();
 
-    public abstract checkCanPush(char: ICharacter | null): boolean;
-    public abstract onPush(char: ICharacter | null): Promise<void> | void;
+    public abstract checkCanPush(char: ICharacter | null, nonce?: number): boolean;
+    public abstract onPush(char: ICharacter | null, nonce?: number): Promise<void> | void;
     public abstract onFinish(char: ICharacter | null): Promise<void> | void;
     public onFail() { }
     public abstract setupFinishEffect(char: ICharacter | null): void;
@@ -355,6 +355,51 @@ abstract class Event extends KnownCard implements IEvent {
     }
     public setTimeCount(time_count: number) {
         this._time_count_upward = this.init_time_count - time_count;
+    }
+    public addGetterWhileOngoing<T, U>(chain: GetterChain<T, U>[]|GetterChain<T, U>,
+        func: GetterFunc<T, U>, append = true
+    ) {
+        if(chain instanceof Array) {
+            for(let c of chain) {
+                this.addGetterWhileOngoing(c, func, append);
+            }
+        } else {
+            if(append) {
+                return chain.append(func, () => !this.is_finished);
+            } else {
+                return chain.dominant(func, () => !this.is_finished);
+            }
+        }
+    }
+    protected addActionWhileOngoing<U>(chain: ActionChain<U>[]|ActionChain<U>,
+        func: ActionFunc<U>, append = true
+    ) {
+        if(chain instanceof Array) {
+            for(let c of chain) {
+                this.addActionWhileOngoing(c, func, append);
+            }
+        } else {
+            if(append) {
+                return chain.append(func, () => !this.is_finished);
+            } else {
+                return chain.dominant(func, () => !this.is_finished);
+            }
+        }
+    }
+    protected addCheckWhileOngoing<U>(chain: ActionChain<U>[]|ActionChain<U>,
+        func: CheckFunc<U>, append = true
+    ) {
+        if(chain instanceof Array) {
+            for(let c of chain) {
+                this.addActionWhileOngoing(c, func, append);
+            }
+        } else {
+            if(append) {
+                return chain.appendCheck(func, () => !this.is_finished);
+            } else {
+                return chain.dominantCheck(func, () => !this.is_finished);
+            }
+        }
     }
 }
 

@@ -26,7 +26,7 @@ type ActionResult = {
     mask_id?: number[] | number
 };
 type ActionFunc<U>
-    = (const_arg: U) => void | ActionResult | Promise<ActionResult|void>
+    = (const_arg: U, nonce?: number) => void | ActionResult | Promise<ActionResult|void>
 type ActionHook<U> = {
     isActive: () => boolean;
     func: ActionFunc<U>;
@@ -107,8 +107,8 @@ class GetterChain<T, U> {
     }
 }
 
-type CallBack = (() => void)|(() => Promise<void>);
-type CheckFunc<U> = (const_arg: U) => GetterResult<string | false>|void;
+type CallBack = ((nonce?: number) => void)|(() => Promise<void>);
+type CheckFunc<U> = (const_arg: U, nonce?: number) => GetterResult<string | false>|void;
 class ActionChain<U> {
     private action_list = new Array<ActionHook<U>>();
     private check_chain = new GetterChain<string | boolean, U>();
@@ -177,7 +177,7 @@ class ActionChain<U> {
         return this.addCheck(false, true, func, isActive, id);
     }
 
-    public async triggerFullResult(const_arg: U, mask_id: number[] = []): Promise<{
+    public async triggerFullResult(const_arg: U, nonce: number, mask_id: number[] = []): Promise<{
         intercept_effect: boolean,
         mask_id: number[],
         after_effect: AfterEffectObj[]
@@ -187,7 +187,7 @@ class ActionChain<U> {
         for(let hook of this.action_list) {
             // 如果是默認的事件，不會被 mask 影響
             if(checkActive(hook, mask_id) || hook.is_default) {
-                let _result = hook.func(const_arg);
+                let _result = hook.func(const_arg, nonce);
                 if(_result) {
                     let result = await Promise.resolve(_result);
                     if(result) {
@@ -228,37 +228,35 @@ class ActionChain<U> {
         }
     }
     /**
-     * 注意！！
-     * 現在觸發行動前不會打包在一起檢查了，記得要手動檢查。
-     * 為什麼不打包在一起？例如：我推進事件時會檢查角色有沒有疲勞，但實際推進時角色已經疲勞了。
-     * 為什麼不先推進完再使角色疲勞？因為我希望 after_effect 是整個事件中最後執行的東西。
+     * @param const_arg 固定的參數
+     * @param nonce 在時間中唯一的數值，用來處理多條鏈之間交互作用。
+     * 例如：用一條 before_action_chain 設置了一些會在 action_chain 中使用的參數，但不希望這些參數被重複使用。
+     * 可以記下這些參數與當前 nonce 的關聯，下次再呼叫 action_chain 由於 nonce 不同，自然就避免了重複使用。
+     * @param callback 
+     * @param mask_id 
      */
-    public async trigger(const_arg: U, callback?: CallBack, mask_id=[]) {
+    public async trigger(const_arg: U, nonce: number, callback?: CallBack, mask_id=[]) {
         if(this.by_keeper) {
-            this.keeperCallback(const_arg);
+            await this.keeperCallback(const_arg);
         }
         this.by_keeper = false;
 
-        let res = await (this.triggerFullResult(const_arg, mask_id));
+        let res = await (this.triggerFullResult(const_arg, nonce, mask_id));
         if(res.intercept_effect) {
-            return false;
         } else {
             if(callback) {
                 await Promise.resolve(callback());
             }
-            if(res.after_effect instanceof Array) {
-                for(let effect of res.after_effect) {
-                    if(res.mask_id.indexOf(MASK_ALL) != -1 && !effect.is_default) {
-                        // do nothing
-                    } else if(typeof effect.id == "number" && res.mask_id.indexOf(effect.id) == -1) {
-                        await Promise.resolve(effect.func());
-                    }
+            for(let effect of res.after_effect) {
+                if(res.mask_id.indexOf(MASK_ALL) != -1 && !effect.is_default) {
+                    // do nothing
+                } else if(typeof effect.id == "number" && res.mask_id.indexOf(effect.id) == -1) {
+                    await Promise.resolve(effect.func());
                 }
-            } else {
-                throw throwDebugError("後期作用不知為何竟然不是個陣列");
             }
-            return true;
         }
+        await Promise.resolve(this.defaultAfterEffect());
+        return !res.intercept_effect;
     }
     public chain<V>(next_chain: ActionChain<V>, next_arg: V): ActionChain<U> {
         let new_chain = new ActionChain<U>();
@@ -274,16 +272,16 @@ class ActionChain<U> {
                 }
             });
         }
-        new_chain.setKeeperCallback(arg => {
-            this.keeperCallback(arg);
-            next_chain.keeperCallback(next_arg);
+        new_chain.setKeeperCallback(async arg => {
+            await this.keeperCallback(arg);
+            await next_chain.keeperCallback(next_arg);
         });
 
         return new_chain;
     }
 
-    private keeperCallback = (const_arg: U) => { };
-    public setKeeperCallback(callback: (const_arg: U) => void) {
+    private keeperCallback: (const_arg: U) => Promise<void> | void = () => { };
+    public setKeeperCallback(callback: (const_arg: U) => Promise<void> | void) {
         this.keeperCallback = callback;
     }
 
@@ -291,6 +289,11 @@ class ActionChain<U> {
     public byKeeper(by_keeper=true) {
         this.by_keeper = by_keeper;
         return this;
+    }
+
+    private defaultAfterEffect: () => Promise<void> | void = () => { };
+    public setDefaultAfterEffect(effect: () => Promise<void> | void) {
+        this.defaultAfterEffect = effect;
     }
 }
 

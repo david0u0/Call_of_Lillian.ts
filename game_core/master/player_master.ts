@@ -210,7 +210,7 @@ export class PlayerMaster {
             throw new BadOperationError("嘗試將已經有的卡牌塞給使用者");
         } else {
             if(card.card_status == CardStat.Hand) {
-                await this.add_card_to_hand_chain.trigger(card);
+                await this.add_card_to_hand_chain.trigger(card, this.t_master.nonce);
             }
             this.card_table[card.seq] = card;
         }
@@ -230,8 +230,8 @@ export class PlayerMaster {
         }
         if(card) {
             let _card = card;
-            await this.draw_card_chain.trigger(_card, async () => {
-                await this.add_card_to_hand_chain.trigger(_card);
+            await this.draw_card_chain.trigger(_card, this.t_master.nonce, async () => {
+                await this.add_card_to_hand_chain.trigger(_card, this.t_master.nonce);
                 _card.card_status = CardStat.Hand;
             });
         }
@@ -241,7 +241,8 @@ export class PlayerMaster {
     async addEmo(n: number, caller: IKnownCard[] = []) {
         let new_emo = Math.max(0, this.emo + n);
         if(new_emo != this.emo) {
-            await this.set_emo_chain.trigger({ emo: new_emo, caller }, () => {
+            await this.set_emo_chain
+            .trigger({ emo: new_emo, caller }, this.t_master.nonce, () => {
                 this._emo = new_emo;
             });
         }
@@ -255,7 +256,8 @@ export class PlayerMaster {
     async addMana(n: number, caller: IKnownCard[] = []) {
         let new_mana = Math.max(0, this.mana + n);
         if(new_mana != this.mana) {
-            await this.set_mana_chain.trigger({ mana: new_mana, caller }, () => {
+            await this.set_mana_chain
+            .trigger({ mana: new_mana, caller }, this.t_master.nonce, () => {
                 this._mana = new_mana;
             });
         }
@@ -316,6 +318,8 @@ export class PlayerMaster {
     }
     async playCard(card: IKnownCard, by_keeper=false) {
         // 檢查
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合出牌？", card);
         } else if(!checkCardStat(card, CardStat.Hand)) {
@@ -331,7 +335,7 @@ export class PlayerMaster {
         await this.addMana(-this.getManaCost(card));
         // 實際行動
         let res = await this.card_play_chain.chain(card.card_play_chain, null).byKeeper(by_keeper)
-        .trigger(card, async () => {
+        .trigger(card, nonce, async () => {
             await this.dangerouslySetToBoard(card);
             await Promise.resolve(card.onPlay());
         });
@@ -347,7 +351,7 @@ export class PlayerMaster {
     /** 會跳過大多數的檢查、設置、代價與行動鏈 */
     public readonly set_to_board_chain = this.acf.new<IKnownCard>();
     public async dangerouslySetToBoard(card: IKnownCard) {
-        await this.set_to_board_chain.trigger(card, async () => {
+        await this.set_to_board_chain.trigger(card, this.t_master.nonce, async () => {
             if(TG.isUpgrade(card)) {
                 // 把這件升級加入角色的裝備欄
                 if(card.data.character_equipped) {
@@ -375,12 +379,14 @@ export class PlayerMaster {
             throw new BadOperationError("卡牌不在場上還想使用能力？");
             // TODO: 也許有些牌可以在歷史區施放能力？
         }
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain
         let ability = card.abilities[a_index];
         if(ability && ability.canTrigger() && this.ability_chain.checkCanTrigger({ card, ability })) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain.byKeeper(by_keeper)
-                .trigger({ card, ability }, async () => {
+                .trigger({ card, ability }, nonce, async () => {
                     await Promise.resolve(ability.func());
                 });
                 if(!ability.instance) {
@@ -395,7 +401,7 @@ export class PlayerMaster {
 
     async changeCharTired(char: ICharacter, is_tired: boolean) {
         await this.change_char_tired_chain.chain(char.change_char_tired_chain, is_tired)
-        .trigger({ char, is_tired }, () => {
+        .trigger({ char, is_tired }, this.t_master.nonce, () => {
             char.is_tired = is_tired;
         });
     }
@@ -418,14 +424,14 @@ export class PlayerMaster {
             }
         }
         await this.card_leave_chain.chain(card.card_leave_chain, stat)
-        .trigger({ card, stat });
+        .trigger({ card, stat }, this.t_master.nonce);
     }
     async retireCard(card: IKnownCard) {
         if(card.card_status == CardStat.Onboard) {
             let chain = this.card_retire_chain.chain(card.card_retire_chain, null);
             let can_die = chain.checkCanTrigger(card);
             if(can_die) {
-                await chain.trigger(card, async () => {
+                await chain.trigger(card, this.t_master.nonce, async () => {
                     card.card_status = CardStat.Retired;
                     await this._leaveCard(card, CardStat.Retired);
                 });
@@ -447,7 +453,7 @@ export class PlayerMaster {
             is_natural = false;
         }
         await this.add_countdown_chain.chain(event.add_countdown_chain, { n, is_natural })
-        .trigger({ event, n, is_natural }, async () => {
+        .trigger({ event, n, is_natural }, this.t_master.nonce, async () => {
             event.setTimeCount(event.cur_time_count + n);
             if(event.cur_time_count == 0) {
                 await this.failEvent(event);
@@ -456,7 +462,7 @@ export class PlayerMaster {
     }
     async failEvent(event: IEvent) {
         await this.fail_chain.chain(event.fail_chain, null)
-        .trigger(event, async () => {
+        .trigger(event, this.t_master.nonce, async () => {
             await Promise.resolve(event.onFail());
             await this.retireCard(event);
         });
@@ -468,7 +474,8 @@ export class PlayerMaster {
         if(char) {
             finish_chain = finish_chain.chain(char.finish_chain, event);
         }
-        await finish_chain.trigger({ char, event }, async () => {
+        await finish_chain
+        .trigger({ char, event }, this.t_master.nonce, async () => {
             event.is_finished = true;
             await Promise.resolve(event.onFinish(char));
             await Promise.resolve(event.setupFinishEffect(char));
@@ -484,7 +491,8 @@ export class PlayerMaster {
     async addEvenProgress(event: IEvent, char: ICharacter | null, _n: number): Promise<boolean>;
     async addEvenProgress(event: IEvent, char: ICharacter | null, by_keeper?: boolean): Promise<boolean>;
     async addEvenProgress(event: IEvent, char: ICharacter | null, arg?: boolean | number) {
-        // TODO: 這裡應該要有一條 pre-push 動作鏈
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
         } else if(event.owner != this.player || (char && char.owner != this.player)) {
@@ -516,9 +524,10 @@ export class PlayerMaster {
                     await this.changeCharTired(char, true);
                 }
 
-                await push_chain.byKeeper(by_keeper).trigger({ event, char, n, is_push }, async () => {
+                await push_chain.byKeeper(by_keeper)
+                .trigger({ event, char, n, is_push }, nonce, async () => {
                     event.setProgrss(event.cur_progress_count + n);
-                    await Promise.resolve(event.onPush(char));
+                    await Promise.resolve(event.onPush(char, nonce));
                     if(event.cur_progress_count == event.goal_progress_count) {
                         // 事件已完成
                         await this.finishEvent(char, event);
@@ -543,7 +552,8 @@ export class PlayerMaster {
         .trigger(0, { char, arena });
     }
     async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
-        // TODO: 這裡應該要有一條 pre-enter 動作鏈
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合進入場所？");
         } else if(this.player != char.owner) {
@@ -562,7 +572,8 @@ export class PlayerMaster {
                     await this.changeCharTired(char, true);
                 }
                 
-                await enter_chain.byKeeper(by_keeper).trigger({ char, arena }, () => {
+                await enter_chain.byKeeper(by_keeper)
+                .trigger({ char, arena }, nonce, () => {
                     HR.onEnter(char, arena);
                 });
                 await this.t_master.spendAction();
@@ -595,7 +606,8 @@ export class PlayerMaster {
         } else if(!checkCardStat([arena, char])) {
             throw new BadOperationError("場所或角色不在場上");
         }
-        // TODO: 這裡應該要有一條 pre-exploit 動作鏈
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain
         let cost = this.getExploitCost(arena, char);
         if(HR.checkExploit(arena, char, this.mana, cost)) {
             let exploit_chain = this.exploit_chain.chain(arena.exploit_chain, char);
@@ -604,12 +616,13 @@ export class PlayerMaster {
             }
             if(exploit_chain.checkCanTrigger({ char, arena })) {
                 await this.addMana(-cost);
-                await exploit_chain.byKeeper(by_keeper).trigger({ char, arena }, async () => {
+                await exploit_chain.byKeeper(by_keeper)
+                .trigger({ char, arena }, nonce, async () => {
                     let caller = [];
                     if(TG.isCard(char)) {
                         caller.push(char);
                     }
-                    let income = await Promise.resolve(arena.onExploit(char));
+                    let income = await Promise.resolve(arena.onExploit(char, nonce));
                     if(income) {
                         await this.addMana(income, caller);
                     }
@@ -622,7 +635,7 @@ export class PlayerMaster {
         let _arena = char.data.arena_entered;
         if(_arena) {
             let arena = _arena;
-            await this.exit_chain.trigger({ char, arena }, async () => {
+            await this.exit_chain.trigger({ char, arena }, this.t_master.nonce, async () => {
                 char.char_status = CharStat.StandBy;
                 char.data.arena_entered = null;
                 arena.exit(char);
@@ -650,13 +663,15 @@ export class PlayerMaster {
         } else if(!checkCardStat(char)) {
             throw new BadOperationError("角色不在場上");
         }
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain ?
         let incited_chain = this.incited_chain.chain(char.incited_chain, null);
         let enemy_master = this.getMaster(player);
         if(enemy_master.mana > C.INCITE_COST
             && incited_chain.checkCanTrigger(char)
         ) {
             enemy_master.addMana(-C.INCITE_COST);
-            incited_chain.byKeeper(by_keeper).trigger(char, () => {
+            incited_chain.byKeeper(by_keeper).trigger(char, nonce, () => {
                 this.retireCard(char);
             });
             this.t_master.spendAction();
@@ -670,10 +685,12 @@ export class PlayerMaster {
         } else if(!checkCardStat(char)) {
             throw new BadOperationError("角色不在場上");
         }
+        let nonce = this.t_master.nonce;
+        // TODO: before_action_chain ?
         let release_chain = this.release_chain.chain(char.release_chain, null);
         if(release_chain.checkCanTrigger(char)) {
             await this.retireCard(char);
-            await release_chain.byKeeper(by_keeper).trigger(char);
+            await release_chain.byKeeper(by_keeper).trigger(char, nonce);
             await this.t_master.spendAction();
         }
     }

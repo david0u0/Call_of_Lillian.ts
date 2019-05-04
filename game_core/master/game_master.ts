@@ -153,7 +153,7 @@ export class GameMaster {
     async exposeCard(card: ICard): Promise<IKnownCard> {
         // FIXME: 前後端溝通
         let known = card as IKnownCard;
-        await this.expose_card_chain.trigger(known);
+        await this.expose_card_chain.trigger(known, this.t_master.nonce);
         return known;
     }
 
@@ -176,6 +176,6 @@ export class GameMaster {
             // 比誰分數高
             winner = score1 > score2 ? Player.Player1: Player.Player2;
         }
-        await this.end_game_chain.trigger(winner);
+        await this.end_game_chain.trigger(winner, this.t_master.nonce);
     }
 }

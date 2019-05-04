@@ -7,6 +7,11 @@ const MAIN_FIRST_ACTION_P = 1;
 const MAIN_DEFAULT_ACTION_P = 2;
 
 export class TimeMaster {
+    private _nonce = 0;
+    public get nonce() { return this._nonce; }
+    public addNonce() {
+        this._nonce++;
+    }
     private _cur_player = Player.Player1;
     public get cur_player() { return this._cur_player; }
     private _action_point = -1;
@@ -24,7 +29,9 @@ export class TimeMaster {
     private era_index = 0;
     private action_index = 0;
 
-    constructor(private acf: ActionChainFactory) { }
+    constructor(private acf: ActionChainFactory) {
+        acf.setAfterEffect(() => this.addNonce());
+    }
 
     public addActionForThisAction<U>() {
 
@@ -34,7 +41,7 @@ export class TimeMaster {
     }
 
     public async startBulding() {
-        await this.start_building_chain.trigger(null, async () => {
+        await this.start_building_chain.trigger(null, this.nonce, async () => {
             this.era_index++;
             await this.setRest(Player.Player1, false);
             await this.setRest(Player.Player2, false);
@@ -43,7 +50,7 @@ export class TimeMaster {
         });
     }
     public async startMainPhase() {
-        await this.start_main_chain.trigger(null, async () => {
+        await this.start_main_chain.trigger(null, this.nonce, async () => {
             await this.setRest(Player.Player1, false);
             await this.setRest(Player.Player2, false);
             this._cur_phase = GamePhase.InAction;
@@ -54,7 +61,7 @@ export class TimeMaster {
     public async startExploit() {
         await this.setRest(Player.Player1, false);
         await this.setRest(Player.Player2, false);
-        await this.start_exploit_chain.trigger(null, async () => {
+        await this.start_exploit_chain.trigger(null, this.nonce ,async () => {
             this._cur_phase = GamePhase.Exploit;
             await this.startTurn(this._first_player);
         });
@@ -108,7 +115,7 @@ export class TimeMaster {
             throw new BadOperationError("已經在休息了");
         }
         if(this._cur_phase == GamePhase.InAction) {
-            await this.rest_chain.byKeeper(by_keeper).trigger(player, () => {
+            await this.rest_chain.byKeeper(by_keeper).trigger(player, this.nonce, () => {
                 if(!this.someoneResting()) {
                     // 下個世代的起始玩家
                     this._first_player = player;
@@ -119,7 +126,7 @@ export class TimeMaster {
     }
 
     private async setRest(player: Player, resting: boolean) {
-        await this.rest_state_change_chain.trigger({ resting, player }, async () => {
+        await this.rest_state_change_chain.trigger({ resting, player }, this.nonce, async () => {
             let end_phase = false;
             if(resting == false) {
                 // 重置
@@ -168,7 +175,7 @@ export class TimeMaster {
         if(this.cur_phase != GamePhase.InAction) {
             return;
         } else {
-            this.spend_action_chain.trigger(null, async () => {
+            this.spend_action_chain.trigger(null, this.nonce, async () => {
                 this._skip_is_rest = false;
                 this.action_index++;
                 await this.addActionPoint(-1);
@@ -177,7 +184,7 @@ export class TimeMaster {
     }
     public async addActionPoint(n: number) {
         let new_action_point = Math.max(0, this._action_point + n);
-        await this.set_action_point_chain.trigger(new_action_point, async () => {
+        await this.set_action_point_chain.trigger(new_action_point, this.nonce, async () => {
             this._action_point = new_action_point;
             if(this._action_point == 0) {
                 let new_player = 1 - this._cur_player;
@@ -194,7 +201,8 @@ export class TimeMaster {
         });
     }
     public async startTurn(next_player: Player) {
-        await this.start_turn_chain.trigger({ prev: this._cur_player, next: next_player }, async () => {
+        await this.start_turn_chain
+        .trigger({ prev: this._cur_player, next: next_player }, this.nonce, async () => {
             this._cur_player = next_player;
             if(this.cur_phase == GamePhase.InAction) {
                 this._action_point = 0;

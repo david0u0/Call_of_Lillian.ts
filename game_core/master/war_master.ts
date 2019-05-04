@@ -171,7 +171,7 @@ export class WarMaster {
         if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ declarer, arena })) {
             pm.addMana(-cost);
             let res = await this.declare_war_chain.byKeeper(by_keeper)
-            .trigger({ declarer, arena }, () => {
+            .trigger({ declarer, arena }, this.t_master.nonce, () => {
                 this.t_master.setWarPhase(GamePhase.InWar);
                 this._atk_player = declarer;
                 this._def_player = 1 - declarer;
@@ -267,7 +267,7 @@ export class WarMaster {
             }
             this.t_master.startTurn(this.def_player);
             // 開始進行格擋
-            await this.start_attack_chain.byKeeper().trigger(null);
+            await this.start_attack_chain.byKeeper().trigger(null, this.t_master.nonce);
             this._detailed_phase = DetailedWarPhase.Blocking;
             await this.t_master.startTurn(this.def_player);
         }
@@ -291,7 +291,7 @@ export class WarMaster {
             if(atk_char) {
                 this._conflict_table[atk_char.seq] = block_char;
             }
-            await this.set_block_chain.byKeeper().trigger(null);
+            await this.set_block_chain.byKeeper().trigger(null, this.t_master.nonce);
         }
     }
 
@@ -321,7 +321,9 @@ export class WarMaster {
         this._detailed_phase = DetailedWarPhase.Attaking;
     }
     private async doSingleConflict(atk_chars: ICharacter[], def: ICharacter, is_target: boolean) {
-        let res = await this.before_conflict_chain.trigger({ atk: atk_chars, def, is_target });
+        let nonce = this.t_master.nonce;
+        let res = await this.before_conflict_chain
+        .trigger({ atk: atk_chars, def, is_target }, nonce);
         if(res) {
             // TODO: 應該由防守方來決定 atk_chars 的順序
             let tar_strength = this.getMyMaster(def).getStrength(def);
@@ -340,7 +342,8 @@ export class WarMaster {
                 await this.repulseChar(def, atk_chars);
             }
         }
-        await this.after_conflict_chain.trigger({ atk: atk_chars, def, is_target }, async () => {
+        await this.after_conflict_chain
+        .trigger({ atk: atk_chars, def, is_target }, nonce, async () => {
             // 令所有參戰者陷入疲勞
             await this.getMyMaster(def).changeCharTired(def, true);
             
@@ -356,7 +359,7 @@ export class WarMaster {
             }
         } else {
             await this.repulse_chain.chain(loser.repulse_chain, winner)
-            .trigger({ loser, winner }, async () => {
+            .trigger({ loser, winner }, this.t_master.nonce, async () => {
                 await this.getMyMaster(loser).exitArena(loser);
             });
         }
@@ -373,7 +376,8 @@ export class WarMaster {
             throwIfIsBackend("至少要攻擊一次才可停戰");
             return false;
         } else {
-            await this.end_war_chain.byKeeper(by_keeper).trigger(null, () => {
+            await this.end_war_chain.byKeeper(by_keeper)
+            .trigger(null, this.t_master.nonce,() => {
                 this._detailed_phase = DetailedWarPhase.None;
                 this.t_master.setWarPhase(GamePhase.EndWar);
             });
