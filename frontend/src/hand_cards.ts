@@ -125,7 +125,7 @@ class HandUI {
     add(card: ICard): Promise<void> {
         return new Promise<void>(resolve => {
             if(TG.isKnown(card)) {
-                my_loader.add(card.name).load(() => {
+                my_loader.add(card).load(() => {
                     this.addLoaded(card).then(() => resolve());
                 });
             } else {
@@ -203,7 +203,7 @@ class HandUI {
             let cleanup = () => {};
             if(!filter.enabled) {
                 filter.enabled = true;
-                cleanup = () => filter.enabled = false
+                cleanup = () => filter.enabled = false;
             }
             return { view: card_ui, cleanup };
         });
@@ -217,7 +217,7 @@ export function constructHandUI(selecter: FrontendSelecter, player: Player, gm: 
 ): Promise<HandUI> {
     for(let card of hands) {
         if(TG.isKnown(card)) {
-            my_loader.add(card.name);
+            my_loader.add(card);
         }
     }
     return new Promise<HandUI>((resolve, reject) => {

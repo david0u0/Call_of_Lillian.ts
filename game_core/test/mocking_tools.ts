@@ -107,7 +107,9 @@ export class TestSelecter implements ISelecter {
 }
 
 const PREFIX = "./dist/game_core/real_card";
-let card_class_table: { [index: string]: { new(seq: number, owner: Player, gm: GameMaster): KnownCard }} = {};
+let card_class_table: {
+    [index: string]: { new(seq: number, owner: Player, gm: GameMaster, abs_name: string): KnownCard }
+} = {};
 
 let card_type_dirs = fs.readdirSync(PREFIX);
 for(let type_name of card_type_dirs) {
@@ -120,7 +122,7 @@ for(let type_name of card_type_dirs) {
     }
 }
 
-export function genFunc(name: string, owner: Player, seq: number, gm: GameMaster): KnownCard {
-    let C = card_class_table[`${name}.js`];
-    return new C(seq, owner, gm);
+export function genFunc(abs_name: string, owner: Player, seq: number, gm: GameMaster): KnownCard {
+    let C = card_class_table[`${abs_name}.js`];
+    return new C(seq, owner, gm, abs_name);
 }

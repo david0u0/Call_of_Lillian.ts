@@ -3,7 +3,7 @@ import { IEvent, ICharacter, TypeGaurd } from "../../interface";
 import { Player, GamePhase, CardStat } from "../../enums";
 
 let name = "沒有魔法的世界";
-let description = `（結局）本事件只能在準備階段打出。
+let description = `本事件只能在準備階段打出。
 *沒有魔法的世界*不可推進。當世代結束時，若對手的魔力收入少於3，則本事件自動完成。
 結算：結算區沒有非結局事件的玩家，額外加2分。`;
 
@@ -22,12 +22,12 @@ export default class E extends Event implements IEvent {
     readonly data = { e_income: 0 };
 
     setupAliveEffect() {
-        // 插入一條沒有id的規則，使它無法被屏蔽。
-        this.add_progress_chain.appendCheck(() => {
+        // 插入一條不會被屏蔽的規則，使本事件不可推進
+        this.add_progress_chain.appendCheckDefaul(() => {
             return { var_arg: false };
         });
 
-        this.addActionWhileAlive(true, this.g_master.t_master.start_exploit_chain, () => {
+        this.addActionWhileAlive(this.g_master.t_master.start_exploit_chain, () => {
             this.data.e_income = 0;
         });
 
@@ -44,7 +44,7 @@ export default class E extends Event implements IEvent {
             };
         });
 
-        this.addActionWhileAlive(true, this.g_master.t_master.start_building_chain, () => {
+        this.addActionWhileAlive(this.g_master.t_master.start_building_chain, () => {
             if(this.data.e_income < 3) {
                 this.my_master.finishEvent(null, this);
             }

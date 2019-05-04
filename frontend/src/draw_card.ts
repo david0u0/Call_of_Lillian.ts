@@ -4,7 +4,7 @@ import * as PIXI from "pixi.js";
 import { IKnownCard, ICard, TypeGaurd as TG, ICharacter, IUpgrade, TypeGaurd } from "../../game_core/interface";
 import { my_loader } from "./card_loader";
 import { GameMaster } from "../../game_core/master/game_master";
-import { Player, CharStat } from "../../game_core/enums";
+import { Player, CharStat, CardType, SeriesTxt } from "../../game_core/enums";
 import { PlayerMaster } from "../../game_core/master/player_master";
 import { ShowBigCard } from "./show_big_card";
 import { getPlayerColor } from "./get_constant";
@@ -39,6 +39,34 @@ function descrStyle(width: number) {
     });
 }
 
+function formatCardInfoStr(card: IKnownCard) {
+    let type = (() => {
+        switch(card.card_type) {
+            case CardType.Arena:
+                return "場所";
+            case CardType.Character:
+                return "角色";
+            case CardType.Upgrade:
+                return "升級";
+            case CardType.Spell:
+                return "咒語";
+            case CardType.Event:
+                if(TG.isEvent(card) && card.is_ending) {
+                    return "結局";
+                } else {
+                    return "事件";
+                }
+            default:
+                throw "未知的卡牌";
+        }
+    })();
+    let infos = card.series.map(n => SeriesTxt[n]);
+    if(card.instance && !TG.isUpgrade(card)) {
+        infos.push("瞬間");
+    }
+    return `${type}${infos.length > 0 ? "-" : ""}${infos.join("．")}`;
+}
+
 export function getCardSize(width: number, height: number, landscape = false) {
     if(landscape) {
         let ratio = Math.min(width / H, height / W);
@@ -49,12 +77,14 @@ export function getCardSize(width: number, height: number, landscape = false) {
     }
 }
 
-export function drawCardFace(card: ICard|string, width: number, height: number, landscape = false) {
+export function drawCardFace(card: ICard, width: number, height: number, landscape = false) {
     let img: PIXI.Sprite;
-    if(typeof(card) == "string") {
-        img = new PIXI.Sprite(my_loader.resources[card].texture);
-    } else if(TG.isKnown(card)) {
-        img = new PIXI.Sprite(my_loader.resources[card.name].texture);
+    if(TG.isKnown(card)) {
+        if(card.abs_name in my_loader.resources) {
+            img = new PIXI.Sprite(my_loader.resources[card.abs_name].texture);
+        } else {
+            throw `${card.abs_name}：沒有載入就想畫卡面`;
+        }
     } else {
         img = new PIXI.Sprite(PIXI.loader.resources["card_back"].texture);
     }
@@ -183,11 +213,6 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
             height = img.width;
             img.rotation = Math.PI / 2;
             img.x = width;
-            if(TG.isArena) {
-
-            } else {
-
-            }
         } else {
             img = drawCardFace(card, width, height);
             ({ width, height } = img);
@@ -223,6 +248,17 @@ export function drawCard(gm: GameMaster, card: ICard, width: number, height: num
             description_txt.position.set(width / 15 * 1.3, height * 3 / 5);
             container.addChild(description_rec);
             container.addChild(description_txt);
+
+            let info_rec = new PIXI.Graphics();
+            info_rec.lineStyle(1, 0);
+            info_rec.beginFill(0xffffff, 1);
+            info_rec.drawRoundedRect(width / 15, height / 2, width * 13 / 15, width / 10, 5);
+            info_rec.endFill();
+            let info_txt = new PIXI.Text(formatCardInfoStr(card), titleStyle(width));
+            info_txt.position.set(width / 15 * 1.3, height / 2);
+            container.addChild(info_rec);
+            container.addChild(info_txt);
+            
         }
 
         if(TG.isCharacter(card) || TG.isUpgrade(card)) {
@@ -297,7 +333,7 @@ export class CharUI {
         private gm: GameMaster, private selecter: FrontendSelecter,
         private ticker: PIXI.ticker.Ticker, showBigCard: ShowBigCard
     ) {
-        let img = this.img = new PIXI.Sprite(my_loader.resources[char.name].texture);
+        let img = this.img = new PIXI.Sprite(my_loader.resources[char.abs_name].texture);
         let og_w = img.width;
         let og_h = img.height;
         img.scale.set(width / og_w, height / og_h);

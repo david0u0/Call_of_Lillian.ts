@@ -6,7 +6,7 @@ import { BadOperationError } from "../../errors";
 
 let name = "勇氣之歌";
 let description = `本咒語不需要施術者。
-你只能在戰鬥中施放本咒語，令一個戰鬥中的角色從疲勞中恢復，並使其戰力增加2，直到戰鬥結束。`;
+令一個戰鬥中的角色從疲勞中恢復，並使其戰力增加2，直到戰鬥結束。`;
 
 export default class S extends Spell {
     name = name;
@@ -40,10 +40,10 @@ export default class S extends Spell {
         if(!this.data.target) {
             throw new BadOperationError("未指定對象就施放咒語", this);
         }
-        this.addGetterWhileAlive(true, this.data.target.get_strength_chain, str => {
+        this.addGetterWhileAlive(this.data.target.get_strength_chain, str => {
             return { var_arg: str + 2 };
         });
-        this.addActionWhileAlive(true, this.g_master.w_master.end_war_chain, () => {
+        this.addActionWhileAlive(this.g_master.w_master.end_war_chain, () => {
             this.my_master.retireCard(this);
         });
     }

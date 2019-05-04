@@ -19,10 +19,10 @@ export default class S extends Spell {
     check_before_play_chain = this.posessed(5, this.enemy_master.player);
 
     setupAliveEffect() {
-        this.addActionWhileAlive(true, this.enemy_master.enter_chain, () => {
+        this.addActionWhileAlive(this.enemy_master.enter_chain, () => {
             this.enemy_master.punish(1);
         });
-        this.addActionWhileAlive(true, this.enemy_master.set_emo_chain, async ({ emo }) => {
+        this.addActionWhileAlive(this.enemy_master.set_emo_chain, async ({ emo }) => {
             if(emo == 0) {
                 await this.my_master.retireCard(this);
             }

@@ -1,8 +1,18 @@
 export enum Player { Player1, Player2 };
 export enum CardStat { Retired, Hand, Deck, Onboard, Exile };
 export enum CardType { Character, Arena, Upgrade, Spell, Event, Unknown };
-export enum CardSeries { Testing, Cyber, War, Cosmic, Wasteland, Time, Hospital, Entertainment };
+export enum CardSeries { Testing, Cyber, Arms, Cosmic, Wasteland, Time, Hospital, Entertainment, Any };
 export enum CharStat { StandBy, InArena, InWar };
+
+const SeriesTxt = {
+    [CardSeries.Cosmic]: "宇宙",
+    [CardSeries.Arms]: "軍火",
+    [CardSeries.Cyber]: "賽博",
+    [CardSeries.Hospital]: "醫院",
+    [CardSeries.Entertainment]: "娛樂",
+};
+
+export { SeriesTxt };
 
 /** 只有 Sniper, Attacker, Defender 是會寫在卡牌上的關鍵字 */
 export type BattleRole = {
@@ -34,7 +44,7 @@ export enum GamePhase {
 };
 
 export enum RuleEnums {
-    All,
+    Any,
     
     ExitAfterExploit,
     RecoverEmoAfterRelease,
@@ -42,7 +52,10 @@ export enum RuleEnums {
     PunishOnFail,
     EndGameAfterFinish,
 
+    CheckPhaseBeforePlay,
     CheckPriceBeforePlay,
+
+    CheckStandbyWhenPlay,
     
     Possessed,
     Beyond,

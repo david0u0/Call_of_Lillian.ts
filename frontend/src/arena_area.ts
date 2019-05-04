@@ -57,7 +57,7 @@ export class ArenaArea {
         } else {
             let index = card.data.position;
             let offset = index * (this.card_w + this.card_gap) + this.card_gap;
-            if(card.name == Constant.DUMMY_NAME) {
+            if(card.abs_name == Constant.DUMMY_NAME) {
                 let rec = new PIXI.Graphics();
                 rec.beginFill(0xFFFFFF, 0.5);
                 rec.drawRoundedRect(offset, 0, this.card_w, this.card_h, 5);
@@ -65,7 +65,7 @@ export class ArenaArea {
                 this.view.addChild(rec);
                 this.setupArenaUI(rec, card);
             } else {
-                my_loader.add(card.name).load(() => {
+                my_loader.add(card).load(() => {
                     let card_face = drawCardFace(card, this.card_w, this.card_h, true);
                     card_face.position.set(offset, 0);
                     this.view.addChild(card_face);

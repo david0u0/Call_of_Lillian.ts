@@ -12,7 +12,7 @@ export default class U1 extends Upgrade {
 
     setupAliveEffect() {
         let role_chain = this.my_master.get_battle_role_chain;
-        this.addGetterWhileAlive(true, role_chain, (role, char) => {
+        this.addGetterWhileAlive(role_chain, (role, char) => {
             if(char.isEqual(this.data.character_equipped)) {
                 return { var_arg: { ...role, can_not_be_blocked: true } };
             }

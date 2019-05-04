@@ -7,6 +7,7 @@ import { Constant } from "../../general_rules";
 export default class A extends Arena {
     name = Constant.DUMMY_NAME;
     description = "遊戲最初的場地，不可開發。";
+    deck_count = 0;
     basic_exploit_cost = 0;
     basic_mana_cost = 0;
     exploit_chain = (() => {

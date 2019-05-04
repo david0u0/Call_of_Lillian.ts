@@ -8,7 +8,6 @@ export type ShowBigCard = (x: number, y: number, card: ICard,
     conf?: { width: number, height: number, alpha: number, description?: boolean }
 ) => () => void;
 
-// TODO: 這裡洩漏了一堆記憶體= =
 export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number, y: number,
     card: ICard, ticker: PIXI.ticker.Ticker,
     conf?: { width: number, height: number, alpha: number, description?: boolean }
@@ -23,7 +22,8 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     let { height, width } = card_ui;
 
     let scroll_func = (evt: WheelEvent) => {
-        let sign = evt.wheelDelta > 0 ? 1 : -1;
+        let delta = evt.wheelDelta? evt.wheelDelta : -evt.deltaY;
+        let sign = delta > 0 ? -1 : 1;
         let new_y = Math.min(y, view.y + eh * sign * 3);
         view.y = new_y;
     };

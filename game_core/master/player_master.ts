@@ -105,7 +105,7 @@ export class PlayerMaster {
                 // 如果現在不是能打該牌的階段，就不讓他打
                 return { var_arg: false };
             }
-        });
+        }, undefined, RuleEnums.CheckPhaseBeforePlay);
         this.check_before_play_chain.append((before, card) => {
             if(this.mana < this.getManaCost(card)) {
                 return { var_arg: false };
@@ -121,7 +121,7 @@ export class PlayerMaster {
             }
             // 所有事件倒數減1
             for(let event of this.events_ongoing) {
-                await this.countdownEvent(event);
+                await this.addEventCountdown(event);
             }
             // 打角色的額度恢復
             this._char_quota = 1;
@@ -186,7 +186,10 @@ export class PlayerMaster {
 
     public fail_chain = this.acf.new<IEvent>();
     public get_push_cost_chain = new GetterChain<number, { char: ICharacter|null, event: IEvent }>();
-    public add_progress_chain = this.acf.new<{ char: ICharacter|null, event: IEvent, n: number }>();
+    public add_progress_chain
+        = this.acf.new<{ char: ICharacter|null, event: IEvent, n: number, is_push: boolean }>();
+    readonly add_countdown_chain
+        = this.acf.new<{ event: IEvent, n: number, is_natural: boolean}>();
     public finish_chain = this.acf.new<{ char: ICharacter|null, event: IEvent }>();
 
     public get_strength_chain
@@ -237,9 +240,11 @@ export class PlayerMaster {
 
     async addEmo(n: number, caller: IKnownCard[] = []) {
         let new_emo = Math.max(0, this.emo + n);
-        await this.set_emo_chain.trigger({ emo: new_emo, caller }, () => {
-            this._emo = new_emo;
-        });
+        if(new_emo != this.emo) {
+            await this.set_emo_chain.trigger({ emo: new_emo, caller }, () => {
+                this._emo = new_emo;
+            });
+        }
     }
 
     getManaCost(card: IKnownCard) {
@@ -249,9 +254,11 @@ export class PlayerMaster {
 
     async addMana(n: number, caller: IKnownCard[] = []) {
         let new_mana = Math.max(0, this.mana + n);
-        await this.set_mana_chain.trigger({ mana: new_mana, caller }, () => {
-            this._mana = new_mana;
-        });
+        if(new_mana != this.mana) {
+            await this.set_mana_chain.trigger({ mana: new_mana, caller }, () => {
+                this._mana = new_mana;
+            });
+        }
     }
     /** 扣除魔力，不足者轉換為情緒 */
     async punish(n: number, caller: IKnownCard[] = []) {
@@ -317,7 +324,7 @@ export class PlayerMaster {
         card.rememberDatas();
         if(!(await card.initialize()) || !this.checkCanPlay(card)) {
             card.recoverDatas();
-            // throwIfIsBackend("出牌過程取消");
+            throwIfIsBackend("出牌過程取消");
             return false;
         }
         // 支付代價
@@ -432,11 +439,16 @@ export class PlayerMaster {
         await this._leaveCard(card, stat);
     }
 
-    readonly add_countdown_chain = this.acf.new<{ event: IEvent, n: number }>();
-    async countdownEvent(event: IEvent, n = -1) {
-        await this.add_countdown_chain.chain(event.add_countdown_chain, n)
-        .trigger({ event, n }, async () => {
-            event.countDown();
+    async addEventCountdown(event: IEvent, _n?: number) {
+        let n = -1;
+        let is_natural = true;
+        if(typeof _n == "number") {
+            n = _n;
+            is_natural = false;
+        }
+        await this.add_countdown_chain.chain(event.add_countdown_chain, { n, is_natural })
+        .trigger({ event, n, is_natural }, async () => {
+            event.setTimeCount(event.cur_time_count + n);
             if(event.cur_time_count == 0) {
                 await this.failEvent(event);
             }
@@ -469,7 +481,9 @@ export class PlayerMaster {
         }
         return get_push_cost_chain.trigger(event.push_cost, { char, event });
     }
-    async pushEvent(event: IEvent, char: ICharacter | null, by_keeper=false) {
+    async addEvenProgress(event: IEvent, char: ICharacter | null, _n: number): Promise<boolean>;
+    async addEvenProgress(event: IEvent, char: ICharacter | null, by_keeper?: boolean): Promise<boolean>;
+    async addEvenProgress(event: IEvent, char: ICharacter | null, arg?: boolean | number) {
         // TODO: 這裡應該要有一條 pre-push 動作鏈
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合推進事件？");
@@ -478,22 +492,32 @@ export class PlayerMaster {
         } else if(!checkCardStat([event, char])) {
             throw new BadOperationError("事件或角色不在場上", [event, char]);
         }
+        let is_push = true;
+        let n = 1;
+        let by_keeper: boolean | undefined;
+        if(typeof arg == "number") {
+            n = arg;
+            is_push = false;
+            by_keeper = false;
+        } else {
+            by_keeper = arg;
+        }
 
         let cost = this.getPushCost(char, event);
 
         if(HR.checkPush(event, char, this.mana, cost)) {
-            let push_chain = this.add_progress_chain.chain(event.add_progress_chain, { char, n: 1 });
+            let push_chain = this.add_progress_chain.chain(event.add_progress_chain, { char, n, is_push });
             if(TG.isCard(char)) {
                 push_chain = push_chain.chain(char.push_chain, event);
             }
-            if(push_chain.checkCanTrigger({ event, char, n: 1 })) {
+            if(push_chain.checkCanTrigger({ event, char, n, is_push})) {
                 await this.addMana(-cost);
                 if(char) {
                     await this.changeCharTired(char, true);
                 }
 
-                await push_chain.byKeeper(by_keeper).trigger({ event, char, n: 1 }, async () => {
-                    HR.onPushEvent(event);
+                await push_chain.byKeeper(by_keeper).trigger({ event, char, n, is_push }, async () => {
+                    event.setProgrss(event.cur_progress_count + n);
                     await Promise.resolve(event.onPush(char));
                     if(event.cur_progress_count == event.goal_progress_count) {
                         // 事件已完成
@@ -502,6 +526,9 @@ export class PlayerMaster {
                 });
                 await this.t_master.spendAction();
                 return true;
+            } else {
+                throwIfIsBackend(push_chain.err_msg);
+                return false;
             }
         }
         throwIfIsBackend("取消推進事件");

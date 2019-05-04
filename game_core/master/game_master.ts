@@ -7,7 +7,7 @@ import { TimeMaster } from "./time_master";
 import { PlayerMaster } from "./player_master";
 import { WarMaster } from "./war_master";
 
-type KnownCardGenerator = (name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard;
+type KnownCardGenerator = (abs_name: string, owner: Player, seq: number, gm: GameMaster) => IKnownCard;
 
 export class GameMaster {
     private _cur_seq = 1;
@@ -47,12 +47,11 @@ export class GameMaster {
         }
     }
 
-    private genCard<T extends IKnownCard>(stat: CardStat, owner: Player,
-        card_init: () => T): Promise<T>;
-    private genCard(stat: CardStat, owner: Player, name: string): Promise<IKnownCard>;
+    private genCard(stat: CardStat, owner: Player,
+        arg: string | (() => IKnownCard)): Promise<IKnownCard>;
     private genCard(stat: CardStat, owner: Player): Promise<UnknownCard>;
-    private async genCard<T extends IKnownCard>(stat: CardStat, owner: Player,
-        arg?: string | (() => T)
+    private async genCard(stat: CardStat, owner: Player,
+        arg?: string | (() => IKnownCard)
     ) {
         let c: IKnownCard | UnknownCard;
         if(typeof arg == "undefined") {
@@ -69,22 +68,22 @@ export class GameMaster {
         return c;
     }
 
-    genCardToDeck(owner: Player, name: string): Promise<IKnownCard>;
+    genCardToDeck(owner: Player, abs_name: string): Promise<IKnownCard>;
     genCardToDeck(owner: Player): Promise<UnknownCard>;
-    genCardToDeck(owner: Player, name?: string) {
-        if(name) {
-            return this.genCard(CardStat.Deck, owner, name);
+    genCardToDeck(owner: Player, abs_name?: string) {
+        if(abs_name) {
+            return this.genCard(CardStat.Deck, owner, abs_name);
         } else {
             return this.genCard(CardStat.Deck, owner);
         }
     }
 
-    genCardToHand(owner: Player, name: string): Promise<IKnownCard>;
+    genCardToHand(owner: Player, abs_name: string): Promise<IKnownCard>;
     genCardToHand(owner: Player): Promise<UnknownCard>;
-    async genCardToHand(owner: Player, name?: string) {
+    async genCardToHand(owner: Player, abs_name?: string) {
         let c: IKnownCard | UnknownCard;
-        if(name) {
-            c = await this.genCard(CardStat.Hand, owner, name);
+        if(abs_name) {
+            c = await this.genCard(CardStat.Hand, owner, abs_name);
         } else {
             c = await this.genCard(CardStat.Hand, owner);
         }
@@ -92,17 +91,13 @@ export class GameMaster {
         return c;
     }
 
-    genCardToBoard(owner: Player, name: string): Promise<IKnownCard>;
+    genCardToBoard(owner: Player, abs_name: string): Promise<IKnownCard>;
     genCardToBoard<T extends IKnownCard>(owner: Player, card_init: () => T): Promise<T>;
     async genCardToBoard<T extends IKnownCard = IKnownCard>(
         owner: Player, arg: string | (() => T)
     ): Promise<IKnownCard> {
         let card: IKnownCard;
-        if(typeof arg == "string") {
-            card = await this.genCard(CardStat.Onboard, owner, arg);
-        } else {
-            card = await this.genCard(CardStat.Onboard, owner, arg);
-        }
+        card = await this.genCard(CardStat.Onboard, owner, arg);
         await this.getMyMaster(owner).dangerouslySetToBoard(card);
         if(TG.isCharacter(card)) {
             await this.getMyMaster(owner).changeCharTired(card, true);

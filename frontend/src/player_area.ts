@@ -102,7 +102,6 @@ export function drawPlayerArea(gm: GameMaster, pm: PlayerMaster, selecter: FS, w
         rest_txt.position.set(width, height);
     }
 
-
     let add_symbol = drawAddSymbol(gm, pm.player, selecter, 0.2 * height, ticker);
     add_symbol.x = 0.2 * width;
     container.addChild(add_symbol);
@@ -138,55 +137,56 @@ function drawAddSymbol(gm: GameMaster, player: Player, selecter: FS, size: numbe
         hovering = false;
     });
 
+    let fade_in_out = () => {
+        new Promise<void>(resolve => {
+            if(menu.alpha <= 0.8 && expanding) {
+                menu.alpha += 0.1;
+                symbol.alpha = 0;
+                menu.y -= 1;
+            } else if(menu.alpha > 0 && !expanding) {
+                menu.alpha -= 0.1;
+                symbol.alpha += 0.1;
+                menu.y += 1;
+            } else {
+                ticker.remove(fade_in_out);
+                resolve();
+            }
+        });
+    };
+    let close = async () => {
+        expanding = false;
+        menu.cursor = "normal";
+        symbol.cursor = "pointer";
+        window.removeEventListener("mousedown", blur_handler);
+        await ticker.add(fade_in_out);
+        menu.visible = false;
+    };
+
     let getHovering: () => boolean;
     let blur_handler = () => {
         if(!hovering && !getHovering()) {
-            expanding = false;
-            menu.cursor = "normal";
-            symbol.cursor = "pointer";
-            window.removeEventListener("mousedown", blur_handler);
+            close();
         }
-    };
-
-    let expand = (close=false) => {
-        if(close) {
-            expanding = false;
-            menu.cursor = "normal";
-            symbol.cursor = "pointer";
-            window.removeEventListener("mousedown", blur_handler);
-        }
-        return expanding;
     };
 
     let expanding = false;
-    let res = drawMoreMenu(gm, player, selecter, expand);
+    let res = drawMoreMenu(gm, player, selecter, close);
     let menu = res.container;
+    menu.visible = false;
     menu.alpha = 0;
     getHovering = res.getHovering;
     symbol.addChild(menu);
 
     symbol.on("click", () => {
         if(!expanding) {
+            menu.visible = true;
             expanding = true;
             menu.cursor = "pointer";
             symbol.cursor = "normal";
             window.addEventListener("mousedown", blur_handler);
+            ticker.add(fade_in_out);
         }
     });
-
-    // FIXME: 這邊的 ticker 永遠不會停！
-    let fade_in_out = () => {
-        if(menu.alpha <= 0.8 && expanding) {
-            menu.alpha += 0.1;
-            symbol.alpha = 0;
-            menu.y -= 1;
-        } else if(menu.alpha > 0 && !expanding) {
-            menu.alpha -= 0.1;
-            symbol.alpha += 0.1;
-            menu.y += 1;
-        }
-    };
-    ticker.add(fade_in_out);
 
     let container = new PIXI.Container();
     container.addChild(symbol);
@@ -194,7 +194,7 @@ function drawAddSymbol(gm: GameMaster, player: Player, selecter: FS, size: numbe
     return container;
 }
 
-function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (close?: boolean) => boolean) {
+function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, close: () => void) {
     let { eh, ew } = getEltSize();
     let container = new PIXI.Container();
     let rec = new PIXI.Graphics();
@@ -251,14 +251,14 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, expand: (clo
                 };
             }
         })();
-        container.addChild(drawIcon(label, i, expand, func));
+        container.addChild(drawIcon(label, i, close, func));
     }
 
     return { container, getHovering };
 }
 
 function drawIcon(name: string, index: number,
-    expand: (close?: boolean) => boolean, action: (x: number, y:number) => Promise<void>
+    close: () => void, action: (x: number, y:number) => Promise<void>
 ) {
     let { eh, ew } = getEltSize();
     let icon = new PIXI.Sprite(PIXI.loader.resources[name].texture);
@@ -273,10 +273,8 @@ function drawIcon(name: string, index: number,
     });
     icon.position.set(-eh*3 + eh*3*index, -eh*3);
     icon.on("click", async evt => {
-        if(expand()) {
-            await action(evt.data.global.x, evt.data.global.y);
-            expand(true);
-        }
+        await action(evt.data.global.x, evt.data.global.y);
+        close();
     });
     return icon;
 }

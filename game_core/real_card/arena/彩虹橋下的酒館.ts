@@ -1,37 +1,42 @@
 import { CardType, CardSeries, BattleRole, Player } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
-import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
+import { IArena, ICharacter, TypeGaurd } from "../../interface";
 
 let name = "彩虹橋下的酒館";
-let description = `（休閒場所）
-使用：3魔力->恢復2情緒。
-或
-使用：3魔力->造成對手1情緒傷害。`;
+let description = "使用：4魔力→本次收獲中你每使用一次場所，均造成對手一點情緒傷害。";
 
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
     basic_mana_cost = 3;
-    basic_exploit_cost = 3;
+    basic_exploit_cost = 4;
     series = [ CardSeries.Entertainment ];
+    data = {
+        position: -1,
+        triggered: {
+            [Player.Player1]: 0,
+            [Player.Player2]: 0
+        }
+    };
 
     // TODO: 功能的選擇應該放在 before exploit chain
 
-    async onExploit(char: ICharacter|Player) {
-        let caller: IKnownCard[] = [this];
-        if(TypeGaurd.isCard(char)) {
-            caller.push(char);
-        }
+    async onExploit(char: ICharacter | Player) {
         let player = TypeGaurd.isCard(char) ? char.owner : char;
-        let _index = await this.g_master.selecter.selectText(player, this, ["恢復2情緒", "造成對手1情緒傷害"]);
-        let index = 0;
-        if(typeof _index == "number") {
-            index = _index;
-        }
-        if(index == 0) {
-            await this.g_master.getMyMaster(char).addEmo(-2, caller);
-        } else {
-            await this.g_master.getEnemyMaster(char).addEmo(1, caller);
+        this.data.triggered[player]++;
+    }
+    async setupAliveEffect() {
+        this.g_master.t_master.start_exploit_chain.append(() => {
+            this.data.triggered[Player.Player1] = 0;
+            this.data.triggered[Player.Player2] = 0;
+        });
+        for(let p of [Player.Player1, Player.Player2]) {
+            let my_m = this.g_master.getMyMaster(p);
+            let enemy_m = this.g_master.getEnemyMaster(p);
+            my_m.exploit_chain.append(() => {
+                let amount = this.data.triggered[p];
+                enemy_m.addEmo(amount);
+            });
         }
     }
 }

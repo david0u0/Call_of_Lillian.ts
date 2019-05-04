@@ -3,8 +3,7 @@ import { Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "意識遊樂場";
-let description = `（休閒場所）
-使用：3魔力→使你的情緒恢復至本次收獲階段開始時的狀態，並免疫所有情緒傷害，直到收獲階段結束。`;
+let description = "使用：3魔力→使你的情緒恢復至本次收獲階段開始時的狀態，並免疫所有情緒傷害，直到收獲階段結束。";
 
 export default class A extends Arena implements IArena {
     name = name;
@@ -30,7 +29,7 @@ export default class A extends Arena implements IArena {
         });
         for(let p of [Player.Player1, Player.Player2]) {
             let pm = this.g_master.getMyMaster(p);
-            this.addActionWhileAlive(true, pm.set_emo_chain, ({ emo }) => {
+            this.addActionWhileAlive(pm.set_emo_chain, ({ emo }) => {
                 let mem_emo = p == Player.Player1 ? this.data.mem_emo1 : this.data.mem_emo2;
                 if(this.g_master.t_master.cur_phase == GamePhase.Exploit && emo > mem_emo) {
                     // 確實是情緒傷害，而且確實在收獲階段
