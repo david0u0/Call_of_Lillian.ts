@@ -236,47 +236,77 @@ class UnknownCard extends Card implements ICard {
 }
 
 type Caller = IKnownCard | IKnownCard[] | null;
-type SelectConfig<T extends IKnownCard> = {
+
+type _KnownStat = CardStat.Onboard | CardStat.Retired;
+type _UnKnownStat = CardStat.Deck | CardStat.Hand;
+type SelectConfig<T extends IKnownCard, Stat extends CardStat = CardStat> = {
     guard: (c: IKnownCard) => c is T,
-    stat?: CardStat,
+    stat: Stat,
+    check: (c: T) => boolean,
+    must_have_value: boolean,
     owner?: Player,
-    check?: (c: T) => boolean,
-    must_have_value?: true,
     is_tired?: boolean,
     char_stat?: CharStat,
     is_finished?: boolean
-}
+};
 type _BasicKnownConfig<T extends IKnownCard> = {
     guard: (c: IKnownCard) => c is T,
-    check?: (c: T) => boolean,
-    stat?: CardStat.Retired | CardStat.Onboard,
+    /** 默認值：OnBoard */
+    stat?: _KnownStat,
+    /** 默認值：皆可 */
     owner?: Player,
-    must_have_value?: true
+    /** 默認值：() => true */
+    check?: (c: T) => boolean,
+    /** 默認值：false */
+    must_have_value?: boolean
 }
 type _UnKnownConfig<T extends IKnownCard> = {
-    guard: (c: ICard) => c is T | UnknownCard,
-    check?: (c: T) => boolean,
-    stat: CardStat.Deck | CardStat.Hand,
+    guard: (c: IKnownCard) => c is T,
+    stat: _UnKnownStat,
     owner: Player,
-    must_have_value?: true
+    check?: (c: T) => boolean,
+    must_have_value?: boolean
 }
 type _KnownCharConfig = _BasicKnownConfig<ICharacter>
     & { is_tired?: boolean, char_stat?: CharStat };
 type _KnownEventConfig = _BasicKnownConfig<IEvent>
     & { is_finished?: boolean };
 
+
+/** 用來設置默認值 */
+export function buildConfig(arg: _KnownCharConfig): SelectConfig<ICharacter, _KnownStat>;
+export function buildConfig(arg: _KnownEventConfig): SelectConfig<IEvent, _KnownStat>;
+export function buildConfig<T extends IKnownCard>(
+    arg: _BasicKnownConfig<T>): SelectConfig<T, _KnownStat>;
+export function buildConfig<T extends IKnownCard>(
+    arg: _UnKnownConfig<T>): SelectConfig<T, _UnKnownStat>
+export function buildConfig<T extends IKnownCard>(arg: Partial<SelectConfig<T>>) {
+    return {
+        ...arg,
+        stat: typeof arg.stat == "undefined" ? CardStat.Onboard : arg.stat,
+        check: typeof arg.check == "undefined" ? () => true : arg.check,
+        must_have_value: typeof arg.must_have_value == "undefined" ? false : arg.must_have_value,
+    };
+}
+
 interface ISelecter {
-    selectCard(player: Player, caller: Caller, conf: _KnownCharConfig): Promise<ICharacter | null>;
+    selectCard<T extends IKnownCard>(player: Player,
+        caller: Caller, conf: SelectConfig<T, _KnownStat>
+    ): Promise<T | null>;
+    selectCard<T extends IKnownCard>(player: Player,
+        caller: Caller, conf: SelectConfig<T, _UnKnownStat>
+    ): Promise<T | UnknownCard | null>;
+    /*selectCard(player: Player, caller: Caller, conf: _KnownCharConfig): Promise<ICharacter | null>;
     selectCard(player: Player, caller: Caller, conf: _KnownEventConfig): Promise<IEvent | null>;
     selectCard<T extends IKnownCard>(player: Player, caller: Caller,
-        conf: _UnKnownConfig<T>): Promise<T | UnknownCard | null>;
-    selectCard<T extends IKnownCard>(player: Player, caller: Caller,
         conf: _BasicKnownConfig<T>): Promise<T | null>;
+    selectCard<T extends IKnownCard>(player: Player, caller: Caller,
+        conf: _UnKnownConfig<T>): Promise<T | UnknownCard | null>;*/
 
     selectCardInteractive: ISelecter["selectCard"];
 
-    selectText(player: Player, caller: IKnownCard|null, text: string[]): Promise<number|null>;
-    selectConfirm(player: Player, caller: IKnownCard|null, msg: string): Promise<boolean>;
+    selectText(player: Player, caller: IKnownCard | null, text: string[]): Promise<number | null>;
+    selectConfirm(player: Player, caller: IKnownCard | null, msg: string): Promise<boolean>;
     setCardTable(table: { [index: number]: ICard }): void;
     /** 
      * @param msg 若為 null 代表不顯示取消的UI，隨處點擊即可取消

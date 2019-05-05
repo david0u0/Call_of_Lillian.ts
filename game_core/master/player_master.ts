@@ -229,25 +229,24 @@ export class PlayerMaster {
         }
     }
 
-    async draw(seq?: number) {
-        let card: ICard|null = null;
-        if(seq) {
-            card = this.card_table[seq];
-            if(!card || card.card_status != CardStat.Deck) {
+    async draw(_card?: IKnownCard) {
+        let card: ICard;
+        if(_card) {
+            card = _card;
+            if(card.owner != this.player || card.card_status != CardStat.Deck) {
                 throw new BadOperationError("欲檢索的卡牌不在牌庫中！");
             }
-        } else {
+        } else if(this.deck.length > 0) {
             let deck = this.deck;
             let n = Math.floor(deck.length * Math.random());
             card = deck[n];
+        } else {
+            return null;
         }
-        if(card) {
-            let _card = card;
-            await this.draw_card_chain.trigger(_card, this.t_master.nonce, async () => {
-                await this.add_card_to_hand_chain.trigger(_card, this.t_master.nonce);
-                _card.card_status = CardStat.Hand;
-            });
-        }
+        await this.draw_card_chain.trigger(card, this.t_master.nonce, async () => {
+            await this.add_card_to_hand_chain.trigger(card, this.t_master.nonce);
+            card.card_status = CardStat.Hand;
+        });
         return card;
     }
 
@@ -570,7 +569,7 @@ export class PlayerMaster {
         .chain(char.get_enter_cost_chain, arena)
         .trigger(0, { char, arena }, nonce);
     }
-    async enterArena(arena: IArena, char: ICharacter, by_keeper=false) {
+    async enterArena(arena: IArena, char: ICharacter, by_keeper = false, mask_id: number[] = []) {
         if(this.t_master.cur_player != this.player) {
             throw new BadOperationError("想在別人的回合進入場所？");
         } else if(this.player != char.owner) {
@@ -585,7 +584,7 @@ export class PlayerMaster {
         if(HR.checkEnter(char, arena, this.mana, cost)) {
             let enter_chain = this.enter_chain.chain(arena.enter_chain, char)
             .chain(char.enter_chain, arena);
-            if(enter_chain.checkCanTrigger({ arena, char }, nonce)) {
+            if(enter_chain.checkCanTrigger({ arena, char }, nonce, mask_id)) {
                 await this.addMana(-cost);
                 if(!char.assault) {
                     await this.changeCharTired(char, true);
@@ -594,7 +593,7 @@ export class PlayerMaster {
                 await enter_chain.byKeeper(by_keeper)
                 .trigger({ char, arena }, nonce, () => {
                     HR.onEnter(char, arena);
-                });
+                }, mask_id);
                 await this.t_master.spendAction();
                 return true;
             }

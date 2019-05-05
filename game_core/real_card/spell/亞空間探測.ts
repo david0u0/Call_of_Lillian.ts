@@ -1,6 +1,6 @@
 import { GamePhase, CardStat } from "../../enums";
 import { Spell } from "../../cards";
-import { TypeGaurd } from "../../interface";
+import { TypeGaurd, buildConfig } from "../../interface";
 
 let name = "亞空間探測";
 let description = "從牌庫中檢索一張場所卡。";
@@ -16,11 +16,15 @@ export default class S extends Spell {
 
     async onPlay() {
         await super.onPlay();
-        let arena = this.g_master.selecter.selectCardInteractive(this.owner, this, {
+        let arena = await this.g_master.selecter.selectCardInteractive(this.owner, this, buildConfig({
             guard: TypeGaurd.isArena,
             stat: CardStat.Deck,
             owner: this.owner,
-        });
+        }));
+        if(arena) {
+            let card_to_draw = await this.g_master.exposeCard(arena);
+            await this.my_master.draw(card_to_draw);
+        }
         await this.my_master.retireCard(this);
     }
 }

@@ -1,5 +1,5 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase, RuleEnums } from "./enums";
-import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, Ability, DataField, Card } from "./interface";
+import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, Ability, DataField, Card, buildConfig } from "./interface";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc, CheckFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
@@ -164,15 +164,10 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
 
     public async initialize() {
         let char = await this.g_master.selecter.promptUI("指定裝備者")
-        .selectCard(this.owner, this, {
+        .selectCard(this.owner, this, buildConfig({
             guard: TG.isCharacter,
             owner: this.owner,
-            check: char => {
-                this.data.character_equipped = char;
-                let can_play = this.my_master.checkCanPlay(this);
-                return can_play;
-            }
-        });
+        }));
         if(char) {
             this.data.character_equipped = char;
             return true;
@@ -296,14 +291,14 @@ abstract class Arena extends KnownCard implements IArena {
 
     public async initialize() {
         let old_arena = await this.g_master.selecter.promptUI("指定建築場所")
-        .selectCard(this.owner, this, {
+        .selectCard(this.owner, this, buildConfig({
             guard: TG.isArena,
             owner: this.owner,
             check: (arena) => {
                 this.data.position = arena.data.position;
                 return this.my_master.checkCanPlay(this);
             }
-        });
+        }));
         if(old_arena) {
             this.data.position = old_arena.data.position;
             return true;
@@ -443,12 +438,12 @@ abstract class Spell extends KnownCard implements ISpell {
             let caller = [this, ...this.data.casters];
             let cancel_ui = (this.data.casters.length < this.min_caster) ? null : "施放";
             let c = await this.g_master.selecter.cancelUI(cancel_ui).promptUI("指定施術者")
-            .selectCard(this.owner, caller, {
+            .selectCard(this.owner, caller, buildConfig({
                 guard: TG.isCharacter,
                 owner: this.owner,
                 char_stat: CharStat.StandBy,
                 is_tired: false,
-            });
+            }));
             if(c) {
                 let cancel = false;
                 for(let [i, card] of this.data.casters.entries()) {

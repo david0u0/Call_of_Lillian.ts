@@ -1,6 +1,6 @@
 import { CardSeries, Player, ActionEnums, RuleEnums } from "../../enums";
 import { Arena } from "../../cards";
-import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
+import { IArena, ICharacter, TypeGaurd, IKnownCard, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "無法地帶";
@@ -29,13 +29,13 @@ export default class A extends Arena implements IArena {
             let pm = this.g_master.getMyMaster(p);
             pm.setup_before_action_chain.append(async ({ args, action }, nonce) => {
                 if(action == ActionEnums.Exploit && this.isEqual(args[0])) {
-                    let arena = await this.g_master.selecter.selectCard(p, [this], {
+                    let arena = await this.g_master.selecter.selectCard(p, [this], buildConfig({
                         guard: TypeGaurd.isArena,
                         check: card => {
                             // TODO: 應該寫一個 checkCanExploit 方法
                             return !(TypeGaurd.isSameCard(this, card));
                         }
-                    });
+                    }));
                     if(arena) {
                         this.data.choice_table[nonce] = arena;
                     } else {

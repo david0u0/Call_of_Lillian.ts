@@ -1,5 +1,5 @@
 import { Character } from "../../cards";
-import { IEvent, TypeGaurd, ICharacter, IArena } from "../../interface";
+import { IEvent, TypeGaurd, ICharacter, IArena, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 import { CardStat } from "../../enums";
 
@@ -22,14 +22,14 @@ export default class C2 extends Character implements ICharacter {
     }
 
     async initialize(): Promise<boolean> {
-        let evt = await this.g_master.selecter.selectCard(this.owner, this, {
+        let evt = await this.g_master.selecter.selectCard(this.owner, this, buildConfig({
             guard: TypeGaurd.isEvent,
             owner: this.owner,
             is_finished: true,
             check: e => {
                 return e.score >= 2;
             }
-        });
+        }));
 
         if(evt == null) {
             return false;

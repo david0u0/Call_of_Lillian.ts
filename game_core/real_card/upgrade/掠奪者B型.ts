@@ -1,5 +1,5 @@
 import { Upgrade } from "../../cards";
-import { ICharacter, TypeGaurd } from "../../interface";
+import { ICharacter, TypeGaurd, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 import { CardStat } from "../../enums";
 
@@ -21,12 +21,12 @@ export default class U extends Upgrade {
                     // 確實是由裝備者發動攻擊
                     await this.my_master.draw();
                     let to_discard = await this.g_master.selecter.promptUI("請選擇捨棄的卡牌")
-                    .selectCardInteractive(this.owner, [this], {
+                    .selectCardInteractive(this.owner, [this], buildConfig({
                         guard: TypeGaurd.isKnown,
                         stat: CardStat.Hand,
                         owner: this.owner,
                         must_have_value: true,
-                    });
+                    }));
                     if(to_discard) {
                         let known = await this.g_master.exposeCard(to_discard);
                         await this.my_master.exileCard(known);

@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 
-import { ICharacter, TypeGaurd as TG } from "../../game_core/interface";
+import { ICharacter, TypeGaurd as TG, buildConfig } from "../../game_core/interface";
 import { Player, CardSeries, CardStat, CharStat, GamePhase } from "../../game_core/enums";
 import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";
@@ -163,7 +163,7 @@ export class FrontendWarMaster {
         let target: ICharacter = null;
         while(true) {
             let ch = await this.selecter
-            .selectCard(w_master.atk_player, this.attacking, {
+            .selectCard(w_master.atk_player, this.attacking, buildConfig({
                 guard: TG.isCharacter,
                 check: _ch => {
                     if(w_master.checkCanAttack(_ch)) {
@@ -176,7 +176,7 @@ export class FrontendWarMaster {
                         }
                     }
                 }
-            });
+            }));
             if(ch) {
                 if(w_master.checkCanAttack(ch)) {
                     // 是攻擊者
@@ -217,10 +217,10 @@ export class FrontendWarMaster {
         this.selecter.stopConfirm();
         let wm = this.gm.w_master;
         let atk_char = await this.selecter
-        .selectCard(wm.def_player, block_char, {
+        .selectCard(wm.def_player, block_char, buildConfig({
             guard: TG.isCharacter,
             check: c => wm.checkCanBlock(block_char, c)
-        });
+        }));
         await wm.setBlock(atk_char, block_char);
     }
 }

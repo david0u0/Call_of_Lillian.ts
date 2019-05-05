@@ -1,6 +1,6 @@
 import { Upgrade, Character } from "../../cards";
 import { BattleRole, Player, CharStat, GamePhase, CardStat } from "../../enums";
-import { TypeGaurd as TG, ICharacter } from "../../interface";
+import { TypeGaurd as TG, ICharacter, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "九世軍魂";
@@ -55,10 +55,10 @@ export default class U extends Upgrade {
             if(this.data.character_equipped) {
                 let new_char = await this.g_master.selecter
                 .cancelUI("銷毀裝備")
-                .selectCardInteractive(this.owner, this, {
+                .selectCardInteractive(this.owner, this, buildConfig({
                     guard: TG.isCharacter,
                     owner: this.owner,
-                });
+                }));
                 if(new_char) {
                     // 把自己附到別人身上，然後打斷這條退場鏈
                     this.data.modifier += 1;

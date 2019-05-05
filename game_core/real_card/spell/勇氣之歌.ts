@@ -1,6 +1,6 @@
 import { GamePhase, CharStat, CardStat } from "../../enums";
 import { Spell } from "../../cards";
-import { ICharacter, TypeGaurd } from "../../interface";
+import { ICharacter, TypeGaurd, buildConfig } from "../../interface";
 import { GetterChain } from "../../hook";
 import { BadOperationError } from "../../errors";
 
@@ -24,11 +24,10 @@ export default class S extends Spell {
 
     async initialize(): Promise<boolean> {
         this.data.target = await this.g_master.selecter.promptUI("指定施放者")
-        .selectCard(this.owner, this, {
+        .selectCard(this.owner, this, buildConfig({
             guard: TypeGaurd.isCharacter,
-            stat: CardStat.Onboard,
             char_stat: CharStat.InWar
-        });
+        }));
         if(this.data.target) {
             return this.my_master.checkCanPlay(this);
         } else {

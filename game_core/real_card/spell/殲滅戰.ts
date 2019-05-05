@@ -1,6 +1,6 @@
 import { GamePhase, CardStat } from "../../enums";
 import { Spell } from "../../cards";
-import { ICharacter, TypeGaurd, IArena } from "../../interface";
+import { ICharacter, TypeGaurd, IArena, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "殲滅戰";
@@ -22,12 +22,12 @@ export default class S extends Spell {
     }
 
     async initialize() {
-        this.data.war_field = await this.g_master.selecter.selectCard(this.owner, this, {
+        this.data.war_field = await this.g_master.selecter.selectCard(this.owner, this, buildConfig({
             guard: TypeGaurd.isArena,
             check: arena => {
                 return this.g_master.w_master.checkCanDeclare(this.owner, arena);
             }
-        });
+        }));
 
         if(this.data.war_field) {
             return true;

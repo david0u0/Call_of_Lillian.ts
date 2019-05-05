@@ -157,9 +157,9 @@ export default class FrontendSelecter implements ISelecter {
             }
         });
     }
-    selectCard<T extends IKnownCard>(player: Player, caller: IKnownCard|IKnownCard[]|null,
-        conf: SelectConfig<T>
-    ): Promise<T | UnknownCard | null> {
+    _selectCard<T extends IKnownCard>(player: Player,
+        caller: IKnownCard|IKnownCard[]|null, conf: SelectConfig<T>
+    ): Promise<T | null> {
         if(this.selecting == SelectState.Btn) {
             this.cancel_btn.stackBtn();
         } else if(this.selecting != SelectState.None) {
@@ -172,32 +172,24 @@ export default class FrontendSelecter implements ISelecter {
         if(player != this.me) {
             // TODO: 從佇列中拉出資料來回傳
         } else {
-            if(!conf.stat) {
-                conf = { ...conf, stat: CardStat.Onboard };
-            }
             this._selecting = SelectState.Card;
             this._select_conf = { ...conf };
             this.filter_func = card => {
-                if(conf.guard(card)
-                    && (typeof(conf.owner) == "undefined" || card.owner == conf.owner)
-                    && card.card_status == conf.stat
+                if(conf.guard(card) && card.card_status == conf.stat
+                    && (typeof conf.owner == "undefined" || card.owner == conf.owner)
                 ) {
                     if(TypeGaurd.isCharacter(card)) {
-                        if(typeof conf.is_tired != "undefined" && card.is_tired != conf.is_tired) {
+                        if("is_tired" in conf && card.is_tired != conf.is_tired) {
                             return false;
-                        } else if(typeof conf.char_stat!= "undefined" && card.char_status != conf.char_stat) {
+                        } else if("char_stat" in conf && card.char_status != conf.char_stat) {
                             return false;
                         }
                     } else if(TypeGaurd.isEvent(card)) {
-                        if(typeof conf.is_finished != "undefined" && card.is_finished != conf.is_finished) {
+                        if("is_finished" in conf && card.is_finished != conf.is_finished) {
                             return false;
                         }
                     }
-                    if(conf.check) {
-                        return conf.check(card);
-                    } else {
-                        return true;
-                    }
+                    return conf.check(card);
                 } else {
                     return false;
                 }
@@ -230,11 +222,16 @@ export default class FrontendSelecter implements ISelecter {
         }
     }
 
-    selectCardInteractive<T extends IKnownCard>(player: Player,
+    selectCard: ISelecter["selectCard"] = <T extends IKnownCard>(player: Player,
         caller: IKnownCard | IKnownCard[], conf: SelectConfig<T>,
-    ) {
+    ) => {
+        return this._selectCard(player, caller, conf);
+    }
+    selectCardInteractive: ISelecter["selectCard"] = <T extends IKnownCard>(player: Player,
+        caller: IKnownCard | IKnownCard[], conf: SelectConfig<T>,
+    ) => {
         // FIXME: 
-        return this.selectCard(player, caller, conf);
+        return this._selectCard(player, caller, conf);
     }
 
     /**

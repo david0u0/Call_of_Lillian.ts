@@ -3,7 +3,7 @@ import { getEltSize } from "./get_constant";
 import { my_loader } from "./card_loader";
 import { ShowBigCard } from "./show_big_card";
 import { BadOperationError } from "../../game_core/errors";
-import { TypeGaurd, ICharacter, IEvent, IArena, ICard, ISelecter } from "../../game_core/interface";
+import { TypeGaurd, ICharacter, IEvent, IArena, ICard, ISelecter, buildConfig } from "../../game_core/interface";
 import { Player, CardStat } from "../../game_core/enums";
 import { CharUI } from "./draw_card";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";
@@ -106,9 +106,9 @@ export class CharArea {
                     return TypeGaurd.isEvent(c) || TypeGaurd.isArena(c);
                 }
                 (async () => {
-                    let c_selected = await this.selecter.selectCard(this.player, char, {
+                    let c_selected = await this.selecter.selectCard(this.player, char, buildConfig({
                         guard,
-                    });
+                    }));
                     if(TypeGaurd.isCard(c_selected)) {
                         if(TypeGaurd.isArena(c_selected)) {
                             let result = await this.gm.getMyMaster(this.player)

@@ -1,6 +1,6 @@
 import { CardType, CardSeries, BattleRole, Player, CardStat } from "../../enums";
 import { Character, Upgrade, Arena } from "../../cards";
-import { IArena, ICharacter, TypeGaurd as TG, IKnownCard, ICard } from "../../interface";
+import { IArena, ICharacter, TypeGaurd as TG, IKnownCard, ICard, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "市立圖書館";
@@ -24,12 +24,12 @@ export default class A extends Arena implements IArena {
         await this.g_master.getMyMaster(char).draw();
 
         let card = await this.g_master.selecter
-        .selectCardInteractive(player, caller, {
+        .selectCardInteractive(player, caller, buildConfig({
             guard: TG.isKnown,
             stat: CardStat.Hand,
             owner: player,
             must_have_value: true,
-        });
+        }));
         if(card) {
             let _card = await this.g_master.exposeCard(card);
             await this.g_master.getMyMaster(char).exileCard(_card);

@@ -217,9 +217,9 @@ class ActionChain<U> {
         }
         return { intercept_effect, after_effect, mask_id };
     }
-    public checkCanTrigger(const_arg: U, nonce: number) {
+    public checkCanTrigger(const_arg: U, nonce: number, mask_id: number[] = []) {
         this._err_msg = null;
-        let res = this.check_chain.trigger(true, const_arg, nonce);
+        let res = this.check_chain.trigger(true, const_arg, nonce, mask_id);
         if(typeof res == "string") {
             this._err_msg = res;
             return false;
@@ -235,7 +235,7 @@ class ActionChain<U> {
      * @param callback 
      * @param mask_id 
      */
-    public async trigger(const_arg: U, nonce: number, callback?: CallBack, mask_id=[]) {
+    public async trigger(const_arg: U, nonce: number, callback?: CallBack, mask_id: number[] = []) {
         if(this.by_keeper) {
             await this.keeperCallback(const_arg);
         }

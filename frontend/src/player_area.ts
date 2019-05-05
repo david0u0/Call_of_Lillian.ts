@@ -4,7 +4,7 @@ import * as Filters from "pixi-filters";
 import { getEltSize, getPlayerColor } from "./get_constant";
 import { Player, CardStat } from "../../game_core/enums";
 import FS from "./frontend_selecter";
-import { TypeGaurd as TG, IArena } from "../../game_core/interface";
+import { TypeGaurd as TG, IArena, buildConfig } from "../../game_core/interface";
 import { GameMaster } from "../../game_core/master/game_master";
 import { PlayerMaster } from "../../game_core/master/player_master";
 
@@ -219,10 +219,10 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, close: () =>
             if(label == "incite") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let char = await selecter.selectCard(player, null, {
+                    let char = await selecter.selectCard(player, null, buildConfig({
                         guard: TG.isCharacter,
                         owner: 1-player,
-                    });
+                    }));
                     if(char) {
                         await gm.getMyMaster(char).incite(char, player, true);
                     }
@@ -230,10 +230,10 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, close: () =>
             } else if(label == "war") {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let arena = await selecter.selectCard(player, null, {
+                    let arena = await selecter.selectCard(player, null, buildConfig({
                         guard: TG.isArena,
                         check: a => gm.w_master.checkCanDeclare(player, a)
-                    });
+                    }));
                     if(arena) {
                         await gm.w_master.declareWar(player, arena, true);
                     }
@@ -241,10 +241,10 @@ function drawMoreMenu(gm: GameMaster, player: Player, selecter: FS, close: () =>
             } else {
                 return async (x: number, y: number) => {
                     selecter.setInitPos(x, y);
-                    let char = await selecter.selectCard(player, null, {
+                    let char = await selecter.selectCard(player, null, buildConfig({
                         guard: TG.isCharacter,
                         owner: player,
-                    });
+                    }));
                     if(char) {
                         await gm.getMyMaster(char).release(char, true);
                     }
