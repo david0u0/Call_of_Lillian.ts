@@ -85,9 +85,12 @@ export enum RuleEnums {
     CheckQuotaBeforePlayChar,
     CheckPriceBeforePlay,
 
-    CheckStandbyWhenPlay,
+    CheckTiredWhenEnter,
+    CheckPhaseWhenEnter,
 
-    CheckPhaseBeforeExploit,
+    CheckStandbyWhenPlayUpgrade,
+
+    CheckPhaseWhenExploit,
     
     Possessed,
     Beyond,

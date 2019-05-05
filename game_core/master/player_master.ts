@@ -68,7 +68,7 @@ export class PlayerMaster {
         private getMaster: (card: ICard | Player) => PlayerMaster,
     ) {
         let soft_rules = new SR(() => t_master.cur_phase);
-        soft_rules.checkPlay(this.card_play_chain, () => this.char_quota);
+        soft_rules.checkPlay(this.card_play_chain);
         soft_rules.onGetBattleRole(this.get_battle_role_chain, this.getStrength.bind(this));
         soft_rules.checkPush(this.add_progress_chain);
         soft_rules.onFinish(this.finish_chain, this.retireCard.bind(this));
@@ -130,7 +130,7 @@ export class PlayerMaster {
                 await this.addEventCountdown(event);
             }
             // 打角色的額度恢復
-            this._char_quota = 1;
+            this._char_quota = C.ERA_CHAR_QUOTA;
             // 抽牌
             await this.draw();
         });
@@ -570,7 +570,7 @@ export class PlayerMaster {
         .trigger(0, { char, arena }, nonce);
     }
     async enterArena(arena: IArena, char: ICharacter, by_keeper = false, mask_id: number[] = []) {
-        if(this.t_master.cur_player != this.player) {
+        if(this.t_master.cur_player != this.player && by_keeper) {
             throw new BadOperationError("想在別人的回合進入場所？");
         } else if(this.player != char.owner) {
             throw new BadOperationError("想移動別人的角色？");
@@ -597,6 +597,7 @@ export class PlayerMaster {
                 await this.t_master.spendAction();
                 return true;
             }
+            throwIfIsBackend(enter_chain.err_msg);
         }
         throwIfIsBackend("進入程序取消");
         return false;

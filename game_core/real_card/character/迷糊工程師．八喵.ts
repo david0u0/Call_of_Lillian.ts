@@ -10,7 +10,7 @@ export default class C extends Character {
     name = name;
     description = description;
     basic_strength = 0;
-    basic_mana_cost = 4;
+    basic_mana_cost = 5;
 
     async onPlay() {
         let ch = await this.g_master.genCardToBoard(this.owner, () => {

@@ -118,19 +118,23 @@ export class WarMaster {
             return false;
         }
     } 
-    public getAllWarFields(arena: IArena) {
-        let arenas = [];
-        for(let a of this.getMyMaster(arena).arenas) {
-            if(Math.abs(a.data.position - arena.data.position) <= 1) {
-                arenas.push(a);
+    public getAllWarFields(arena = this._war_field) {
+        if(!arena) {
+            return [];
+        } else {
+            let arenas = [];
+            for(let a of this.getMyMaster(arena).arenas) {
+                if(Math.abs(a.data.position - arena.data.position) <= 1) {
+                    arenas.push(a);
+                }
             }
-        }
-        for(let a of this.getEnemyMaster(arena.owner).arenas) {
-            if(Math.abs(a.data.position - arena.data.position) == 0) {
-                arenas.push(a);
+            for(let a of this.getEnemyMaster(arena.owner).arenas) {
+                if(Math.abs(a.data.position - arena.data.position) == 0) {
+                    arenas.push(a);
+                }
             }
+            return arenas;
         }
-        return arenas;
     }
     public checkCanDeclare(declarer: Player, arena: IArena, _nonce?: number) {
         if(this.t_master.cur_player != declarer) {

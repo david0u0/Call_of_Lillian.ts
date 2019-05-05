@@ -34,13 +34,14 @@ type ActionHook<U> = {
     id?: number
 };
 function checkActive(h: ActionHook<any> | GetterHook<any, any>, mask_id: number[]) {
-    if(typeof(h.id) != "undefined" && mask_id.indexOf(h.id) != -1) {
+    if(h.is_default) {
+        // do nothing
+    } else if(typeof h.id != "undefined" && mask_id.indexOf(h.id) != -1) {
         return false;
     } else if(mask_id.indexOf(MASK_ALL) != -1) {
         return false;
-    } else {
-        return h.isActive();
     }
+    return h.isActive();
 }
 
 class GetterChain<T, U> {
@@ -57,15 +58,15 @@ class GetterChain<T, U> {
         return this;
     }
     public append(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
-        return this.add(true, false, func, isActive);
+        return this.add(true, false, func, isActive, id);
     }
     public dominant(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
-        return this.add(false, false, func, isActive);
+        return this.add(false, false, func, isActive, id);
     }
-    public appendDefault(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
+    public appendDefault(func: GetterFunc<T, U>, isActive=() => true) {
         return this.add(true, true, func, isActive);
     }
-    public dominantDefault(func: GetterFunc<T, U>, isActive=() => true, id?: number) {
+    public dominantDefault(func: GetterFunc<T, U>, isActive=() => true) {
         return this.add(false, true, func, isActive);
     }
     public triggerFullResult(var_arg: T, const_arg: U, nonce: number, mask_id: number[] = []) {
@@ -140,13 +141,13 @@ class ActionChain<U> {
         };
         if(append) {
             if(is_default) {
-                this.check_chain.appendDefault(func, isActive, id);
+                this.check_chain.appendDefault(func, isActive);
             } else {
                 this.check_chain.append(func, isActive, id);
             }
         } else {
             if(is_default) {
-                this.check_chain.dominantDefault(func, isActive, id);
+                this.check_chain.dominantDefault(func, isActive);
             } else {
                 this.check_chain.dominant(func, isActive, id);
             }
@@ -171,11 +172,11 @@ class ActionChain<U> {
     public dominantCheck(func: CheckFunc<U>, isActive = () => true, id?: number) {
         return this.addCheck(false, false, func, isActive, id);
     }
-    public appendCheckDefaul(func: CheckFunc<U>, isActive = () => true, id?: number) {
-        return this.addCheck(true, true, func, isActive, id);
+    public appendCheckDefault(func: CheckFunc<U>, isActive = () => true) {
+        return this.addCheck(true, true, func, isActive);
     }
-    public dominantCheckDefault(func: CheckFunc<U>, isActive = () => true, id?: number) {
-        return this.addCheck(false, true, func, isActive, id);
+    public dominantCheckDefault(func: CheckFunc<U>, isActive = () => true) {
+        return this.addCheck(false, true, func, isActive);
     }
 
     public async triggerFullResult(const_arg: U, nonce: number, mask_id: number[] = []): Promise<{

@@ -90,6 +90,12 @@ export class CharArea {
         });
         // 向選擇器註冊
         char_ui.register();
+        // 角色進入場所
+        this.gm.getMyMaster(this.player).enter_chain.appendDefault(arg => {
+            if(arg.char.isEqual(char)) {
+                char_ui.hide();
+            }
+        });
         // 角色回到場邊
         this.gm.getMyMaster(this.player).exit_chain.appendDefault(arg => {
             if(arg.char.isEqual(char)) {
@@ -111,12 +117,8 @@ export class CharArea {
                     }));
                     if(TypeGaurd.isCard(c_selected)) {
                         if(TypeGaurd.isArena(c_selected)) {
-                            let result = await this.gm.getMyMaster(this.player)
+                            await this.gm.getMyMaster(this.player)
                             .enterArena(c_selected, char, true);
-                            if(result) {
-                                // 隱藏UI
-                                char_ui.hide();
-                            }
                         } else if(TypeGaurd.isEvent(c_selected) && !c_selected.is_finished) {
                             await this.gm.getMyMaster(this.player).addEvenProgress(c_selected, char, true);
                         }

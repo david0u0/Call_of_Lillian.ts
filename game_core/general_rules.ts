@@ -3,7 +3,7 @@ import { ActionChain, GetterChain } from "./hook";
 import { CardStat, CharStat, BattleRole, Player, GamePhase, RuleEnums } from "./enums";
 import { throwIfIsBackend, BadOperationError } from "./errors";
 
-export const Constant = {
+let Constant = {
     CARD_DECK_COUNT: 3,
     WAR_COST: 2,
     INCITE_EMO: 7,
@@ -17,7 +17,13 @@ export const Constant = {
     INIT_MANA: 7,
     INIT_HAND: 4,
     DUMMY_NAME: "dummy_arena",
+    ERA_CHAR_QUOTA: 1,
 };
+
+/*Constant.INIT_MANA = 99;
+Constant.ERA_CHAR_QUOTA = 3;*/
+
+export { Constant };
 
 /**
  * 這裡的每條規則都會被接到世界的事件鏈上，因此可以被斷鏈，也可以被同條鏈上後面的規則覆蓋。
@@ -26,7 +32,7 @@ export const Constant = {
 export class SoftRule {
     constructor(private getPhase: () => GamePhase) { }
 
-    public checkPlay(card_play_chain: ActionChain<IKnownCard>, getCharQuota: () => number) {
+    public checkPlay(card_play_chain: ActionChain<IKnownCard>) {
         card_play_chain.appendCheck(card => {
             if(TG.isUpgrade(card)) {
                 // 打出升級卡的限制
@@ -37,7 +43,7 @@ export class SoftRule {
                     return { var_arg: "指定的角色不在待命區" };
                 }
             }
-        }, undefined, RuleEnums.CheckStandbyWhenPlay);
+        }, undefined, RuleEnums.CheckStandbyWhenPlayUpgrade);
     }
     /** 計算戰鬥職位的通則 */
     public onGetBattleRole(get_battle_role_chain: GetterChain<BattleRole, ICharacter>,
@@ -59,14 +65,20 @@ export class SoftRule {
     }
     public checkEnter(enter_chain: ActionChain<{ char: ICharacter, arena: IArena }>) {
         enter_chain.appendCheck(({ arena, char }) => {
+            if(arena.find(null) == -1) {
+                return { var_arg: "場所中的角色不可超過上限"};
+            }
+        }).appendCheck(({ char }) => {
+            if(char.is_tired) {
+                return { var_arg: "疲勞中的角色不能移動" };
+            }
+        }, undefined, RuleEnums.CheckTiredWhenEnter).appendCheck(() => {
             if(this.getPhase() != GamePhase.InAction) {
                 return { var_arg: "只能在主階段的行動時移動"};
-            } else if(char.char_status != CharStat.StandBy) {
-                return { var_arg: "在場所中的角色不能移動"};
-            } else if(char.is_tired) {
-                return { var_arg: "疲勞中的角色不能移動" };
-            } else if(arena.find(null) == -1) {
-                return { var_arg: "場所中的角色不可超過上限"};
+            } 
+        }, undefined, RuleEnums.CheckPhaseWhenEnter).appendCheckDefault(({ char }) => {
+            if(char.data.arena_entered) {
+                return { var_arg: "角色不能進入兩個場所" };
             }
         });
     }
@@ -85,7 +97,7 @@ export class SoftRule {
             if(this.getPhase() != GamePhase.Exploit) {
                 return { var_arg: "只能在收獲階段使用場所" };
             }
-        }, undefined, RuleEnums.CheckPhaseBeforeExploit);
+        }, undefined, RuleEnums.CheckPhaseWhenExploit);
     }
     public checkPush(
         add_progress_chain: ActionChain<{ char: ICharacter | null, event: IEvent, n: number, is_push: boolean }>

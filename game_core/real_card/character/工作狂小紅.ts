@@ -2,7 +2,7 @@ import { Character } from "../../cards";
 import { RuleEnums } from "../../enums";
 
 let name = "工作狂小紅";
-let description = "**人生就是不停的戰鬥！**：在收獲階段，本角色可以利用場所兩次，並承受1點情緒。";
+let description = "**人生就是不停的戰鬥！**：在收獲階段，本角色可以利用場所兩次。";
 
 export default class C extends Character {
     name = name;
@@ -24,8 +24,6 @@ export default class C extends Character {
             if(!this.data.has_exploited) {
                 this.data.has_exploited = true;
                 return { mask_id: RuleEnums.ExitAfterExploit };
-            } else {
-                await this.my_master.addEmo(1);
             }
         });
     }

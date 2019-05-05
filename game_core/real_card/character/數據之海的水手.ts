@@ -23,7 +23,7 @@ export default class C4 extends Character {
             if(TypeGaurd.isUpgrade(card)) {
                 let u = card;
                 if(this.isEqual(u.data.character_equipped)) {
-                    return { mask_id: RuleEnums.CheckStandbyWhenPlay };
+                    return { mask_id: RuleEnums.CheckStandbyWhenPlayUpgrade };
                 }
             }
         });

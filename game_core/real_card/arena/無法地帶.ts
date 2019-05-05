@@ -48,7 +48,7 @@ export default class A extends Arena implements IArena {
                     // 既然已經可以使用「無法地帶」了，就別管這類泛用性的檢查了吧
                     // 例如：在主階段中因為卡牌的效果使用了無法地帶，接著再選擇另一個場所來使用，
                     // 這時如果因為遊戲階段不對被擋下來，不是很瞎嗎？
-                    return { mask_id: RuleEnums.CheckPhaseBeforeExploit };
+                    return { mask_id: RuleEnums.CheckPhaseWhenExploit };
                 }
             });
         }
