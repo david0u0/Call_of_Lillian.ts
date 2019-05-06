@@ -8,6 +8,10 @@ import { default_user_decks, default_deck_list } from "./default_decks";
 
 let router = express.Router();
 
+function filterDeck(list: db.IDeck["list"]) {
+    return list.filter(pair => card_list.indexOf(pair.abs_name) != -1);
+}
+
 router.get("/user/who", (req, res) => {
     let userid = getUserId(req);
     res.json({ userid });
@@ -65,7 +69,8 @@ router.get("/deck/list", async (req, res) => {
     let user = await getUserId(req, true);
     if(user) {
         let decks = user.decks.map(ideck => {
-            let first_card = ideck.list.length > 0 ? ideck.list[0].abs_name : null;
+            let list = filterDeck(ideck.list);
+            let first_card = list.length > 0 ? list[0].abs_name : null;
             return {
                 name: ideck.name,
                 description: ideck.description,
@@ -84,7 +89,7 @@ router.get("/deck/detail", async (req, res) => {
     if(_id && user) {
         for(let deck of user.decks) {
             if(deck._id == _id) {
-                res.json({ name: deck.name, list: deck.list, description: deck.description });
+                res.json({ name: deck.name, list: filterDeck(deck.list), description: deck.description });
                 break;
             }
         }
@@ -133,6 +138,7 @@ router.post("/deck/edit", async (req, res) => {
         if(deck) {
             deck.name = name || deck.name;
             deck.description = description || deck.description;
+            // TODO: 檢查牌組的合法性
             deck.list = list || deck.list;
             user.save();
             res.json({ _id: deck._id, name: deck.name, description: deck.description });

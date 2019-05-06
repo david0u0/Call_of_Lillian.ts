@@ -7,6 +7,7 @@ import { PlayerMaster } from "./master/player_master";
 import { GameMaster } from "./master/game_master";
 
 abstract class KnownCard extends Card implements IKnownCard {
+    public readonly tested = false;
     public abstract readonly card_type: CardType;
     public abstract readonly name: string;
     public abstract readonly description: string;
@@ -195,7 +196,7 @@ abstract class Character extends KnownCard implements ICharacter {
         }
         return this._assault;
     }
-    protected readonly _assault: boolean = false;
+    protected _assault: boolean = false;
 
     public readonly change_char_tired_chain = new ActionChain<boolean>();
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();

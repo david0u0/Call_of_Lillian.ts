@@ -23,7 +23,7 @@ export default class E extends Event implements IEvent {
 
     setupAliveEffect() {
         // 插入一條不會被屏蔽的規則，使本事件不可推進
-        this.add_progress_chain.appendCheckDefaul(() => {
+        this.add_progress_chain.appendCheckDefault(() => {
             return { var_arg: false };
         });
 

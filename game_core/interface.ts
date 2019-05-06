@@ -24,6 +24,7 @@ type Ability = {
 };
 
 interface IKnownCard extends ICard {
+    readonly tested: boolean;
     readonly abs_name: string; // 用來唯一辨別一張卡牌的名字
     readonly name: string; // 顯示用的名字，可能是不同語言
     readonly description: string;

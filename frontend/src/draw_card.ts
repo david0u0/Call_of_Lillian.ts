@@ -64,6 +64,9 @@ function formatCardInfoStr(card: IKnownCard) {
     if(card.instance && !TG.isUpgrade(card)) {
         infos.push("瞬間");
     }
+    if(!card.tested) {
+        infos.push("未測試");
+    }
     return `${type}${infos.length > 0 ? "-" : ""}${infos.join("．")}`;
 }
 
