@@ -8,7 +8,7 @@ import * as config from "./config";
 
 const PREFIX = "./dist/game_core/real_card";
 let card_class_table: {
-    [index: string]: { new(seq: number, owner: Player, gm: GameMaster): IKnownCard }
+    [index: string]: { new(seq: number, owner: Player, gm: GameMaster, abs_name: string): IKnownCard }
 } = {};
 
 let card_type_dirs = fs.readdirSync(PREFIX);
@@ -27,7 +27,7 @@ for(let type_name of card_type_dirs) {
 
 function generateCard(abs_name: string, owner: Player, seq: number, gm: GameMaster) {
     let C = card_class_table[abs_name];
-    return new C(seq, owner, gm);
+    return new C(seq, owner, gm, abs_name);
 }
 
 const global_dummy_gm = new GameMaster(new TestSelecter(), generateCard);

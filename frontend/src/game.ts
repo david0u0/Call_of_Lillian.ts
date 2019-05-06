@@ -24,8 +24,8 @@ async function initGameWithServer(gm: GameMaster) {
     let res = await fetch("/api/game/decks");
     if(res.ok) {
         let data = await res.json();
-        let { my_deck, enemy_deck } = data;
-        await initiateGame(gm, my_deck, enemy_deck);
+        let { info1, info2, mode } = data;
+        await initiateGame(gm, info1, info2, mode);
     } else {
         throw "找不到牌組";
     }

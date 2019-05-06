@@ -3,19 +3,18 @@ import { Constant } from "./general_rules";
 import { GameMaster } from "./master/game_master";
 import Dummy from "./real_card/arena/dummy_arena";
 import BasicHospital from "./real_card/arena/M市立綜合醫院";
+import EventArena from "./real_card/arena/事件仲介所";
+import ArmySchool from "./real_card/arena/傭兵學校";
+import Pub from "./real_card/arena/彩虹橋下的酒館";
+import { IArena } from "./interface";
 
 // TODO: 應該要把 Keeper 傳進來?
 
-function genDummy(gm: GameMaster, owner: Player, pos: number) {
+function genArena(C: new (seq: number, owner: Player, gm: GameMaster, abs_name: string) => IArena,
+    gm: GameMaster, owner: Player, pos: number, abs_name: string
+) {
     return () => {
-        let arena = new Dummy(-1, owner, gm, Constant.DUMMY_NAME);
-        arena.data.position = pos;
-        return arena;
-    };
-}
-function genHospital(gm: GameMaster, owner: Player, pos: number) {
-    return () => {
-        let arena = new BasicHospital(-1, owner, gm, "M市立綜合醫院");
+        let arena = new C(-1, owner, gm, abs_name);
         arena.data.position = pos;
         return arena;
     };
@@ -27,13 +26,24 @@ interface IDeck {
     list: { abs_name: string, count: number }[],
 }
 
-export default async function initiateGame(gm: GameMaster, deck1: IDeck | null, deck2: IDeck | null) {
-    let decks = [deck1, deck2];
+type PlayerInfo = {
+    // TODO: Keeper Card
+    player: Player,
+    deck: IDeck | number;
+};
+
+export default async function initiateGame(gm: GameMaster,
+    info1: PlayerInfo, info2: PlayerInfo, mode: "DEV" | "RELEASE" | "TEST"
+) {
+    let info_table: { [player: number]: PlayerInfo } = { };
+    info_table[info1.player] = info1;
+    info_table[info2.player] = info2;
+
     for(let p of [Player.Player1, Player.Player2]) {
         let pm = gm.getMyMaster(p);
         await pm.addMana(Constant.INIT_MANA);
-        let deck = decks[p];
-        if(deck) {
+        let { deck } = info_table[p];
+        if(typeof deck == "object") {
             if(deck.list.length != Constant.DECK_COUNT) {
                 // throw new BadOperationError("牌庫張數有誤！");
             }
@@ -43,21 +53,33 @@ export default async function initiateGame(gm: GameMaster, deck1: IDeck | null, 
                 }
             }
         } else {
-            for(let i = 0; i < Constant.DECK_COUNT; i++) {
+            for(let i = 0; i < deck; i++) {
                 gm.genCardToDeck(p);
             }
         }
-        await gm.genCardToBoard(p, genDummy(gm, p, 0));
-        await gm.genCardToBoard(p, genDummy(gm, p, 1));
-        await gm.genCardToBoard(p, genHospital(gm, p, 2));
-        await gm.genCardToBoard(p, genDummy(gm, p, 3));
-        await gm.genCardToBoard(p, genDummy(gm, p, 4));
+        await gm.genCardToBoard(p, genArena(Dummy, gm, p, 0, Constant.DUMMY_NAME));
+        await gm.genCardToBoard(p, genArena(Dummy, gm, p, 1, Constant.DUMMY_NAME));
+        await gm.genCardToBoard(p, genArena(BasicHospital, gm, p, 2, "M市立綜合醫院"));
+        await gm.genCardToBoard(p, genArena(Dummy, gm, p, 3, Constant.DUMMY_NAME));
+        await gm.genCardToBoard(p, genArena(Dummy, gm, p, 4, Constant.DUMMY_NAME));
 
         await gm.genCardToBoard(p, "見習魔女");
         await gm.genCardToBoard(p, "見習魔女");
 
         for(let i = 0; i < Constant.INIT_HAND; i++) {
             await pm.draw();
+        }
+        
+        if(mode != "RELEASE") {
+            // 給一堆資源方便測試
+            await pm.addMana(50);
+            await pm.addEmo(50);
+            await gm.genCardToBoard(p, "游擊隊員");
+            await gm.genCardToBoard(p, "游擊隊員");
+            await gm.genCardToBoard(p, "游擊隊員");
+            await gm.genCardToBoard(p, genArena(ArmySchool, gm, p, 1, "傭兵學校"));
+            await gm.genCardToBoard(p, genArena(EventArena, gm, p, 3, "事件仲介所"));
+            await gm.genCardToBoard(p, genArena(Pub, gm, p, 4, "彩虹橋下的酒館"));
         }
     }
     await gm.t_master.startBulding();
