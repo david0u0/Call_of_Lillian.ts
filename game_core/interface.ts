@@ -244,6 +244,7 @@ type SelectConfig<T extends IKnownCard, Stat extends CardStat = CardStat> = {
     guard: (c: IKnownCard) => c is T,
     stat: Stat,
     check: (c: T) => boolean,
+    count: number
     must_have_value: boolean,
     owner?: Player,
     is_tired?: boolean,
@@ -260,6 +261,8 @@ type _BasicKnownConfig<T extends IKnownCard> = {
     check?: (c: T) => boolean,
     /** 默認值：false */
     must_have_value?: boolean
+    /** 默認值：1 */
+    count?: number
 }
 type _UnKnownConfig<T extends IKnownCard> = {
     guard: (c: IKnownCard) => c is T,
@@ -267,6 +270,7 @@ type _UnKnownConfig<T extends IKnownCard> = {
     owner: Player,
     check?: (c: T) => boolean,
     must_have_value?: boolean
+    count?: number
 }
 type _KnownCharConfig = _BasicKnownConfig<ICharacter>
     & { is_tired?: boolean, char_stat?: CharStat };
@@ -287,6 +291,7 @@ export function buildConfig<T extends IKnownCard>(arg: Partial<SelectConfig<T>>)
         stat: typeof arg.stat == "undefined" ? CardStat.Onboard : arg.stat,
         check: typeof arg.check == "undefined" ? () => true : arg.check,
         must_have_value: typeof arg.must_have_value == "undefined" ? false : arg.must_have_value,
+        count: typeof arg.count == "undefined" ? 1 : arg.count
     };
 }
 

@@ -229,7 +229,7 @@ class DeckUI {
         this.list_view.addChild(rec);
         let name = this.card_table[pair.abs_name].name;
         let txt = new PIXI.Text(`${name} x ${pair.count}`, new PIXI.TextStyle({
-            fill: 0, fontSize: rec_h*0.6
+            fill: 0, fontSize: rec_h*0.5
         }));
         txt.position.set(0, index * rec_h);
         rec.addChild(txt);
@@ -297,6 +297,7 @@ async function setup() {
         try {
             return generateCard(name, Player.Player1, -1, gm);
         } catch(e) {
+            console.log(e);
             return null;
         }
     }).filter(card => card && card.deck_count > 0)

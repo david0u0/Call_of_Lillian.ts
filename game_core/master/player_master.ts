@@ -499,16 +499,19 @@ export class PlayerMaster {
             await Promise.resolve(event.setupFinishEffect(char));
         });
     }
-    getPushCost(char: ICharacter | null, event: IEvent, nonce: number) {
+    getPushCost(char: ICharacter | null, event: IEvent, nonce: number, mask_id: number[] = []) {
         let get_push_cost_chain = this.get_push_cost_chain.chain(event.get_push_cost_chain, char);
         if(char) {
             get_push_cost_chain = get_push_cost_chain.chain(char.get_push_cost_chain, event);
         }
-        return get_push_cost_chain.trigger(event.push_cost, { char, event }, nonce);
+        return get_push_cost_chain.trigger(event.push_cost, { char, event }, nonce, mask_id);
     }
-    async addEvenProgress(event: IEvent, char: ICharacter | null, _n: number): Promise<boolean>;
-    async addEvenProgress(event: IEvent, char: ICharacter | null, by_keeper?: boolean): Promise<boolean>;
-    async addEvenProgress(event: IEvent, char: ICharacter | null, arg?: boolean | number) {
+    async addEventProgress(event: IEvent, char: ICharacter | null,
+        n: number, mask_id?: number[]): Promise<boolean>;
+    async addEventProgress(event: IEvent, char: ICharacter | null, by_keeper: true): Promise<boolean>;
+    async addEventProgress(event: IEvent, char: ICharacter | null,
+        arg: boolean | number, mask_id: number[] = []
+    ) {
         let nonce = this.t_master.nonce;
         // TODO: before_action_chain
         if(this.t_master.cur_player != this.player) {
@@ -520,7 +523,7 @@ export class PlayerMaster {
         }
         let is_push = true;
         let n = 1;
-        let by_keeper: boolean | undefined;
+        let by_keeper: boolean;
         if(typeof arg == "number") {
             n = arg;
             is_push = false;
@@ -529,14 +532,14 @@ export class PlayerMaster {
             by_keeper = arg;
         }
 
-        let cost = this.getPushCost(char, event, nonce);
+        let cost = this.getPushCost(char, event, nonce, mask_id);
 
         if(HR.checkPush(event, char, this.mana, cost)) {
             let push_chain = this.add_progress_chain.chain(event.add_progress_chain, { char, n, is_push });
             if(TG.isCard(char)) {
                 push_chain = push_chain.chain(char.push_chain, event);
             }
-            if(push_chain.checkCanTrigger({ event, char, n, is_push }, nonce)) {
+            if(push_chain.checkCanTrigger({ event, char, n, is_push }, nonce, mask_id)) {
                 await this.addMana(-cost);
                 if(char) {
                     await this.changeCharTired(char, true);
@@ -550,7 +553,7 @@ export class PlayerMaster {
                         // 事件已完成
                         await this.finishEvent(char, event);
                     }
-                });
+                }, mask_id);
                 await this.t_master.spendAction();
                 return true;
             } else {
@@ -563,11 +566,11 @@ export class PlayerMaster {
     }
 
     // 底下所有函式都是「我的角色」與「任何人的場所」
-    getEnterCost(char: ICharacter, arena: IArena, nonce: number): number {
+    getEnterCost(char: ICharacter, arena: IArena, nonce: number, mask_id: number[] = []): number {
         // NOTE: 觸發順序：場所 -> 角色 -> 世界
         return this.get_enter_cost_chain.chain(arena.get_enter_cost_chain, char)
         .chain(char.get_enter_cost_chain, arena)
-        .trigger(0, { char, arena }, nonce);
+        .trigger(0, { char, arena }, nonce, mask_id);
     }
     async enterArena(arena: IArena, char: ICharacter, by_keeper = false, mask_id: number[] = []) {
         if(this.t_master.cur_player != this.player && by_keeper) {
@@ -580,7 +583,7 @@ export class PlayerMaster {
         let nonce = this.t_master.nonce;
         // NOTE: before_action_chain
 
-        let cost = this.getEnterCost(char, arena, nonce);
+        let cost = this.getEnterCost(char, arena, nonce, mask_id);
         if(HR.checkEnter(char, arena, this.mana, cost)) {
             let enter_chain = this.enter_chain.chain(arena.enter_chain, char)
             .chain(char.enter_chain, arena);

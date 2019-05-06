@@ -4,7 +4,7 @@ import { IArena, ICharacter, TypeGaurd as TG, IKnownCard, ICard, buildConfig } f
 import { BadOperationError } from "../../errors";
 
 let name = "市立圖書館";
-let description = "使用：2魔力->抽兩張牌，接著放逐一張手牌。";
+let description = "使用：1魔力->抽兩張牌，接著放逐一張手牌。";
 
 export default class A extends Arena implements IArena {
     name = name;

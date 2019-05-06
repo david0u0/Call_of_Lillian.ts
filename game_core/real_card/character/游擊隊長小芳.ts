@@ -9,7 +9,7 @@ let description = `突擊
 export default class C extends Character {
     name = name;
     description = description;
-    basic_mana_cost = 6;
+    basic_mana_cost = 5;
     basic_strength = 2;
     basic_battle_role = { can_attack: true, can_block: true };
     protected _assault = true;
@@ -19,7 +19,7 @@ export default class C extends Character {
             if(TypeGaurd.isCharacter(card)) {
                 if(this.char_status == CharStat.InWar
                     && card.char_status == CharStat.InWar
-                    && card.name == "游擊隊員"
+                    && card.abs_name == "游擊隊員"
                 ) {
                     return { var_arg: str + 1 };
                 }

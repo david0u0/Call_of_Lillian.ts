@@ -9,7 +9,7 @@ export default class C extends Character {
     name = name;
     description = description;
     basic_strength = 2;
-    basic_mana_cost = 5;
+    basic_mana_cost = 4;
 
     setupAliveEffect() {
         let wm = this.g_master.w_master;

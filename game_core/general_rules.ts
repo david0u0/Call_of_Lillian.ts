@@ -103,9 +103,7 @@ export class SoftRule {
         add_progress_chain: ActionChain<{ char: ICharacter | null, event: IEvent, n: number, is_push: boolean }>
     ) {
         add_progress_chain.appendCheck(({ char, event }) => {
-            if(this.getPhase() != GamePhase.InAction) {
-                return { var_arg: "只能在主階段行動時推進事件"};
-            } else if(event.cur_progress_count >= event.goal_progress_count) {
+            if(event.cur_progress_count >= event.goal_progress_count) {
                 return { var_arg: "不可推進已達目標的事件"};
             } else if(TG.isCard(char) && char.is_tired) {
                 if(char.is_tired) {
@@ -114,7 +112,11 @@ export class SoftRule {
                     return { var_arg: "只可用待命中的角色來推進" };
                 }
             }
-        });
+        }).appendCheck(() => {
+            if(this.getPhase() != GamePhase.InAction) {
+                return { var_arg: "只能在主階段行動時推進事件"};
+            }
+        }, undefined, RuleEnums.CheckPhaseWhenPush);
     }
     // 理論上，當任務成功，完成的角色應該退場
     public onFinish(finish_chain: ActionChain<{ char: ICharacter | null, event: IEvent }>,

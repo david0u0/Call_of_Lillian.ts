@@ -74,6 +74,8 @@ export enum GamePhase {
 
 export enum RuleEnums {
     Any,
+    Possessed,
+    Beyond,
     
     ExitAfterExploit,
     RecoverEmoAfterRelease,
@@ -85,14 +87,13 @@ export enum RuleEnums {
     CheckQuotaBeforePlayChar,
     CheckPriceBeforePlay,
 
+    CheckStandbyWhenPlayUpgrade,
+
     CheckTiredWhenEnter,
     CheckPhaseWhenEnter,
 
-    CheckStandbyWhenPlayUpgrade,
-
     CheckPhaseWhenExploit,
-    
-    Possessed,
-    Beyond,
+
+    CheckPhaseWhenPush,
     
 }

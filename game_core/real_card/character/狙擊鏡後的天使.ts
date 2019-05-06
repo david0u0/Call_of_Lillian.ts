@@ -4,7 +4,7 @@ import { ConflictEnum } from "../../master/war_master";
 import { BadOperationError } from "../../errors";
 
 let name = "狙擊鏡後的天使";
-let description = `狙擊，超凡2（分數為2或以上才可打出）。
+let description = `狙擊，超凡1（分數為2或以上才可打出）。
 **準星之所向**：*狙擊鏡後的天使*攻擊不同場所的角色時，額外擁有2點戰力，且不會被擊退。`;
 
 export default class C2 extends Character {

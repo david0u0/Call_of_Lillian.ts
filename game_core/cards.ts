@@ -47,7 +47,6 @@ abstract class KnownCard extends Card implements IKnownCard {
     public setupAliveEffect() { }
     public onRetrieve() { }
 
-    protected prepare() { }
     constructor(seq: number, public readonly owner: Player,
         public readonly g_master: GameMaster, public readonly abs_name: string
     ) {
@@ -55,7 +54,6 @@ abstract class KnownCard extends Card implements IKnownCard {
         this.my_master = g_master.getMyMaster(owner);
         this.enemy_master = g_master.getEnemyMaster(owner);
         this._mem_data = { ...this.data };
-        this.prepare();
     }
 
     public rememberDatas() {

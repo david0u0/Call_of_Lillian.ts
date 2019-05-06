@@ -362,7 +362,7 @@ export class WarMaster {
     public async repulseChar(loser: ICharacter|ICharacter[], winner: ICharacter[]=[]) {
         if(loser instanceof Array) {
             for(let char of loser) {
-                await this.repulseChar(char);
+                await this.repulseChar(char, winner);
             }
         } else {
             await this.repulse_chain.chain(loser.repulse_chain, winner)

@@ -120,7 +120,7 @@ export class CharArea {
                             await this.gm.getMyMaster(this.player)
                             .enterArena(c_selected, char, true);
                         } else if(TypeGaurd.isEvent(c_selected) && !c_selected.is_finished) {
-                            await this.gm.getMyMaster(this.player).addEvenProgress(c_selected, char, true);
+                            await this.gm.getMyMaster(this.player).addEventProgress(c_selected, char, true);
                         }
                     }
                 })();

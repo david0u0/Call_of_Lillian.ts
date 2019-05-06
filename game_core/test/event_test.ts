@@ -54,30 +54,30 @@ describe("測試事件卡功能", () => {
         });
         it("玩家推進一次之後魔力應該減1", async () => {
             let mana = pm.mana;
-            await pm.addEvenProgress(event, char);
+            await pm.addEventProgress(event, char, true);
             assert.equal(pm.mana, mana - 1);
         });
         it("推進一次之後進度應該變成1", async () => {
             assert.equal(event.cur_progress_count, 0);
-            await pm.addEvenProgress(event, char);
+            await pm.addEventProgress(event, char, true);
             assert.equal(event.cur_progress_count, 1);
         });
         it("推進一次之後角色應該陷入疲勞", async () => {
             assert.equal(char.is_tired, false);
-            await pm.addEvenProgress(event, char);
+            await pm.addEventProgress(event, char, true);
             assert.equal(char.is_tired, true);
         });
         it("陷入疲勞的角色應該無法推進", async () => {
             await pm.changeCharTired(char, true);
             await checkBadOperationErrorAsync(async () => {
-                await pm.addEvenProgress(event, char);
+                await pm.addEventProgress(event, char, true);
             });
         });
         it("推進兩次之後會成功，魔力應該變為-1-1+5總共加3，總分變成1", async () => {
             assert.equal(pm.getScore(), 0, "一開始總分不為0");
             let mana = pm.mana;
-            await pm.addEvenProgress(event, char);
-            await pm.addEvenProgress(event, char2);
+            await pm.addEventProgress(event, char, true);
+            await pm.addEventProgress(event, char2, true);
             assert.equal(pm.mana, mana+3, "完成事件後魔力不對");
             assert.equal(pm.getScore(), 1, "完成後總分不對");
             assert.equal(event.is_finished, true, "完成後事件沒有標記為完成");
@@ -99,19 +99,19 @@ describe("測試事件卡功能", () => {
         });
         it("進入醫院前應該無法推進", async () => {
             await checkBadOperationErrorAsync(async () => {
-                await pm.addEvenProgress(event, char);
+                await pm.addEventProgress(event, char, true);
             });
         });
         it("進入醫院後應該就可以推進了", async () => {
             await pm.enterArena(hospital, char);
             await checkBadOperationErrorAsync(async () => {
-                await pm.addEvenProgress(event, char2);
+                await pm.addEventProgress(event, char2, true);
             }, false);
         });
         it("進入敵方的醫院應該也可以推進了", async () => {
             await pm.enterArena(e_hospital, char);
             await checkBadOperationErrorAsync(async () => {
-                await pm.addEvenProgress(event, char2);
+                await pm.addEventProgress(event, char2, true);
             }, false);
         });
     });

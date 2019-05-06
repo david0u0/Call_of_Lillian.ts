@@ -3,13 +3,13 @@ import { Arena } from "../../cards";
 import { IArena, ICharacter, TypeGaurd, IKnownCard } from "../../interface";
 
 let name = "意識遊樂場";
-let description = "使用：3魔力→使你的情緒恢復至本次收獲階段開始時的狀態，並免疫所有情緒傷害，直到收獲階段結束。";
+let description = "使用：4魔力→使你的情緒恢復至本次收獲階段開始時的狀態，並免疫所有情緒傷害，直到收獲階段結束。";
 
 export default class A extends Arena implements IArena {
     name = name;
     description = description;
     basic_mana_cost = 3;
-    basic_exploit_cost = 3;
+    basic_exploit_cost = 4;
     series = [ CardSeries.Entertainment ];
 
     public readonly data = {
@@ -21,6 +21,13 @@ export default class A extends Arena implements IArena {
     };
 
     setupAliveEffect() {
+        /** 絕不可在收獲階段以外使用 */
+        this.exploit_chain.appendCheckDefault(() => {
+            if(this.g_master.t_master.cur_phase != GamePhase.Exploit) {
+                return { var_arg: false };
+            }
+        });
+
         this.g_master.t_master.start_exploit_chain.append(() => {
             this.data.has_triggered1 = false;
             this.data.has_triggered2 = false;

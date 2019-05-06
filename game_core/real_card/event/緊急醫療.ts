@@ -3,7 +3,7 @@ import { IEvent, ICharacter, TypeGaurd as TG } from "../../interface";
 import { CardSeries, Player, checkBelongToSeries } from "../../enums";
 
 let name = "緊急醫療";
-let description = `推進：你有一個以上的角色處於醫院->得到1魔力。
+let description = `推進：你必須有角色處於醫院→得到1魔力。
 結算：你每個時代的魔力收入加2。`;
 
 export default class E extends Event implements IEvent {
