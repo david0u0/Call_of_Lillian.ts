@@ -49,7 +49,11 @@ function formatCardInfoStr(card: IKnownCard) {
             case CardType.Upgrade:
                 return "升級";
             case CardType.Spell:
-                return "咒語";
+                if(TG.isSpell(card) && card.max_caster == 0) {
+                    return "守護者咒語";
+                } else {
+                    return "咒語";
+                }
             case CardType.Event:
                 if(TG.isEvent(card) && card.is_ending) {
                     return "結局";
@@ -67,6 +71,7 @@ function formatCardInfoStr(card: IKnownCard) {
     if(!card.tested) {
         infos.push("未測試");
     }
+    infos = infos.filter(info => info ? true : false);
     return `${type}${infos.length > 0 ? "-" : ""}${infos.join("．")}`;
 }
 

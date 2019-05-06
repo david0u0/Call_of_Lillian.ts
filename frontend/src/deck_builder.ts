@@ -121,7 +121,9 @@ function drawPage(index: number, gm: GameMaster, card_list: IKnownCard[],
 
 class DeckUI {
     public view = new PIXI.Container();
-    public list_view = new PIXI.Container();
+    private list_view = new PIXI.Container();
+    private count_txt: PIXI.Text;
+    private readonly offset_y = 3 * eh;
     public get deck(): Deck {
         return {
             ...this._deck,
@@ -147,12 +149,15 @@ class DeckUI {
             this.onHover(null);
         });
         this.view.addChild(this.list_view);
+        this.list_view.position.set(0, this.offset_y);
         this.sortList();
         this.refreshUI();
     }
     scroll(sign: -1 | 1) {
         let new_y = this.list_view.y - sign * 30;
-        if(new_y <= 0 && new_y > this.mask.height * 0.9 - this.list_view.height) {
+        if(new_y <= this.offset_y 
+            && new_y > this.mask.height * 0.9 - this.list_view.height + this.offset_y
+        ) {
             this.list_view.y = new_y;
         }
     }
@@ -162,10 +167,23 @@ class DeckUI {
         this.width = width;
         this.mask = new PIXI.Graphics();
         this.mask.beginFill(0);
-        this.mask.drawRect(0, 0, width * 1.1, eh * 34);
+        this.mask.drawRect(0, this.offset_y, width * 1.1, eh * 31);
         this.mask.endFill();
         this.list_view.mask = this.mask;
         this.view.addChild(this.mask);
+
+        let name_txt = new PIXI.Text(this._deck.name, new PIXI.TextStyle({
+            fontSize: 1.5*eh,
+            fill: 0
+        }));
+        this.count_txt = new PIXI.Text("", new PIXI.TextStyle({
+            fontSize: 1.2*eh,
+            fill: 0
+        }));
+        this.count_txt.anchor.set(1, 0);
+        this.count_txt.position.set(width, 1.7 * eh);
+        this.view.addChild(name_txt);
+        this.view.addChild(this.count_txt);
         this.refreshUI();
     }
     private onChangeFunc = () => {};
@@ -209,13 +227,19 @@ class DeckUI {
     }
     refreshUI() {
         if(this.width) {
-            this.sortList();
+            // 清掉舊圖
             for(let child of [...this.list_view.children]) {
                 child.destroy();
             }
+            // 畫卡牌列表
+            let count = 0;
+            this.sortList();
             for(let [i, pair] of this._deck.list.entries()) {
                 this.drawPair(i, pair);
+                count += pair.count;
             }
+            // 更新卡牌張數
+            this.count_txt.text = count.toString();
         }
         this.onChangeFunc();
     }

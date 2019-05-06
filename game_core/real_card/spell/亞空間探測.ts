@@ -11,8 +11,8 @@ export default class S extends Spell {
     basic_mana_cost = 3;
     can_play_phase = [GamePhase.InAction];
 
-    protected max_caster = 1;
-    protected min_caster = 1;
+    max_caster = 1;
+    min_caster = 1;
 
     async onPlay() {
         await super.onPlay();

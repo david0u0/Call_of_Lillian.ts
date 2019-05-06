@@ -147,7 +147,7 @@ abstract class KnownCard extends Card implements IKnownCard {
 }
 
 abstract class Upgrade extends KnownCard implements IUpgrade {
-    public card_type = CardType.Upgrade;
+    public readonly card_type = CardType.Upgrade;
     public can_play_phase = [GamePhase.InAction];
     public abstract readonly basic_strength: number;
     public readonly instance = true; // 升級卡不會暫用時間
@@ -407,8 +407,8 @@ abstract class Event extends KnownCard implements IEvent {
 
 abstract class Spell extends KnownCard implements ISpell {
     public readonly card_type = CardType.Spell;
-    protected max_caster = 0;
-    protected min_caster = 0;
+    public readonly max_caster: number = 0;
+    public readonly min_caster: number = 0;
 
     readonly data = {
         casters: new Array<ICharacter>()

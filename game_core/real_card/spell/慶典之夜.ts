@@ -4,8 +4,7 @@ import { ICharacter, TypeGaurd, IArena, buildConfig } from "../../interface";
 import { BadOperationError } from "../../errors";
 
 let name = "慶典之夜";
-let description = `本咒語不需要施術者。
-選擇一個場所並宣戰，期間你每擊退一個角色，恢復一點情緒，並造成對手一點情緒傷害。`;
+let description = "選擇一個場所並宣戰，期間你每擊退一個角色，恢復一點情緒，並造成對手一點情緒傷害。";
 
 export default class S extends Spell {
     name = name;

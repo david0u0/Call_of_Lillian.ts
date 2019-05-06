@@ -13,8 +13,8 @@ export default class S extends Spell {
     basic_mana_cost = 3;
     can_play_phase = [GamePhase.InAction];
 
-    protected max_caster = 1;
-    protected min_caster = 1;
+    max_caster = 1;
+    min_caster = 1;
 
     check_before_play_chain = this.posessed(5, this.enemy_master.player);
 

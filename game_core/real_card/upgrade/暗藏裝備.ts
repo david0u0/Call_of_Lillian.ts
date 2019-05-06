@@ -11,8 +11,8 @@ export default class U extends Upgrade {
     get description() {
         return `以一個瞬間行動裝備暗藏的升級卡（${this.getName()}）。`;
     };
-    basic_mana_cost = 4;
-    basic_strength = 1;
+    basic_mana_cost = 0;
+    basic_strength = 0;
 
     data: {
         character_equipped: ICharacter|null,
@@ -43,7 +43,7 @@ export default class U extends Upgrade {
         }
     }
 
-    get _abilities() {
+    get abilities() {
         let name = this.getName();
         let description = name ? `啟動${name}` : "啟動";
         return [{

@@ -71,6 +71,7 @@ interface IEvent extends IKnownCard { };
 interface ISpell extends IKnownCard { };
 
 interface IUpgrade extends IKnownCard {
+    readonly card_type: CardType.Upgrade;
     readonly basic_strength: number;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
     readonly assault: boolean;
@@ -80,6 +81,7 @@ interface IUpgrade extends IKnownCard {
     }
 }
 interface ICharacter extends IKnownCard {
+    readonly card_type: CardType.Character;
     readonly basic_strength: number;
     readonly basic_battle_role: BattleRole;
     readonly upgrade_list: IUpgrade[];
@@ -116,6 +118,7 @@ interface ICharacter extends IKnownCard {
 }
 
 interface IArena extends IKnownCard {
+    readonly card_type: CardType.Arena;
     readonly char_list: Array<ICharacter|null>;
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
@@ -141,6 +144,7 @@ interface IArena extends IKnownCard {
     find(tar: ICharacter | null): number;
 }
 interface IEvent extends IKnownCard {
+    readonly card_type: CardType.Event;
     readonly goal_progress_count: number;
     readonly cur_progress_count: number;
     readonly init_time_count: number;
@@ -169,6 +173,9 @@ interface IEvent extends IKnownCard {
     setTimeCount(time_count: number): void;
 }
 interface ISpell extends IKnownCard {
+    readonly card_type: CardType.Spell;
+    readonly max_caster: number;
+    readonly min_caster: number;
     readonly data: {
         [field: string]: DataField
         casters: ICharacter[]
@@ -302,12 +309,6 @@ interface ISelecter {
     selectCard<T extends IKnownCard>(player: Player,
         caller: Caller, conf: SelectConfig<T, _UnKnownStat>
     ): Promise<T | UnknownCard | null>;
-    /*selectCard(player: Player, caller: Caller, conf: _KnownCharConfig): Promise<ICharacter | null>;
-    selectCard(player: Player, caller: Caller, conf: _KnownEventConfig): Promise<IEvent | null>;
-    selectCard<T extends IKnownCard>(player: Player, caller: Caller,
-        conf: _BasicKnownConfig<T>): Promise<T | null>;
-    selectCard<T extends IKnownCard>(player: Player, caller: Caller,
-        conf: _UnKnownConfig<T>): Promise<T | UnknownCard | null>;*/
 
     selectCardInteractive: ISelecter["selectCard"];
 
