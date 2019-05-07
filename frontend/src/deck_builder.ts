@@ -11,6 +11,7 @@ import FrontendSelecter from "./frontend_selecter";
 import generateCard from "./generate_card";
 import { drawCard, getCardSize } from "./draw_card";
 import { my_loader } from "./card_loader";
+import { SearchViewer } from "./search_viewer";
 
 let app = new PIXI.Application(getWinSize());
 
@@ -60,65 +61,6 @@ async function getDeck() {
     throw "找不到牌組";
 }
 
-const PAGE_LIMIT = 10;
-function drawPage(index: number, gm: GameMaster, card_list: IKnownCard[],
-    showBigCard: ShowBigCard, onClick: (card: IKnownCard) => void,
-    onHover: (card: IKnownCard, inside: boolean) => void
-) {
-    let view = new PIXI.Container();
-    let cards = card_list.slice(PAGE_LIMIT * index, PAGE_LIMIT * (index + 1));
-    let { width, height } = getCardSize(ew * 6, eh * 18.5);
-    for(let c of cards) {
-        my_loader.add(c);
-    }
-    return new Promise<{ view: PIXI.Container, destroy: () => void }>(resolve => {
-        my_loader.load(() => {
-            let cleanup_funcs = new Array<() => void>();
-            for(let i = 0; i < 2; i++) {
-                for(let j = 0; j < 5; j++) {
-                    let n = i * 5 + j;
-                    let card = cards[n];
-                    if(!card) {
-                        break;
-                    }
-                    let card_ui = drawCard(gm, card, width, height, true);
-                    card_ui.position.set(ew * 7 * j, eh * 20 * i);
-                    card_ui.addChild(card_ui);
-                    card_ui.interactive = true;
-                    card_ui.cursor = "pointer";
-                    cleanup_funcs.push(null);
-                    card_ui.on("mouseover", () => {
-                        onHover(card, true);
-                        let destroy_big = showBigCard(card_ui.x + card_ui.width / 2,
-                            card_ui.y + card_ui.height / 2, card);
-                        cleanup_funcs[n] = () => {
-                            onHover(card, false);
-                            destroy_big();
-                        };
-                    });
-                    card_ui.on("mouseout", () => {
-                        onHover(card, false);
-                        if(cleanup_funcs[n]) {
-                            cleanup_funcs[n]();
-                        }
-                    });
-                    card_ui.on("click", () => onClick(card));
-                    view.addChild(card_ui);
-                }
-            }
-            let destroy = () => {
-                for(let f of cleanup_funcs) {
-                    if(f) {
-                        f();
-                    }
-                    view.destroy();
-                }
-            };
-            resolve({ view, destroy });
-        });
-    });
-}
-
 class DeckUI {
     public view = new PIXI.Container();
     private list_view = new PIXI.Container();
@@ -155,7 +97,7 @@ class DeckUI {
     }
     scroll(sign: -1 | 1) {
         let new_y = this.list_view.y - sign * 30;
-        if(new_y <= this.offset_y 
+        if(new_y <= this.offset_y * 1.1
             && new_y > this.mask.height * 0.9 - this.list_view.height + this.offset_y
         ) {
             this.list_view.y = new_y;
@@ -360,45 +302,22 @@ async function setup() {
     let deck_backup = deck_ui.deck;
     app.stage.addChild(deck_ui.view);
 
-    let index = 0;
-    let max_page = Math.floor(cards.length / PAGE_LIMIT) + (cards.length % PAGE_LIMIT == 0 ? 0 : 1);
-    let page_txt = new PIXI.Text(`${index+1}/${max_page}`, new PIXI.TextStyle({
-        fontSize: 30, fill: 0
-    }));
-    page_txt.position.set(0, height-page_txt.height);
-    app.stage.addChild(page_txt);
-
-    let { view, destroy } = await drawPage(0, gm, cards, show_big_card,
-        c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside));
-    let loading = false;
-    app.stage.addChild(view);
-
-    document.addEventListener("wheel", async evt => {
-        if(loading) {
-            return;
-        }
-        let delta = evt.wheelDelta? evt.wheelDelta : -evt.deltaY;
-        let sign: 1 | -1 = delta > 0 ? -1 : 1;
-        index += sign;
+    document.addEventListener("wheel", evt => { 
         if(deck_ui.hovering) {
+            let delta = evt.wheelDelta ? evt.wheelDelta : -evt.deltaY;
+            let sign: 1 | -1 = delta > 0 ? -1 : 1;
             deck_ui.scroll(sign);
-        } else if(index < 0) {
-            index = 0;
-        } else if(index >= max_page) {
-            index = max_page - 1;
-        } else {
-            page_txt.text = `${index + 1}/${max_page}`;
-            loading = true;
-            destroy();
-            ({ view, destroy } = await drawPage(index, gm, cards, show_big_card,
-                c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside)));
-            app.stage.addChild(view);
-            loading = false;
         }
     });
-    let left_space = width - view.width;
+
+    let search_viewer = new SearchViewer(gm, show_big_card);
+    app.stage.addChild(search_viewer.view);
+    await search_viewer.show(cards,
+        c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside));
+
+    let left_space = width - search_viewer.view.width;
     deck_ui.setWidth(left_space * 0.8);
-    deck_ui.view.position.set(view.width + left_space * 0.1, 0);
+    deck_ui.view.position.set(search_viewer.view.width + left_space * 0.1, 0);
 
     let save_btn = drawBtn("儲存", 0x15b1f4, left_space*0.8, eh*2, async () => {
         if(checkIfChanged(deck_backup, deck_ui.deck)) {
@@ -414,7 +333,7 @@ async function setup() {
         }
     });
     save_btn.visible = checkIfChanged(deck_ui.deck, deck_backup);
-    save_btn.position.set(view.width + left_space * 0.1, eh * 36);
+    save_btn.position.set(search_viewer.view.width + left_space * 0.1, eh * 36);
     deck_ui.setOnChange(() => {
         save_btn.visible = (checkIfChanged(deck_ui.deck, deck_backup));
     });
@@ -428,7 +347,7 @@ async function setup() {
             window.location.href = "/app";
         }
     });
-    back_btn.position.set(view.width + left_space * 0.1, eh * 39);
+    back_btn.position.set(search_viewer.view.width + left_space * 0.1, eh * 39);
 
     app.stage.addChild(save_btn);
     app.stage.addChild(back_btn);
