@@ -7,6 +7,7 @@ import { GameMaster } from "../../game_core/master/game_master";
 import FrontendSelecter, { SelectState } from "./frontend_selecter";
 import { ShowBigCard } from "./show_big_card";
 import { IKnownCard, IEvent, TypeGaurd } from "../../game_core/interface";
+import { SearchViewer } from "./search_viewer";
 
 let { ew, eh } = getEltSize();
 let W = 5.5 * ew;
@@ -14,6 +15,7 @@ let W = 5.5 * ew;
 export class EventArea {
     public readonly view = new PIXI.Container();
     public readonly event_view = new PIXI.Container();
+    public search_viewer: SearchViewer = null;
     private list = new Array<IEvent>();
     private finish_list = new Array<IEvent>();
     constructor(private player: Player, private gm: GameMaster, private selecter: FrontendSelecter,
@@ -164,6 +166,9 @@ export class EventArea {
             destroy_big();
         }
     }
+
+    /** NOTE: 如果選擇器要使用 viewer，記得要先呼叫這個函式 */
+    public hide_viewer = () => { };
     drawTotalScore(size: number) {
         let icon = new PIXI.Container();
         let bg = new PIXI.Sprite(PIXI.loader.resources["score_pop"].texture);
@@ -186,7 +191,25 @@ export class EventArea {
 
         icon.interactive = true;
         icon.cursor = "pointer";
-        // TODO: 打開一個新的視窗檢視完成的任務
+
+        this.hide_viewer = () => {
+            if(!this.search_viewer.hovering_page) {
+                this.search_viewer.hide();
+                window.removeEventListener("mousedown", this.hide_viewer);
+            }
+        };
+
+        icon.on("click", async () => {
+            if(this.selecter.selecting == SelectState.Card) {
+                // 在選擇的時候不要打開
+            } else {
+                let evts = this.gm.getMyMaster(this.player).events_finished;
+                if(evts.length > 0) {
+                    await this.search_viewer.show(evts);
+                    window.addEventListener("mousedown", this.hide_viewer);
+                }
+            }
+        });
 
         return icon;
     }

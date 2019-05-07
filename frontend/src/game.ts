@@ -18,6 +18,7 @@ import generateCard from "./generate_card";
 import { EventArea } from "./event_area";
 import { PhaseNotifier } from "./phase_notifier";
 import { FrontendWarMaster } from "./frontend_war_master";
+import { SearchViewer } from "./search_viewer";
 
 let app = new PIXI.Application(getWinSize());
 async function initGameWithServer(gm: GameMaster) {
@@ -48,9 +49,23 @@ PIXI.loader
 .add("countdown_prompt", require("../assets/countdown_prompt.png"))
 .load(setup);
 
+class ConcreatSearchViewer extends SearchViewer {
+    private bg = new PIXI.Graphics();
+    constructor(gm: GameMaster, showBigCard: ShowBigCard, width: number, height: number) {
+        super(gm, showBigCard, width, height);
+        this.view.addChildAt(this.bg, 0);
+    }
+    drawBG(color: number, alpha: number) {
+        this.bg.clear();
+        this.bg.beginFill(color, alpha);
+        this.bg.drawRoundedRect(0, 0, this.view.width, this.view.height, 5);
+    }
+}
+
 async function setup() {
     let me = Player.Player1;
     let { width, height } = getWinSize();
+    let { ew, eh } = getEltSize();
     let selecter = new FrontendSelecter(me, app.ticker);
     let gm = new GameMaster(selecter, generateCard);
 
@@ -59,10 +74,14 @@ async function setup() {
     ) => {
         return showBigCard(gm, app.stage, x, y, card, app.ticker, conf);
     };
+    let search_viewer = new ConcreatSearchViewer(gm, show_big_card, ew * 30, eh * 35);
+    search_viewer.drawBG(0xffffff, 0.7);
+    search_viewer.view.pivot.set(search_viewer.view.width / 2, search_viewer.view.height / 2);
+    search_viewer.view.position.set(ew * 21, eh * 21);
+    selecter.search_viewer = search_viewer;
 
-    let { ew, eh } = getEltSize();
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
-    let ratio = width / bg.width; 
+    let ratio = Math.max(width / bg.width, height / bg.height);
     bg.scale.set(ratio);
 
     app.stage.addChild(bg);
@@ -80,8 +99,10 @@ async function setup() {
     char_area2.view.position.set(0, 28.5*eh);
 
     let event_area1 = new EventArea(1-me, gm, selecter, show_big_card, app.ticker);
+    event_area1.search_viewer = search_viewer;
     event_area1.view.position.set(36.5*ew, 20.8*eh-event_area1.view.height);
     let event_area2 = new EventArea(me, gm, selecter, show_big_card, app.ticker);
+    event_area2.search_viewer = search_viewer;
     event_area2.view.position.set(36.5*ew, 21.2*eh);
 
     let phase_notifier = new PhaseNotifier(gm, me, selecter, app.ticker);
@@ -121,6 +142,7 @@ async function setup() {
     app.stage.addChild(f_w_master.view);
     app.stage.addChild(phase_notifier.view);
     app.stage.addChild(selecter.view);
+    app.stage.addChild(search_viewer.view);
     app.stage.addChild(selecter.prompt_txt);
 }
 

@@ -6,6 +6,7 @@ import { BadOperationError } from "../../game_core/errors";
 import { Player, CharStat, CardStat } from "../../game_core/enums";
 import { ShowBigCard } from "./show_big_card";
 import { getCardSize } from "./draw_card";
+import { SearchViewer } from "./search_viewer";
 
 export enum SelectState { Text, OnBoard, None, Btn, Card };
 
@@ -19,6 +20,7 @@ export default class FrontendSelecter implements ISelecter {
     public view = new PIXI.Container();
     public cancel_view = new PIXI.Graphics();
     public prompt_txt: PIXI.Text;
+    public search_viewer: SearchViewer = null;
 
     private _mem = new Array<number>();
     

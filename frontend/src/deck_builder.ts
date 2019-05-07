@@ -275,7 +275,7 @@ async function setup() {
         return showBigCard(gm, app.stage, x, y, card, app.ticker, conf);
     };
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
-    let ratio = width / bg.width;
+    let ratio = Math.max(width / bg.width, height / bg.height);
     bg.scale.set(ratio);
     app.stage.addChild(bg);
 
@@ -310,7 +310,7 @@ async function setup() {
         }
     });
 
-    let search_viewer = new SearchViewer(gm, show_big_card);
+    let search_viewer = new SearchViewer(gm, show_big_card, 35 * ew, 42 * eh);
     app.stage.addChild(search_viewer.view);
     await search_viewer.show(cards,
         c => deck_ui.addCard(c), (c, inside) => deck_ui.highlight(c, inside));

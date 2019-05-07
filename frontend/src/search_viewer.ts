@@ -7,48 +7,54 @@ import { getCardSize, drawCard } from "./draw_card";
 import { my_loader } from "./card_loader";
 
 const PAGE_LIMIT = 10;
-const { ew, eh } = getEltSize();
-const { height, width } = getWinSize();
 
 export class SearchViewer {
     public readonly view = new PIXI.Container();
-    private hovering_page = false;
+    private _hovering_page = false;
+    public get hovering_page() { return this._hovering_page; }
     private page_view = new PIXI.Container();
     private index_txt: PIXI.Text;
     private cleanup_funcs = new Array<(() => void) | null>();
     private onClick: (card: IKnownCard) => void;
     private onHover: (card: IKnownCard, inside: boolean) => void;
-    constructor(private gm: GameMaster, private showBigCard: ShowBigCard) {
+    constructor(private gm: GameMaster, private showBigCard: ShowBigCard, width: number, height: number) {
+        this.view.visible = false;
         this.index_txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: 30, fill: 0
         }));
         this.index_txt.anchor.set(0, 1);
-        this.index_txt.position.set(0, height);
         this.view.addChild(this.index_txt);
         this.view.addChild(this.page_view);
-        this.page_view.interactive = true;
-        this.page_view.on("mouseover", () => this.hovering_page = true);
-        this.page_view.on("mouseout", () => this.hovering_page = false);
+        this.view.interactive = true;
+        this.view.on("mouseover", () => this._hovering_page = true);
+        this.view.on("mouseout", () => this._hovering_page = false);
+
+        let dummy_rec = new PIXI.Graphics();
+        dummy_rec.beginFill(0, 0);
+        dummy_rec.drawRect(0, 0, width, height);
+        dummy_rec.endFill();
+        this.view.addChild(dummy_rec);
+        this.index_txt.position.set(0, height);
     }
 
     private onWheel = (evt: WheelEvent) => { };
 
-    public async show(card_list: IKnownCard[], onClick: (card: IKnownCard) => void, 
+    public async show(card_list: IKnownCard[], onClick = (card: IKnownCard) => { }, 
         onHover = (card: IKnownCard, inside: boolean) => { }
     ) {
-        this.view.visible = true;
         this.onClick = onClick;
         this.onHover = onHover;
+        this.destroyPage();
+        this.view.visible = true;
 
         let len = card_list.length;
         let page_len = Math.floor(len / PAGE_LIMIT) + (len % PAGE_LIMIT == 0 ? 0 : 1);
-        this.destroyPage();
         await this.showPage(card_list, 0, page_len);
 
         let index = 0;
         let loading = false;
         this.onWheel = async evt => {
-            if(loading || !this.hovering_page) {
+            if(loading || !this._hovering_page) {
                 return;
             }
             let delta = evt.wheelDelta ? evt.wheelDelta : -evt.deltaY;
@@ -87,7 +93,7 @@ export class SearchViewer {
         this.index_txt.text = `${index + 1}/${page_len}`;
 
         card_list = card_list.slice(index * PAGE_LIMIT, index * PAGE_LIMIT + PAGE_LIMIT);
-        let { width, height } = getCardSize(ew * 6, eh * 18.5);
+        let { width, height } = getCardSize(this.view.width / 5.2, this.view.height / 2.6);
 
         for(let c of card_list) {
             my_loader.add(c);
@@ -102,7 +108,7 @@ export class SearchViewer {
                             break;
                         }
                         let card_ui = drawCard(this.gm, card, width, height, true);
-                        card_ui.position.set(ew * 7 * j, eh * 20 * i);
+                        card_ui.position.set(this.view.width / 5 * j, this.view.height / 2 * i);
                         card_ui.addChild(card_ui);
                         card_ui.interactive = true;
                         card_ui.cursor = "pointer";
@@ -127,11 +133,6 @@ export class SearchViewer {
                         this.page_view.addChild(card_ui);
                     }
                 }
-                let dummy_rec = new PIXI.Graphics();
-                dummy_rec.beginFill(0, 0);
-                dummy_rec.drawRect(0, 0, this.page_view.width, this.page_view.height);
-                dummy_rec.endFill();
-                this.page_view.addChild(dummy_rec);
                 resolve();
             });
         });
