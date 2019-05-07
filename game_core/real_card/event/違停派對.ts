@@ -3,7 +3,7 @@ import { IEvent, ICharacter } from "../../interface";
 
 let name = "違停派對";
 let description = `當你打出*違停派對*，得到6魔力。
-結算：你得到5魔力。`;
+結算：你得到4魔力。`;
 
 export default class E extends Event implements IEvent {
     name = name;
@@ -25,7 +25,7 @@ export default class E extends Event implements IEvent {
     }
 
     async onFinish() {
-        await this.my_master.addMana(5);
+        await this.my_master.addMana(4);
     }
 
     onPush() { }

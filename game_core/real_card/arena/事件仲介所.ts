@@ -14,6 +14,7 @@ export default class A extends Arena implements IArena {
     async onExploit(char: ICharacter|Player) {
         let [p, caller] = this.getPlayerAndCaller(char);
         if(TypeGaurd.isCard(char)) {
+            await this.g_master.genCardToBoard(p, "尋貓啟事");
             await this.g_master.getMyMaster(p).retireCard(char);
         }
     }

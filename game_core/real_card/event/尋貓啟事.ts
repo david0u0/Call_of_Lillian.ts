@@ -14,21 +14,12 @@ export default class E extends Event implements IEvent {
     readonly score = 1;
     readonly goal_progress_count = 1;
     readonly init_time_count = 1;
+    is_finished = true;
 
     basic_mana_cost = 0;
 
-    checkCanPush(char: ICharacter|null) { return false; }
+    checkCanPush() { return false; }
     onPush() { }
     onFinish() { }
     setupFinishEffect() { }
-    prepare() {
-        this.my_master.set_to_board_chain.append(() => {
-            return {
-                after_effect: () => this.my_master.finishEvent(null, this)
-            };
-        }, () => {
-            return this.card_status == CardStat.Onboard
-                && !this.is_finished;
-        });
-    }
 }

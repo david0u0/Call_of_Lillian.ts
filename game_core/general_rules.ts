@@ -212,9 +212,6 @@ export class HardRule {
                 throwIfIsBackend("你想推進別人的事件？");
                 return false;
             }
-        } else if(char != event.owner) {
-            throwIfIsBackend("你想推進別人的事件？");
-            return false;
         }
         return true;
     }

@@ -153,6 +153,9 @@ export class FrontendWarMaster {
             for(let ch of chars) {
                 this.char_ui_table[ch.seq].highlight(false, true);
             }
+            for(let line of this.lines) {
+                line.destroy();
+            }
         });
     }
 

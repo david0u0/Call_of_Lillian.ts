@@ -38,12 +38,14 @@ export class EventArea {
         this.view.addChild(this.event_view);
     }
     addEvent(card: IEvent): Promise<void> {
-        return new Promise<void>(resolve => {
-            my_loader.add(card).load(() => {
-                this.addEventLoaded(card);
-                resolve();
+        if(!card.is_finished && card.card_status == CardStat.Onboard) {
+            return new Promise<void>(resolve => {
+                my_loader.add(card).load(() => {
+                    this.addEventLoaded(card);
+                    resolve();
+                });
             });
-        });
+        }
     }
     private addEventLoaded(card: IEvent) {
         let evt_ui = new PIXI.Container();

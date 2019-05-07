@@ -10,8 +10,8 @@ export default class E extends Event implements IEvent {
     description = description;
 
     readonly is_ending = false;
-    readonly score = 2;
-    readonly goal_progress_count = 3;
+    readonly score = 1;
+    readonly goal_progress_count = 2;
     readonly init_time_count = 2;
 
     basic_mana_cost = 3;

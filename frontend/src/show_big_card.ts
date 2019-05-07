@@ -22,7 +22,7 @@ export function showBigCard(gm: GameMaster, container: PIXI.Container, x: number
     let { height, width } = card_ui;
 
     let scroll_func = (evt: WheelEvent) => {
-        let delta = evt.wheelDelta? evt.wheelDelta : -evt.deltaY;
+        let delta = evt.wheelDelta? evt.wheelDelta : evt.deltaY;
         let sign = delta > 0 ? -1 : 1;
         let new_y = Math.min(y, view.y + eh * sign * 3);
         view.y = new_y;

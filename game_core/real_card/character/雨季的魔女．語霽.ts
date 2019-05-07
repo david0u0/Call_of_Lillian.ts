@@ -7,7 +7,7 @@ let description = "**呼喚不幸的體質**：當其它角色進入同一個場
 export default class C extends Character {
     name = name;
     description = description;
-    basic_strength = 0;
+    basic_strength = 1;
     basic_mana_cost = 3;
     instance = true;
 

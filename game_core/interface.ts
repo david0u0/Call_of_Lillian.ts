@@ -1,8 +1,11 @@
 import { ActionChain, GetterChain, GetterFunc, ActionFunc } from "./hook";
 import { Player, CardType, CardSeries, BattleRole, CharStat, CardStat, GamePhase } from "./enums";
 
-export type DataField = number | IKnownCard | IKnownCard[]
-    | boolean | null | { [name: string]: DataField };
+type DataField = number | IKnownCard | IKnownCard[] | boolean | null;
+
+export type Data = {
+    [name: string]: (DataField | Data | ({ [index: number]: DataField }));
+}
 
 interface IKeeper { };
 interface ICard {
@@ -17,8 +20,8 @@ interface ICard {
 type Ability = {
     description: string,
     can_play_phase: GamePhase[];
-    canTrigger: () => boolean,
-    func: () => void|Promise<void>,
+    canTrigger: (nonce: number) => boolean,
+    func: (nonce: number) => void|Promise<void>,
     instance?: boolean,
     cost?: number,
 };
@@ -34,7 +37,7 @@ interface IKnownCard extends ICard {
     readonly can_play_phase: GamePhase[];
     readonly instance: boolean;
 
-    readonly data: { [field: string]: DataField }
+    readonly data: Data;
 
     readonly check_before_play_chain: GetterChain<boolean, null>;
     readonly get_mana_cost_chain: GetterChain<number, null>;
@@ -75,8 +78,7 @@ interface IUpgrade extends IKnownCard {
     readonly basic_strength: number;
     readonly get_strength_chain: GetterChain<number, ICharacter|undefined>;
     readonly assault: boolean;
-    readonly data: {
-        [field: string]: number|IKnownCard|boolean|null,
+    readonly data: Data & {
         character_equipped: null | ICharacter
     }
 }
@@ -108,9 +110,9 @@ interface ICharacter extends IKnownCard {
     readonly push_chain: ActionChain<IEvent>;
     readonly finish_chain: ActionChain<IEvent>;
 
-    readonly data: {
-        [field: string]: number|IKnownCard|boolean|null,
-        arena_entered: null | IArena
+    readonly data: Data & {
+        arena_entered: null | IArena,
+        str_counter: number
     }
     /** 不可覆寫！ */
     setUpgrade(upgrade: IUpgrade): void;
@@ -123,8 +125,7 @@ interface IArena extends IKnownCard {
     readonly basic_exploit_cost: number;
     readonly max_capacity: number;
 
-    readonly data: {
-        [field: string]: DataField
+    readonly data: Data & {
         position: number
     };
 
@@ -176,8 +177,7 @@ interface ISpell extends IKnownCard {
     readonly card_type: CardType.Spell;
     readonly max_caster: number;
     readonly min_caster: number;
-    readonly data: {
-        [field: string]: DataField
+    readonly data: Data & {
         casters: ICharacter[]
     };
 }

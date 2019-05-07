@@ -1,6 +1,7 @@
 import { throwDebugError } from "./errors";
 import { RuleEnums } from "./enums";
 
+const TIME_LIMIT = 10 * 1000;
 const MASK_ALL = RuleEnums.Any;
 
 // TODO: 想辦法避免兩條鏈循環呼叫！
@@ -115,8 +116,18 @@ class ActionChain<U> {
     private check_chain = new GetterChain<string | boolean, U>();
 
     private add(append: boolean, is_default: boolean,
-        func: ActionFunc<U>, isActive=() => true, id?: number
+        _func: ActionFunc<U>, isActive=() => true, id?: number
     ) {
+        let func: ActionFunc<U> = async (const_arg, nonce) => {
+            let handle = setTimeout(() => {
+                this.onTimesUp();
+            }, TIME_LIMIT);
+            let res = await _func(const_arg, nonce);
+            clearTimeout(handle);
+            if(res) {
+                return res;
+            }
+        };
         let h = { func, isActive, id, is_default };
         if(append) {
             this.action_list.push(h);
@@ -295,6 +306,11 @@ class ActionChain<U> {
     private defaultAfterEffect: () => Promise<void> | void = () => { };
     public setDefaultAfterEffect(effect: () => Promise<void> | void) {
         this.defaultAfterEffect = effect;
+    }
+
+    private onTimesUp = () => { };
+    public setOnTimesUp(func: () => void) {
+        this.onTimesUp = func;
     }
 }
 

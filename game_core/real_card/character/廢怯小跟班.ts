@@ -7,7 +7,7 @@ let description = "**練習勇敢！**：你可以花費1魔力，使*廢怯小�
 export default class C extends Character {
     name = name;
     description = description;
-    basic_mana_cost = 3;
+    basic_mana_cost = 2;
     basic_strength = 0;
     basic_battle_role = { can_attack: true, can_block: true };
     

@@ -21,7 +21,7 @@ export class WarMaster {
 
     private _war_seq = 0;
     /** 避免開戰後完全不攻擊就結束 */
-    private _attacked = false;
+    private _has_attacked = false;
 
     private _detailed_phase = DetailedWarPhase.None;
     public get detailed_phase() { return this._detailed_phase; }
@@ -46,8 +46,8 @@ export class WarMaster {
         }
         return true;
     }
-    public getConflictEnum(char: ICharacter) {
-        if(char.char_status != CharStat.InWar) {
+    public getConflictEnum(char: ICharacter | null) {
+        if(!char || char.char_status != CharStat.InWar) {
             return ConflictEnum.OutOfWar;
         } else if(char.seq in this.conflict_table) {
             return ConflictEnum.Attacking;
@@ -170,13 +170,16 @@ export class WarMaster {
     public async declareWar(declarer: Player, arena: IArena, by_keeper: boolean) {
         let nonce = this.t_master.nonce;
         if(!this.checkCanDeclare(declarer, arena, nonce)) {
+            if(this.declare_war_chain.err_msg) {
+                throwIfIsBackend(this.declare_war_chain.err_msg);
+            }
             return;
         }
         let pm = this.getMyMaster(declarer);
         let cost = this.get_declare_cost_chain
         .trigger(Constant.WAR_COST, { declarer, arena }, nonce);
-        if(pm.mana >= cost && this.declare_war_chain.checkCanTrigger({ declarer, arena }, nonce)) {
-            pm.addMana(-cost);
+        if(pm.mana >= cost) {
+            await pm.addMana(-cost);
             let res = await this.declare_war_chain.byKeeper(by_keeper)
             .trigger({ declarer, arena }, nonce, () => {
                 this.t_master.setWarPhase(GamePhase.InWar);
@@ -186,12 +189,14 @@ export class WarMaster {
                 this._atk_win_count = this._def_win_count = 0;
                 this.setupWar();
             });
+            return true;
         } else {
             throwIfIsBackend("取消宣戰");
+            return false;
         }
     }
     private setupWar() {
-        this._attacked = false;
+        this._has_attacked = false;
         this._detailed_phase = DetailedWarPhase.Attaking;
         if(this.war_field) {
             for(let a of this.getAllWarFields(this.war_field)) {
@@ -260,14 +265,15 @@ export class WarMaster {
     private _target: ICharacter | null = null;
     public get target() { return this._target; }
     public async startAttack(atk_chars: ICharacter[], target: ICharacter) {
-        // TODO: 應該把戰鬥切分成更多步驟，不該只用 cur_player 來判斷輪到誰攻擊
         if(this.t_master.cur_player != this.atk_player) {
             throw new BadOperationError("還沒輪到你攻擊！");
         }
         if(!this.checkCanAttack(atk_chars, target)) {
             throw new BadOperationError("不可攻擊");
         } else {
-            this._attacked = true;
+            this._conflict_table = {};
+            this._target = null;
+            this._has_attacked = true;
             this._target = target;
             for(let ch of atk_chars) {
                 this._conflict_table[ch.seq] = target;
@@ -323,8 +329,6 @@ export class WarMaster {
         if(this.target && rest_atkers.length > 0) {
             await this.doSingleConflict(rest_atkers, this.target, true);
         }
-        this._conflict_table = {};
-        this._target = null;
         this._detailed_phase = DetailedWarPhase.Attaking;
     }
     private async doSingleConflict(atk_chars: ICharacter[], def: ICharacter, is_target: boolean) {
@@ -379,7 +383,7 @@ export class WarMaster {
         }
     }
     public async endWar(by_keeper: boolean): Promise<boolean> {
-        if(!this._attacked) {
+        if(!this._has_attacked && by_keeper) {
             throwIfIsBackend("至少要攻擊一次才可停戰");
             return false;
         } else {

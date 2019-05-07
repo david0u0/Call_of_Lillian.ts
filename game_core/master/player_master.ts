@@ -291,12 +291,13 @@ export class PlayerMaster {
         return this.get_score_chain.trigger(score, null, this.t_master.nonce);
     }
 
-    getStrength(card: ICharacter|IUpgrade, enemy?: ICharacter) {
+    getStrength(card: ICharacter | IUpgrade, enemy?: ICharacter) {
         let strength = card.basic_strength;
         if(TG.isCharacter(card)) {
             for(let u of card.upgrade_list) {
                 strength += this.getStrength(u);
             }
+            strength += card.data.str_counter;
         }
         strength = this.get_strength_chain.chain(card.get_strength_chain, enemy)
         .trigger(strength, { enemy, card }, this.t_master.nonce);
@@ -378,6 +379,10 @@ export class PlayerMaster {
                         await this.retireCard(a);
                     }
                 }
+            } else if(TG.isEvent(card)) {
+                if(card.is_finished) {
+                    await this.finishEvent(null, card);
+                }
             }
             if(card.card_status != CardStat.Onboard) {
                 card.card_status = CardStat.Onboard;
@@ -396,16 +401,16 @@ export class PlayerMaster {
         let nonce = this.t_master.nonce;
         await this.setup_before_action_chain
         .trigger({args: [card], action: ActionEnums.Ability }, nonce);
-        // TODO: before_action_chain
+
         let ability = card.abilities[a_index];
-        if(ability && ability.canTrigger()
+        if(ability && ability.canTrigger(nonce)
             && this.ability_chain.checkCanTrigger({ card, ability }, nonce)
         ) {
             let cost = ability.cost ? ability.cost : 0;
             if(this.mana >= cost) {
                 await this.ability_chain.byKeeper(by_keeper)
                 .trigger({ card, ability }, nonce, async () => {
-                    await Promise.resolve(ability.func());
+                    await Promise.resolve(ability.func(nonce));
                 });
                 if(!ability.instance) {
                     this.t_master.spendAction();

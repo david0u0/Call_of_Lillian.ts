@@ -7,7 +7,7 @@ let description = "裝備者獲得*狙擊*特性。";
 export default class U1 extends Upgrade {
     name = name;
     description = description;
-    basic_mana_cost = 4;
+    basic_mana_cost = 3;
     basic_strength = 1;
 
     setupAliveEffect() {

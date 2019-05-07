@@ -1,5 +1,8 @@
 import { CardType, CardSeries, Player, BattleRole, CharStat, CardStat, GamePhase, RuleEnums } from "./enums";
-import { IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG, IEvent, Ability, DataField, Card, buildConfig } from "./interface";
+import {
+    IKnownCard, ICharacter, IUpgrade, IArena, ISpell, TypeGaurd as TG,
+    IEvent, Ability, Data, Card, buildConfig
+} from "./interface";
 import { ActionChain, GetterChain, ActionFunc, GetterFunc, CheckFunc  } from "./hook";
 import { Constant as C } from "./general_rules";
 import { BadOperationError } from "./errors";
@@ -17,8 +20,8 @@ abstract class KnownCard extends Card implements IKnownCard {
     public series: CardSeries[] = []
     public instance = false;
 
-    public readonly data: { [field: string]: DataField } = {};
-    private readonly _mem_data: { [field: string]: DataField } = {};
+    public readonly data: Data = {};
+    private readonly _mem_data: Data = {};
 
     public card_status = CardStat.Deck;
 
@@ -39,10 +42,10 @@ abstract class KnownCard extends Card implements IKnownCard {
                 res = [...res, ...upgrade.abilities];
             }
         }
-        return res.filter(a => a.canTrigger());
+        return res.filter(a => a.can_play_phase.indexOf(this.g_master.t_master.cur_phase) != -1);
     }
 
-    public initialize(): Promise<boolean>|boolean { return true; }
+    public initialize(): Promise<boolean> | boolean { return true; }
     public onPlay() { }
     public setupAliveEffect() { }
     public onRetrieve() { }
@@ -152,11 +155,9 @@ abstract class Upgrade extends KnownCard implements IUpgrade {
     public abstract readonly basic_strength: number;
     public readonly instance = true; // 升級卡不會暫用時間
     public readonly assault: boolean = false;
-    
-    public readonly data: {
-        character_equipped: ICharacter | null
-    } = {
-        character_equipped: null
+
+    public readonly data = {
+        character_equipped: null as ICharacter | null
     };
     
     public readonly get_strength_chain = new GetterChain<number, ICharacter|undefined>();
@@ -215,10 +216,9 @@ abstract class Character extends KnownCard implements ICharacter {
     public readonly push_chain = new ActionChain<IEvent>();
     public readonly finish_chain = new ActionChain<IEvent>();
 
-    public readonly data: {
-        arena_entered: IArena | null
-    } = {
-        arena_entered: null
+    public readonly data = {
+        arena_entered: null as IArena | null,
+        str_counter: 0
     };
 
     setUpgrade(u: IUpgrade) {

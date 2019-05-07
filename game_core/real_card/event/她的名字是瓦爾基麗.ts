@@ -2,7 +2,7 @@ import { Event } from "../../cards";
 import { IEvent, ICharacter, TypeGaurd } from "../../interface";
 import { Player, CardStat } from "../../enums";
 
-let name = "老闆的名字是瓦爾基麗";
+let name = "她的名字是瓦爾基麗";
 let description = `推進：你戰力最高的兩個角色需處於對手的同一個場所→搶奪對手2魔力。
 結算：雙方的分數額外加上手下戰力次高角色的戰力。`;
 
@@ -11,7 +11,7 @@ export default class E extends Event implements IEvent {
     description = description;
 
     readonly is_ending = true;
-    readonly score = 3;
+    readonly score = 4;
     readonly goal_progress_count = 3;
     readonly init_time_count = 2;
 

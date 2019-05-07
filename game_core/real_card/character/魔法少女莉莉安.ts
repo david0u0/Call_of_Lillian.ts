@@ -15,9 +15,11 @@ export default class C2 extends Character implements ICharacter {
 
     readonly data: {
         arena_entered: IArena | null,
+        str_counter: number,
         event_to_pay: IEvent | null
     } = {
         arena_entered: null,
+        str_counter: 0,
         event_to_pay: null
     }
 

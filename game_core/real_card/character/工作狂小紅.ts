@@ -12,6 +12,7 @@ export default class C extends Character {
     basic_battle_role = { can_attack: true, can_block: true, is_melee: true };
 
     public readonly data = {
+        str_counter: 0,
         arena_entered: null,
         has_exploited: false
     }

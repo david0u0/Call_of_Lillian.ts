@@ -4,7 +4,7 @@ import { CardSeries, Player, CardStat, RuleEnums } from "../../enums";
 import { BadOperationError } from "../../errors";
 
 let name = "獨當一面的證明";
-let description = `選擇對手的一個位置成為「試煉場」。每次你使用該位置的場所，本事件推進增加1。本事件不可被角色推進。
+let description = `選擇對手的一個位置成為「試煉場」，每次你使用該位置的場所，本事件推進增加1。本事件不可被角色推進。
 結算：從牌庫檢索2張卡牌。`;
 
 export default class E extends Event implements IEvent {
@@ -12,16 +12,14 @@ export default class E extends Event implements IEvent {
     description = description;
 
     readonly is_ending = false;
-    readonly score = 1;
+    readonly score = 2;
     readonly goal_progress_count = 3;
     readonly init_time_count = 2;
     readonly push_cost = 0;
 
     basic_mana_cost = 3;
 
-    data: {
-        trial_pos: number
-    } = {
+    data = {
         trial_pos: -1
     };
 
@@ -36,7 +34,8 @@ export default class E extends Event implements IEvent {
     onPush(char: ICharacter | null) { }
 
     async onFinish() {
-        let card = await this.g_master.selecter.selectCardInteractive(this.owner, this, buildConfig({
+        let card = await this.g_master.selecter.cancelUI()
+        .selectCardInteractive(this.owner, this, buildConfig({
             guard: TypeGaurd.isKnown,
             stat: CardStat.Deck,
             owner: this.owner,                
@@ -45,7 +44,6 @@ export default class E extends Event implements IEvent {
             let card_to_draw = await this.g_master.exposeCard(card);
             await this.my_master.draw(card_to_draw);
         }
-        await this.my_master.retireCard(this);
     }
 
     setupFinishEffect() { }
