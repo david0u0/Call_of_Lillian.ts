@@ -6,6 +6,7 @@ import { BadOperationError } from "../../game_core/errors";
 import { Player, CharStat, CardStat } from "../../game_core/enums";
 import { ShowBigCard } from "./show_big_card";
 import { getCardSize } from "./draw_card";
+import { SearchViewer } from "./search_viewer";
 
 export enum SelectState { Text, OnBoard, None, Btn, Card };
 
@@ -33,7 +34,12 @@ export default class FrontendSelecter implements ISelecter {
     private _select_conf: SelectConfig<IKnownCard> = null;
     public get select_conf() { return this._select_conf; }
 
-    constructor(private me: Player, private ticker: PIXI.ticker.Ticker) {
+    private search_viewer: SearchViewer = null;
+    setSearchViewer(viewer: SearchViewer) {
+        this.search_viewer = viewer;
+    }
+
+    constructor(private me: Player) {
         let { width, height } = getWinSize();
         this.cancel_view.beginFill(0, 0);
         this.cancel_view.drawRect(0, 0, width, height);
@@ -73,6 +79,7 @@ export default class FrontendSelecter implements ISelecter {
         if(arg == null && this.select_conf && this.select_conf.must_have_value) {
             return;
         }
+        this.search_viewer.hide();
         this._select_conf = null;
         this._selecting = SelectState.None;
         for(let line of this.lines) {
@@ -195,6 +202,19 @@ export default class FrontendSelecter implements ISelecter {
                 }
             };
             return new Promise<T | null>(async resolve => {
+                if(conf.stat == CardStat.Deck) {
+                    let _deck = this.search_viewer.gm.getMyMaster(conf.owner).deck;
+                    let deck = new Array<IKnownCard>();
+                    for(let card of _deck) {
+                        if(TypeGaurd.isKnown(card)) {
+                            deck.push(card);
+                        } else {
+                            throw new BadOperationError("欲選擇的牌堆裡竟然有未知的牌");
+                        }
+                    }
+                    this.search_viewer.show(deck, card => this.onCardClicked(card));
+                // TODO: } else if(conf.is_finished) {
+                }
                 let line_init_pos: { x: number, y: number }[];
                 if(caller) {
                     line_init_pos = await this.startSelect(caller);

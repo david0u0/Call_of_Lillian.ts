@@ -39,6 +39,7 @@ for(let abs_name of Object.keys(card_class_table)) {
         // 若是發佈配置，就不允許使用未經測試的卡牌
         if(card.tested || config.MODE != "RELEASE") {
             card_obj_table[abs_name] = card;
+            console.log(`成功建構卡牌：${abs_name}`);
         }
     } catch(err) {
         console.log(`無法建構卡牌：${abs_name}`);

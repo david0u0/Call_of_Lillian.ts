@@ -3,13 +3,13 @@ import { CharStat, RuleEnums } from "../../enums";
 import { buildConfig, TypeGaurd } from "../../interface";
 
 let name = "飛行隊的秘密武器";
-let description = "**空襲警報**：當你宣戰時，若本角色不在戰場且尚未疲勞，你可以支付一魔力，將其轉移至戰場。";
+let description = "**空襲警報**：當你宣戰時，若本角色不在戰場且尚未疲勞，你可以將其轉移至戰場。";
 
 export default class C extends Character {
     name = name;
     description = description;
-    basic_strength = 3;
-    basic_mana_cost = 6;
+    basic_strength = 2;
+    basic_mana_cost = 4;
 
     setupAliveEffect() {
         let wm = this.g_master.w_master;
@@ -31,7 +31,6 @@ export default class C extends Character {
                                 }
                             }));
                             if(arena) {
-                                await this.my_master.addMana(-1);
                                 if(this.data.arena_entered) {
                                     await this.my_master.exitArena(this);
                                 }
