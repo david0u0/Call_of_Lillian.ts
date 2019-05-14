@@ -148,6 +148,10 @@ export class EventArea {
         evt_ui.addChild(countdown_area);
         evt_ui.y = 0.7 * evt_ui.height * index;
         this.event_view.addChild(evt_ui);
+
+        this.selecter.registerCardStartSelect(card, () => {
+            return { view: evt_ui, cleanup: () => { } };
+        });
     }
     finishEvent(event: IEvent, destroy_big: () => void) {
         this.removeEvent(event, destroy_big);

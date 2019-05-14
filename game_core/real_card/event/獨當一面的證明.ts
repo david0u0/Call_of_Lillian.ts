@@ -34,7 +34,7 @@ export default class E extends Event implements IEvent {
     onPush(char: ICharacter | null) { }
 
     async onFinish() {
-        let card = await this.g_master.selecter.cancelUI()
+        let card = await this.g_master.selecter.cancelUI().promptUI("請選擇檢索的卡牌")
         .selectCardInteractive(this.owner, this, buildConfig({
             guard: TypeGaurd.isKnown,
             stat: CardStat.Deck,

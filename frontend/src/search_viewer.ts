@@ -17,7 +17,9 @@ export class SearchViewer {
     private cleanup_funcs = new Array<(() => void) | null>();
     private onClick: (card: IKnownCard) => void;
     private onHover: (card: IKnownCard, inside: boolean) => void;
-    constructor(private gm: GameMaster, private showBigCard: ShowBigCard, width: number, height: number) {
+    constructor(public readonly gm: GameMaster, private showBigCard: ShowBigCard,
+        width: number, height: number
+    ) {
         this.view.visible = false;
         this.index_txt = new PIXI.Text("", new PIXI.TextStyle({
             fontSize: 30, fill: 0

@@ -66,7 +66,7 @@ async function setup() {
     let me = Player.Player1;
     let { width, height } = getWinSize();
     let { ew, eh } = getEltSize();
-    let selecter = new FrontendSelecter(me, app.ticker);
+    let selecter = new FrontendSelecter(me);
     let gm = new GameMaster(selecter, generateCard);
 
     let show_big_card: ShowBigCard = (x: number, y: number, card: ICard,
@@ -78,7 +78,7 @@ async function setup() {
     search_viewer.drawBG(0xffffff, 0.7);
     search_viewer.view.pivot.set(search_viewer.view.width / 2, search_viewer.view.height / 2);
     search_viewer.view.position.set(ew * 21, eh * 21);
-    selecter.search_viewer = search_viewer;
+    selecter.setSearchViewer(search_viewer);
 
     let bg = new PIXI.Sprite(PIXI.loader.resources["background"].texture);
     let ratio = Math.max(width / bg.width, height / bg.height);
@@ -141,8 +141,8 @@ async function setup() {
     app.stage.addChild(hands_ui2_obj.view);
     app.stage.addChild(f_w_master.view);
     app.stage.addChild(phase_notifier.view);
-    app.stage.addChild(selecter.view);
     app.stage.addChild(search_viewer.view);
+    app.stage.addChild(selecter.view);
     app.stage.addChild(selecter.prompt_txt);
 }
 
